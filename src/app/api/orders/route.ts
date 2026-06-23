@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
+import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { orderMatchesPaymentFilter, orderMatchesSearch } from "@/lib/admin/notifications/orders-view";
 import { fetchAdminOrderStats } from "@/lib/orders/admin-stats";
@@ -187,7 +188,7 @@ export async function GET(req: Request) {
   if (admin && listFilter.kind !== "returns") {
     let query = db
       .from("orders")
-      .select("*", { count: "estimated" })
+      .select(ADMIN_ORDER_LIST_SELECT, { count: "estimated" })
       .order("created_at", { ascending: false });
 
     if (listFilter.kind === "status") {
@@ -229,7 +230,7 @@ export async function GET(req: Request) {
 
     const adminQueryMeta: OrderQueryDebugMeta = {
       source: "admin-orders",
-      columns: "*",
+      columns: ADMIN_ORDER_LIST_SELECT,
       count: "estimated",
       page,
       limit,
@@ -295,7 +296,7 @@ export async function GET(req: Request) {
   } else {
     let query = db
       .from("orders")
-      .select("*", { count: "estimated" })
+      .select(ADMIN_ORDER_LIST_SELECT, { count: "estimated" })
       .order("created_at", { ascending: false });
 
     if (listFilter.kind === "status") {
@@ -374,7 +375,7 @@ export async function GET(req: Request) {
 
     const listQueryMeta: OrderQueryDebugMeta = {
       source: "admin-returns-orders",
-      columns: "*",
+      columns: ADMIN_ORDER_LIST_SELECT,
       count: "estimated",
       page,
       limit,

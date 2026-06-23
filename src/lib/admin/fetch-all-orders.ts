@@ -1,5 +1,9 @@
 import type { Order } from "@/types";
 
+/** Lean projection for admin list/analytics pagination — excludes items and large JSON blobs. */
+export const ADMIN_ORDER_LIST_SELECT =
+  "id,order_number,status,payment_status,payment_method,total,created_at,updated_at,user_id,guest_email,shipping_address";
+
 export async function fetchAllOrdersForAdmin(): Promise<Order[]> {
   const limit = 100;
   let page = 1;
