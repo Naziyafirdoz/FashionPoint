@@ -34,7 +34,7 @@ export function InternalNotesCard({ orderId, initialNotes = "", onSaved }: Inter
   };
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
         Internal Notes
       </h2>

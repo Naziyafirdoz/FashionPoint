@@ -1,11 +1,5 @@
-import { AdminHeader } from "@/components/admin/AdminHeader";
-import { AdminDashboardClient } from "@/components/admin/dashboard/AdminDashboardClient";
+import { AdminDashboardPageClient } from "@/components/admin/dashboard/AdminDashboardPageClient";
 
 export default function AdminDashboardPage() {
-  return (
-    <>
-      <AdminHeader title="Dashboard" />
-      <AdminDashboardClient />
-    </>
-  );
+  return <AdminDashboardPageClient />;
 }

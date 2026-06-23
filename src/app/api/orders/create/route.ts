@@ -109,8 +109,26 @@ export async function POST(req: Request) {
 
     const normalized = await normalizeOrderRecord(db, order, { persist: false });
     await createShipmentForOrder(db, normalized);
-    await sendNewOrderAlerts(db, normalized);
-    await notifyCustomerOrderReceived(normalized);
+
+    try {
+      await sendNewOrderAlerts(db, normalized);
+    } catch (error) {
+      console.error("[orders/create] admin new-order alerts failed", {
+        orderId: normalized.id,
+        orderNumber: normalized.order_number,
+        error
+      });
+    }
+
+    try {
+      await notifyCustomerOrderReceived(normalized);
+    } catch (error) {
+      console.error("[orders/create] customer thank-you email failed", {
+        orderId: normalized.id,
+        orderNumber: normalized.order_number,
+        error
+      });
+    }
 
     return NextResponse.json({
       success: true,

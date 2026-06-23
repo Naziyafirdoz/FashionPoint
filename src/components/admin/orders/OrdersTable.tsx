@@ -25,8 +25,9 @@ type OrdersTableProps = {
   onPrint: (order: OrderListRow) => void;
   onDownloadInvoice?: (order: OrderListRow) => void;
   onStartProcessing?: (order: OrderListRow) => void;
-  onPack?: (order: OrderListRow) => void;
-  onShip?: (order: OrderListRow) => void;
+  onApproveOrder?: (order: OrderListRow) => void;
+  onReadyForShipping?: (order: OrderListRow) => void;
+  onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
   onProcessRefund?: (orderId: string) => void;
 };
@@ -34,15 +35,15 @@ type OrdersTableProps = {
 function StatusPill({ order }: { order: OrderListRow }) {
   return (
     <span
-      className={`inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getStagePillClass(order)}`}
+      className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-xs font-semibold shadow-sm ${getStagePillClass(order)}`}
     >
       <span className="truncate">{getStageLabel(order)}</span>
     </span>
   );
 }
 
-const thClass = "px-2 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 md:px-3";
-const tdClass = "px-2 py-3 align-top md:px-3 md:py-4";
+const thClass = "px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500";
+const tdClass = "px-3 py-3.5 align-top";
 
 export function OrdersTable({
   orders,
@@ -50,8 +51,9 @@ export function OrdersTable({
   onPrint,
   onDownloadInvoice,
   onStartProcessing,
-  onPack,
-  onShip,
+  onApproveOrder,
+  onReadyForShipping,
+  onMarkShipped,
   onMarkDelivered,
   onProcessRefund
 }: OrdersTableProps) {
@@ -63,7 +65,7 @@ export function OrdersTable({
           <th className={`${thClass} w-[22%]`}>Customer</th>
           <th className={`${thClass} w-[11%]`}>Total</th>
           <th className={`${thClass} w-[13%]`}>Payment</th>
-          <th className={`${thClass} w-[14%]`}>Status</th>
+          <th className={`${thClass} w-[15%]`}>Status</th>
           <th className={`${thClass} hidden w-[10%] lg:table-cell`}>Items</th>
           <th className={`${thClass} w-[27%] lg:w-[17%]`}>Actions</th>
         </tr>
@@ -135,8 +137,9 @@ export function OrdersTable({
                     primaryAction={primaryAction}
                     busy={busy}
                     onStartProcessing={onStartProcessing}
-                    onPack={onPack}
-                    onShip={onShip}
+                    onApproveOrder={onApproveOrder}
+                    onReadyForShipping={onReadyForShipping}
+                    onMarkShipped={onMarkShipped}
                     onMarkDelivered={onMarkDelivered}
                     onProcessRefund={onProcessRefund}
                     onPrint={onPrint}

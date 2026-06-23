@@ -35,7 +35,7 @@ export const PAYMENT_STATUS_COLORS: Record<string, string> = {
   failed: "bg-red-100 text-red-800"
 };
 
-export const PAGE_SIZE = 20;
+export const PAGE_SIZE = 10;
 
 export type OrderListRow = Order & {
   review_count?: number;

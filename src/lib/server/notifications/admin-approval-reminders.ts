@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAdminEmail } from "@/lib/admin/admin-contacts";
+import { getStaffOrderAlertEmails } from "@/lib/admin/admin-contacts";
 import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
 import { buildPendingOrderReminderEmail } from "@/lib/server/notifications/email-templates";
 import {
   cancelOrderReminders,
   scheduleOrderReminder
 } from "@/lib/server/notifications/order-reminders";
+import { createOrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
 import {
   formatReminderDelayLabel,
@@ -102,16 +103,16 @@ export async function sendAdminPendingOrderReminderEmail(
   db: SupabaseClient,
   order: Order
 ): Promise<void> {
-  const adminEmail = getAdminEmail();
+  const recipients = getStaffOrderAlertEmails();
   const eventKey = "pending_order_reminder";
 
-  if (!adminEmail) {
+  if (!recipients.length) {
     await db.from("notification_logs").insert({
       order_id: order.id,
       channel: "email",
       event: eventKey,
       success: false,
-      error_message: "ADMIN_EMAIL not configured"
+      error_message: "ADMIN_EMAIL / WORKER_EMAILS not configured"
     });
     return;
   }
@@ -120,13 +121,16 @@ export async function sendAdminPendingOrderReminderEmail(
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) throw new Error("RESEND_API_KEY not configured");
 
+    const actionUrls = await createOrderEmailActionUrls(db, order.id);
+    if (!actionUrls) throw new Error("Unable to create secure email action tokens");
+
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const template = buildPendingOrderReminderEmail(order);
+    const template = buildPendingOrderReminderEmail(order, actionUrls);
 
     await resend.emails.send({
       from: RESEND_FROM_ALERTS,
-      to: adminEmail,
+      to: recipients,
       subject: template.subject,
       html: template.html
     });

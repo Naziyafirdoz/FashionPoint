@@ -24,6 +24,9 @@ export type AdminNotification = {
   amount?: number;
   priority?: AdminNotificationPriority;
   actionLabel?: string;
+  payload?: Record<string, unknown>;
+  status?: string;
+  remindAfter?: string | null;
   read: boolean;
   createdAt: string;
   source?: "database" | "local";

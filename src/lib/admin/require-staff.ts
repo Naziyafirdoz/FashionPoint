@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type StaffRole = "admin" | "worker";
+export type StaffRole = "owner" | "admin" | "worker";
 
 export type StaffContext = {
   db: SupabaseClient;
@@ -12,7 +12,7 @@ export type StaffContext = {
 };
 
 export async function requireStaff(
-  allowedRoles: StaffRole[] = ["admin", "worker"]
+  allowedRoles: StaffRole[] = ["owner", "admin", "worker"]
 ): Promise<{ ok: true; ctx: StaffContext } | { ok: false; response: NextResponse }> {
   const supabase = await createClient();
   const {
@@ -49,11 +49,11 @@ export async function requireStaff(
 export async function requireAdminStaff(): Promise<
   { ok: true; ctx: StaffContext } | { ok: false; response: NextResponse }
 > {
-  return requireStaff(["admin"]);
+  return requireStaff(["owner", "admin"]);
 }
 
 export async function requireWorkerStaff(): Promise<
   { ok: true; ctx: StaffContext } | { ok: false; response: NextResponse }
 > {
-  return requireStaff(["worker", "admin"]);
+  return requireStaff(["owner", "admin", "worker"]);
 }

@@ -20,7 +20,8 @@ type ReviewFormModalProps = {
   onClose: () => void;
   defaults: ReviewFormDefaults;
   existingReview?: UserReviewPreview | null;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
+  onDuplicateReview?: () => void;
 };
 
 export function ReviewFormModal({
@@ -28,7 +29,8 @@ export function ReviewFormModal({
   onClose,
   defaults,
   existingReview,
-  onSuccess
+  onSuccess,
+  onDuplicateReview
 }: ReviewFormModalProps) {
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("");
@@ -41,13 +43,28 @@ export function ReviewFormModal({
   useEffect(() => {
     if (!open) return;
 
-    setRating(existingReview?.rating ?? 5);
-    setTitle(existingReview?.title ?? "");
-    setBody(existingReview?.body ?? "");
-    setImages(existingReview?.images ?? []);
-    setSizePurchased(existingReview?.size_purchased ?? defaults.sizePurchased ?? "");
-    setColorPurchased(existingReview?.color_purchased ?? defaults.colorPurchased ?? "");
-  }, [open, existingReview, defaults.sizePurchased, defaults.colorPurchased]);
+    console.info("[review-modal] reset", {
+      productId: defaults.productId,
+      orderId: defaults.orderId ?? null
+    });
+
+    if (existingReview) {
+      setRating(existingReview.rating ?? 5);
+      setTitle(existingReview.title ?? "");
+      setBody(existingReview.body ?? "");
+      setImages(existingReview.images ?? []);
+      setSizePurchased(existingReview.size_purchased ?? defaults.sizePurchased ?? "");
+      setColorPurchased(existingReview.color_purchased ?? defaults.colorPurchased ?? "");
+      return;
+    }
+
+    setRating(5);
+    setTitle("");
+    setBody("");
+    setImages([]);
+    setSizePurchased(defaults.sizePurchased ?? "");
+    setColorPurchased(defaults.colorPurchased ?? "");
+  }, [open, existingReview, defaults.productId, defaults.orderId, defaults.sizePurchased, defaults.colorPurchased]);
 
   if (!open) return null;
 
@@ -91,14 +108,23 @@ export function ReviewFormModal({
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error ?? "Failed to save review");
+        const message = typeof data.error === "string" ? data.error : "Failed to save review";
+        if (message.includes("already reviewed")) {
+          console.info("[review-submit] duplicate review detected");
+          console.info("[review-submit] refreshing review state");
+          onDuplicateReview?.();
+          onClose();
+        }
+        toast.error(message);
         return;
       }
 
       toast.success(
         existingReview ? "Review updated and sent for moderation" : "Review submitted for moderation"
       );
-      onSuccess();
+      console.info("[review-submit] success");
+      console.info("[review-submit] refreshing review state");
+      await onSuccess();
       onClose();
     } catch {
       toast.error("Failed to save review");

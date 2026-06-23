@@ -17,8 +17,7 @@ function variantKey(productId: string, size: string, color: string) {
   return `${productId}::${size}::${color}`;
 }
 
-async function loadSkuMaps(db: SupabaseClient, lines: NormalizedOrderItem[]) {
-  const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
+async function loadSkuMapsForProductIds(db: SupabaseClient, productIds: string[]) {
   const variantMap = new Map<string, string>();
   const productMap = new Map<string, string>();
 
@@ -49,6 +48,11 @@ async function loadSkuMaps(db: SupabaseClient, lines: NormalizedOrderItem[]) {
   }
 
   return { variantMap, productMap };
+}
+
+async function loadSkuMaps(db: SupabaseClient, lines: NormalizedOrderItem[]) {
+  const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
+  return loadSkuMapsForProductIds(db, productIds);
 }
 
 function resolveSku(
@@ -110,4 +114,27 @@ export async function enrichOrderRecordItems<T extends { items: unknown }>(
   const enriched = await enrichOrderItemsWithSku(db, order.items);
   const merged = mergeSkuIntoOrderItems(order.items, enriched);
   return { ...order, items: merged };
+}
+
+/** Batch SKU enrichment for order lists — two DB queries total instead of per-order. */
+export async function enrichOrderRecordsBatch<T extends { items: unknown }>(
+  db: SupabaseClient,
+  orders: T[]
+): Promise<T[]> {
+  if (orders.length === 0) return orders;
+
+  const linesPerOrder = orders.map((order) => normalizeOrderItems(order.items));
+  const productIds = [
+    ...new Set(
+      linesPerOrder.flatMap((lines) => lines.map((line) => line.productId).filter(Boolean))
+    )
+  ];
+
+  const { variantMap, productMap } = await loadSkuMapsForProductIds(db, productIds);
+
+  return orders.map((order, index) => {
+    const enriched = enrichNormalizedItemsWithSku(linesPerOrder[index], variantMap, productMap);
+    const merged = mergeSkuIntoOrderItems(order.items, enriched);
+    return { ...order, items: merged };
+  });
 }

@@ -1,25 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { CustomerInformationCard } from "@/components/admin/orders/detail/CustomerInformationCard";
 import { DeliveryInformationCard } from "@/components/admin/orders/detail/DeliveryInformationCard";
-import { AdminDeliveryEstimate } from "@/components/admin/orders/detail/AdminDeliveryEstimate";
 import { InternalNotesCard } from "@/components/admin/orders/detail/InternalNotesCard";
 import { OrderDetailHeader } from "@/components/admin/orders/detail/OrderDetailHeader";
-import { OrderDetailTimeline } from "@/components/admin/orders/detail/OrderDetailTimeline";
+import { OrderTimelineFinancialCard } from "@/components/admin/orders/detail/OrderTimelineFinancialCard";
 import { resolveDetailPrimaryAction } from "@/components/admin/orders/detail/resolveDetailAction";
-import { ShippingCard } from "@/components/admin/orders/detail/ShippingCard";
 import { MarkRefundedModal } from "@/components/admin/orders/MarkRefundedModal";
+import { RapidoGuideModal } from "@/components/admin/orders/RapidoGuideModal";
 import { OrderProductsList } from "@/components/admin/orders/OrderProductsList";
 import { RefundInformationSection } from "@/components/admin/orders/RefundInformationSection";
 import { RefundTrackingUnavailable } from "@/components/admin/orders/RefundTrackingUnavailable";
-import { ShippingModal } from "@/components/admin/orders/ShippingModal";
-import { WorkerAssignCard } from "@/components/admin/orders/WorkerAssignCard";
 import {
-  customerEmail,
-  customerName,
-  customerPhone,
   downloadInvoicePdf,
   printOrder
 } from "@/lib/orders/admin-orders";
@@ -30,8 +25,75 @@ import {
   shouldShowRefundSection
 } from "@/lib/orders/refunds";
 import { REFUND_MIGRATION_UNAVAILABLE } from "@/lib/orders/refund-schema";
+import { triggerPostShipSideEffects } from "@/lib/orders/post-ship-side-effects";
+import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 import { isCancellationRefundWorkflowEnabled, RETURNS_EXCHANGES_REFUNDS_DISABLED } from "@/lib/store-policy";
+import { useAdminNotifications } from "@/contexts/AdminNotificationsProvider";
 import type { Order, ReturnRequest } from "@/types";
+
+async function refetchOrderFromApi(orderId: string): Promise<Order | null> {
+  const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store", credentials: "include" });
+  const data = await res.json();
+  if (!res.ok || !data.order) return null;
+  return data.order as Order;
+}
+
+/** Persist packing via API, then refetch — never mutate status locally. */
+async function persistAutoStartPacking(orderId: string, oldStatus: string): Promise<Order | null> {
+  console.info("[start-packing] old status:", oldStatus);
+  console.info("[start-packing] calling API");
+
+  let apiOk = false;
+  let apiError: string | undefined;
+  let apiReturnedStatus: string | undefined;
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}/start-packing`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store"
+    });
+    const data = await res.json();
+    apiOk = res.ok;
+    apiError = data.error;
+    apiReturnedStatus = data.order?.status;
+
+    console.info("[start-packing] API response:", {
+      httpStatus: res.status,
+      ok: res.ok,
+      body: data
+    });
+    console.info("[start-packing] database returned status:", apiReturnedStatus ?? "(none)");
+  } catch (err) {
+    console.error("[start-packing] API request failed:", err);
+    toast.error("Unable to start packing");
+    const fallback = await refetchOrderFromApi(orderId);
+    console.info("[start-packing] refetched status:", fallback?.status ?? "(none)");
+    return fallback;
+  }
+
+  const freshOrder = await refetchOrderFromApi(orderId);
+  if (!freshOrder) {
+    console.error("[start-packing] refetch failed after update attempt");
+    toast.error("Unable to verify packing status");
+    return null;
+  }
+
+  console.info("[start-packing] refetched status:", freshOrder.status);
+
+  if (!apiOk) {
+    toast.error(apiError ?? "Unable to start packing");
+    return freshOrder;
+  }
+
+  if (normalizeLegacyStatus(freshOrder.status) !== "packing_assigned") {
+    console.warn("[start-packing] update did not persist — still:", freshOrder.status);
+    toast.error("Packing status was not saved to the database");
+    return freshOrder;
+  }
+
+  return freshOrder;
+}
 
 type OrderDetailClientProps = {
   orderId: string;
@@ -42,29 +104,84 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [showShipModal, setShowShipModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundTrackingAvailable, setRefundTrackingAvailable] = useState(true);
   const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
-  const [deliveryOtp, setDeliveryOtp] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showRapidoGuide, setShowRapidoGuide] = useState(false);
+  const autoPackingInFlightRef = useRef(false);
+  const { subscribeToOrderChanges, publishOrderSync, seedKnownOrders } = useAdminNotifications();
 
   const displayOrder = useMemo(
     () => (order ? applyPaymentRulesToOrder(order) : null),
     [order]
   );
 
+  const applyFreshOrder = useCallback(
+    (fresh: Order, previous?: Order | null) => {
+      console.info("[start-packing] publishOrderSync", {
+        orderId: fresh.id,
+        from: previous?.status ?? null,
+        to: fresh.status
+      });
+      setOrder(fresh);
+      seedKnownOrders([fresh]);
+      publishOrderSync(fresh, previous ?? null);
+    },
+    [publishOrderSync, seedKnownOrders]
+  );
+
+  const tryAutoStartPacking = useCallback(
+    async (loaded: Order) => {
+      console.info("[start-packing] effect entered");
+      console.info("[start-packing] order id:", loaded.id);
+      console.info("[start-packing] current status:", loaded.status);
+
+      if (normalizeLegacyStatus(loaded.status) !== "confirmed") {
+        console.info("[start-packing] skip — status is not confirmed");
+        return;
+      }
+
+      if (autoPackingInFlightRef.current) {
+        console.info("[start-packing] skip — already in flight");
+        return;
+      }
+
+      autoPackingInFlightRef.current = true;
+      const previous = loaded;
+      setUpdating(true);
+
+      try {
+        const freshOrder = await persistAutoStartPacking(orderId, previous.status);
+        if (!freshOrder) return;
+
+        if (normalizeLegacyStatus(freshOrder.status) === "packing_assigned") {
+          applyFreshOrder(freshOrder, previous);
+        } else {
+          setOrder(freshOrder);
+        }
+      } finally {
+        autoPackingInFlightRef.current = false;
+        setUpdating(false);
+      }
+    },
+    [orderId, applyFreshOrder]
+  );
+
   const loadOrder = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}`);
+      const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store", credentials: "include" });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Failed to load order");
         setOrder(null);
         return;
       }
-      setOrder(data.order as Order);
+
+      const loaded = data.order as Order;
+      setOrder(loaded);
+      seedKnownOrders([loaded]);
       setReviewCount(typeof data.review_count === "number" ? data.review_count : null);
       if (typeof data.refund_tracking_available === "boolean") {
         setRefundTrackingAvailable(data.refund_tracking_available);
@@ -81,36 +198,64 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
       } else {
         setReturnRequest(null);
       }
+
+      if (normalizeLegacyStatus(loaded.status) === "confirmed") {
+        await tryAutoStartPacking(loaded);
+      }
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, seedKnownOrders, tryAutoStartPacking]);
+
+  const commitOrderUpdate = useCallback(
+    (updated: Order) => {
+      setOrder((prev) => {
+        publishOrderSync(updated, prev);
+        return updated;
+      });
+      seedKnownOrders([updated]);
+    },
+    [publishOrderSync, seedKnownOrders]
+  );
 
   useEffect(() => {
-    loadOrder();
+    autoPackingInFlightRef.current = false;
+    void loadOrder();
   }, [loadOrder]);
 
-  const handleShipConfirm = async (payload: {
-    tracking_number: string;
-    courier_partner: string;
-    shipping_date: string;
-  }) => {
+  useEffect(() => {
+    return subscribeToOrderChanges(({ event, order: next }) => {
+      if (event !== "UPDATE" || next.id !== orderId) return;
+      void refetchOrderFromApi(orderId).then((fresh) => {
+        if (fresh) setOrder(fresh);
+      });
+    });
+  }, [orderId, subscribeToOrderChanges]);
+
+  const runFulfillmentAction = async (path: string, fallbackMessage: string) => {
     if (!order) return;
+    const previous = order;
     setUpdating(true);
     try {
-      const res = await fetch(`/api/orders/${order.id}/ship`, {
+      const res = await fetch(`/api/orders/${order.id}/${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        credentials: "include",
+        cache: "no-store"
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? data.details?.message ?? "Failed to ship order");
+        toast.error(data.error ?? "Action failed");
         return;
       }
-      setOrder(data.order as Order);
-      setShowShipModal(false);
-      toast.success(data.message ?? "Order marked out for delivery");
+      const freshOrder = await refetchOrderFromApi(orderId);
+      if (freshOrder) {
+        applyFreshOrder(freshOrder, previous);
+      }
+      toast.success(data.message ?? fallbackMessage);
+
+      if (path === "mark-shipped" && res.ok) {
+        triggerPostShipSideEffects(order.id);
+      }
     } finally {
       setUpdating(false);
     }
@@ -126,67 +271,8 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         toast.error(data.error ?? "Failed to start processing");
         return;
       }
-      setOrder(data.order as Order);
+      commitOrderUpdate(data.order as Order);
       toast.success("Order moved to processing");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const packOrder = async () => {
-    if (!order) return;
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/orders/${order.id}/pack`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to pack order");
-        return;
-      }
-      setOrder(data.order as Order);
-      toast.success("Order packed — ready to ship");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const verifyDeliveryOtp = async () => {
-    if (!order || !deliveryOtp.trim()) return;
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/orders/${order.id}/verify-delivery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: deliveryOtp.trim() })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Invalid OTP");
-        return;
-      }
-      setOrder(data.order as Order);
-      toast.success("Delivery confirmed");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const markDeliveredManual = async () => {
-    if (!order) return;
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "delivered" })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to mark delivered");
-        return;
-      }
-      setOrder(data.order as Order);
-      toast.success("Marked as delivered");
     } finally {
       setUpdating(false);
     }
@@ -210,7 +296,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         toast.error(data.message ?? data.error ?? "Failed to mark refund");
         return;
       }
-      setOrder(data.order as Order);
+      commitOrderUpdate(data.order as Order);
       setShowRefundModal(false);
       toast.success("Refund marked as completed");
     } catch {
@@ -230,7 +316,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         toast.error(data.error ?? "Failed to approve cancellation");
         return;
       }
-      setOrder(data.order as Order);
+      commitOrderUpdate(data.order as Order);
       toast.success("Cancellation approved");
     } finally {
       setUpdating(false);
@@ -247,7 +333,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         toast.error(data.error ?? "Failed to reject cancellation");
         return;
       }
-      setOrder(data.order as Order);
+      commitOrderUpdate(data.order as Order);
       toast.success("Cancellation rejected — order restored to processing");
     } finally {
       setUpdating(false);
@@ -264,25 +350,8 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         toast.error(data.error ?? "Failed to approve order");
         return;
       }
-      setOrder(data.order as Order);
+      commitOrderUpdate(data.order as Order);
       toast.success(data.message ?? "Order approved");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const markOutForDelivery = async () => {
-    if (!order) return;
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/orders/${order.id}/out-for-delivery`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to update order");
-        return;
-      }
-      setOrder(data.order as Order);
-      toast.success(data.message ?? "Marked out for delivery");
     } finally {
       setUpdating(false);
     }
@@ -295,6 +364,8 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   }, [displayOrder]);
 
   const primaryAction = displayOrder ? resolveDetailPrimaryAction(displayOrder) : null;
+  const isReadyToShip =
+    displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "ready_to_ship";
 
   const runPrimaryAction = () => {
     if (!displayOrder || !primaryAction) return;
@@ -303,21 +374,16 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         void approveOrder();
         break;
       case "start_processing":
-        startProcessing();
+        void startProcessing();
         break;
-      case "assign_worker":
+      case "ready_for_shipping":
+        void runFulfillmentAction("ready-for-shipping", "Order marked ready for shipping");
         break;
-      case "pack":
-        packOrder();
-        break;
-      case "ship":
-        setShowShipModal(true);
-        break;
-      case "mark_out_for_delivery":
-        void markOutForDelivery();
+      case "mark_shipped":
+        void runFulfillmentAction("mark-shipped", "Order marked as shipped");
         break;
       case "mark_delivered":
-        markDeliveredManual();
+        void runFulfillmentAction("mark-delivered", "Order marked as delivered");
         break;
       case "process_refund":
         setShowRefundModal(true);
@@ -347,15 +413,39 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
               <OrderDetailHeader
                 order={displayOrder}
                 primaryActionLabel={
-                  primaryAction && primaryAction.type !== "view" ? primaryAction.label : undefined
+                  !isReadyToShip && primaryAction && primaryAction.type !== "view"
+                    ? primaryAction.label
+                    : undefined
                 }
                 onPrimaryAction={
-                  primaryAction && primaryAction.type !== "view" ? runPrimaryAction : undefined
+                  !isReadyToShip && primaryAction && primaryAction.type !== "view"
+                    ? runPrimaryAction
+                    : undefined
                 }
                 primaryActionDisabled={updating}
               />
 
-              <div className="flex justify-end gap-2">
+              {isReadyToShip ? (
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRapidoGuide(true)}
+                    className="rounded-xl border-2 border-gold bg-white px-4 py-2 text-sm font-semibold text-maroon shadow-sm hover:bg-gold/10"
+                  >
+                    🛵 How to Book Rapido Parcel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={runPrimaryAction}
+                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    🚚 Mark Shipped
+                  </button>
+                </div>
+              ) : null}
+
+              <div className="flex justify-end">
                 <div className="relative">
                   <button
                     type="button"
@@ -405,83 +495,12 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-2">
-                <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Customer Information
-                  </h2>
-                  <dl className="mt-3 space-y-2 text-sm">
-                    <div>
-                      <dt className="text-gray-500">Name</dt>
-                      <dd className="font-medium text-gray-900">{customerName(displayOrder)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-500">Email</dt>
-                      <dd className="text-gray-900">{customerEmail(displayOrder)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-gray-500">Phone</dt>
-                      <dd className="text-gray-900">{customerPhone(displayOrder)}</dd>
-                    </div>
-                  </dl>
-                </section>
+              <div className="grid h-auto items-start gap-4 lg:grid-cols-2">
+                <CustomerInformationCard order={displayOrder} />
 
-                <div>
-                  <DeliveryInformationCard shippingAddress={addr} />
-                  <AdminDeliveryEstimate order={displayOrder} />
-                </div>
+                <DeliveryInformationCard shippingAddress={addr} order={displayOrder} />
 
-                <OrderDetailTimeline
-                  order={displayOrder}
-                  returnRequest={RETURNS_EXCHANGES_REFUNDS_DISABLED ? null : returnRequest}
-                  includeRefundEvents={
-                    !RETURNS_EXCHANGES_REFUNDS_DISABLED && refundTrackingAvailable
-                  }
-                />
-
-                <ShippingCard
-                  order={displayOrder}
-                  deliveryOtp={
-                    displayOrder.delivery_otp &&
-                    (displayOrder.status === "out_for_delivery" ||
-                      (displayOrder.status as string) === "shipped")
-                      ? displayOrder.delivery_otp
-                      : undefined
-                  }
-                  showOtpInput={displayOrder.status === "out_for_delivery"}
-                  otpValue={deliveryOtp}
-                  onOtpChange={setDeliveryOtp}
-                  onVerifyOtp={verifyDeliveryOtp}
-                  verifying={updating}
-                />
-
-                <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    Financial Summary
-                  </h2>
-                  <dl className="mt-3 space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Subtotal</dt>
-                      <dd className="tabular-nums">₹{Number(displayOrder.subtotal).toLocaleString("en-IN")}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Shipping</dt>
-                      <dd className="tabular-nums">₹{Number(displayOrder.shipping_amount).toLocaleString("en-IN")}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Discount</dt>
-                      <dd className="tabular-nums">₹{Number(displayOrder.discount_amount).toLocaleString("en-IN")}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-gray-500">Tax</dt>
-                      <dd className="tabular-nums">₹{Number(displayOrder.tax_amount ?? 0).toLocaleString("en-IN")}</dd>
-                    </div>
-                    <div className="flex justify-between border-t border-gray-100 pt-2 font-semibold">
-                      <dt>Total</dt>
-                      <dd className="tabular-nums">₹{Number(displayOrder.total).toLocaleString("en-IN")}</dd>
-                    </div>
-                  </dl>
-                </section>
+                <OrderTimelineFinancialCard order={displayOrder} />
 
                 {showRefundEligible && !refundTrackingAvailable ? (
                   <RefundTrackingUnavailable />
@@ -502,15 +521,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                   </div>
                 ) : null}
 
-                {(displayOrder.status as string) === "confirmed" ? (
-                  <WorkerAssignCard
-                    orderId={displayOrder.id}
-                    disabled={updating}
-                    onAssigned={() => void loadOrder()}
-                  />
-                ) : null}
-
-                <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+                <section className="lg:col-span-2">
                   <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                     Products
                   </h2>
@@ -526,7 +537,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 />
 
                 {reviewCount != null && reviewCount > 0 ? (
-                  <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+                  <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
                     <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                       Reviews
                     </h2>
@@ -541,16 +552,16 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         </div>
       </div>
 
-      <ShippingModal
-        open={showShipModal}
-        orderNumber={order?.order_number ?? ""}
-        initialTracking={order?.tracking_number ?? order?.tracking_id ?? ""}
-        initialCourier={order?.courier_partner ?? order?.courier_name ?? ""}
-        autoBooked={Boolean(order?.shipment_id || order?.tracking_number)}
-        loading={updating}
-        onConfirm={handleShipConfirm}
-        onCancel={() => setShowShipModal(false)}
-      />
+      {displayOrder && isReadyToShip ? (
+        <RapidoGuideModal
+          open={showRapidoGuide}
+          onClose={() => setShowRapidoGuide(false)}
+          orderId={displayOrder.id}
+          order={displayOrder}
+          onOrderUpdated={(updated) => setOrder(updated)}
+        />
+      ) : null}
+
       {isCancellationRefundWorkflowEnabled() || !RETURNS_EXCHANGES_REFUNDS_DISABLED ? (
         <MarkRefundedModal
           open={showRefundModal}

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { enrichOrderRecordItems } from "@/lib/orders/enrich-items";
+import { enrichOrderRecordItems, enrichOrderRecordsBatch } from "@/lib/orders/enrich-items";
 import {
   applyPaymentRulesToOrder,
   isInvalidPaymentCombination,
@@ -28,9 +28,9 @@ import type { Order, OrderStatus } from "@/types";
 export async function normalizeOrderRecord(
   db: SupabaseClient,
   order: Order,
-  options?: { persist?: boolean }
+  options?: { persist?: boolean; skipEnrich?: boolean }
 ): Promise<Order> {
-  const withSku = await enrichOrderRecordItems(db, order);
+  const withSku = options?.skipEnrich ? order : await enrichOrderRecordItems(db, order);
   const sanitized = sanitizeRefundState(withSku as Order);
   const corrected = applyPaymentRulesToOrder(sanitized);
 
@@ -57,6 +57,46 @@ export async function normalizeOrderRecord(
     .maybeSingle();
 
   return (data as Order) ?? corrected;
+}
+
+/** In-memory normalization for customer list responses — no DB round-trips. */
+export function normalizeCustomerOrderRow(order: Order): Order {
+  return applyPaymentRulesToOrder(sanitizeRefundState(order));
+}
+
+/** Admin list normalization with batched SKU lookup and per-order fault tolerance. */
+export async function normalizeAdminOrderList(
+  db: SupabaseClient,
+  orders: Order[],
+  options?: { persist?: boolean }
+): Promise<Order[]> {
+  if (orders.length === 0) return orders;
+
+  const persist = options?.persist ?? true;
+  console.info("[orders] normalize start", { count: orders.length, persist });
+
+  const enriched = await enrichOrderRecordsBatch(db, orders);
+  const settled = await Promise.allSettled(
+    enriched.map((order) => normalizeOrderRecord(db, order, { persist, skipEnrich: true }))
+  );
+
+  const normalized = settled.map((outcome, index) => {
+    if (outcome.status === "fulfilled") {
+      return outcome.value;
+    }
+
+    const fallback = enriched[index] ?? orders[index];
+    console.info("[orders] normalize failed", {
+      orderId: fallback?.id,
+      error: outcome.reason instanceof Error ? outcome.reason.message : outcome.reason
+    });
+    return normalizeCustomerOrderRow(fallback);
+  });
+
+  const failedCount = settled.filter((outcome) => outcome.status === "rejected").length;
+  console.info("[orders] normalize success", { count: normalized.length, failed: failedCount });
+
+  return normalized;
 }
 
 export function buildStatusUpdatePayload(

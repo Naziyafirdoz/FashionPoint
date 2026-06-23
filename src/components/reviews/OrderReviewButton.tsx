@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ReviewFormModal } from "@/components/reviews/ReviewFormModal";
+import { hasCustomerReviewForLine } from "@/lib/reviews/order-review-status";
 import type { UserReviewPreview } from "@/lib/reviews/types";
 
 type OrderReviewButtonProps = {
@@ -10,8 +11,9 @@ type OrderReviewButtonProps = {
   orderId: string;
   size: string;
   color: string;
-  userReview?: UserReviewPreview | null;
-  onReviewChange?: () => void;
+  userReviews: UserReviewPreview[];
+  onReviewChange?: () => void | Promise<void>;
+  compact?: boolean;
 };
 
 export function OrderReviewButton({
@@ -20,19 +22,35 @@ export function OrderReviewButton({
   orderId,
   size,
   color,
-  userReview,
-  onReviewChange
+  userReviews,
+  onReviewChange,
+  compact = false
 }: OrderReviewButtonProps) {
   const [open, setOpen] = useState(false);
 
-  const reviewForProduct = useMemo(() => {
-    if (!userReview || userReview.product_id !== productId) return null;
-    return userReview;
-  }, [userReview, productId]);
+  const reviewForLine = useMemo(
+    () => hasCustomerReviewForLine(userReviews, orderId, productId),
+    [userReviews, orderId, productId]
+  );
 
-  if (reviewForProduct) {
+  const handleReviewSuccess = async () => {
+    await onReviewChange?.();
+  };
+
+  const handleDuplicateReview = async () => {
+    console.info("[review-submit] refreshing review state");
+    await onReviewChange?.();
+  };
+
+  if (reviewForLine) {
     return (
-      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
+      <span
+        className={
+          compact
+            ? "inline-flex shrink-0 items-center self-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700"
+            : "inline-flex shrink-0 items-center self-center rounded-full border border-green-200 bg-green-100 px-4 py-2 text-sm font-medium text-green-700"
+        }
+      >
         Review Submitted
       </span>
     );
@@ -40,10 +58,19 @@ export function OrderReviewButton({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="btn-primary shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={
+          compact
+            ? "inline-flex h-9 shrink-0 items-center self-center rounded-lg border border-[#7B0D2B] bg-white px-3 text-xs font-medium text-[#7B0D2B] hover:bg-[#7B0D2B]/5"
+            : "btn-primary shrink-0 self-center"
+        }
+      >
         Write Review
       </button>
       <ReviewFormModal
+        key={`${orderId}:${productId}`}
         open={open}
         onClose={() => setOpen(false)}
         defaults={{
@@ -53,7 +80,8 @@ export function OrderReviewButton({
           sizePurchased: size,
           colorPurchased: color
         }}
-        onSuccess={() => onReviewChange?.()}
+        onSuccess={handleReviewSuccess}
+        onDuplicateReview={handleDuplicateReview}
       />
     </>
   );

@@ -45,7 +45,7 @@ export function OrderDetailHeader({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${getStagePillClass(order)}`}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold shadow-sm ${getStagePillClass(order)}`}
           >
             {getStageLabel(order)}
           </span>

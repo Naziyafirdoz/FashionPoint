@@ -17,6 +17,12 @@ import { normalizeSizeFilter } from "@/config/size-chart";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
 
+const PRODUCT_LIST_LIMIT = 20;
+const PRODUCT_LIST_SELECT =
+  "id,slug,name,description,price,compare_price,status,is_active,images,sizes,colors,fabric,neck_type,category_id,created_at";
+
+let productsApiRequestCount = 0;
+
 function getFilters(url: URL): ProductFilterParams & { category?: string | null } {
   return {
     category: url.searchParams.get("category"),
@@ -30,6 +36,9 @@ function getFilters(url: URL): ProductFilterParams & { category?: string | null 
 }
 
 export async function GET(req: Request) {
+  productsApiRequestCount += 1;
+  const start = performance.now();
+  console.log("API PRODUCTS CALLED", { count: productsApiRequestCount });
   const url = new URL(req.url);
   const filters = getFilters(url);
   const db = createServiceClient();
@@ -37,14 +46,10 @@ export async function GET(req: Request) {
   if (db) {
     let query = db
       .from("products")
-      .select(
-        `
-        *,
-        categories(*),
-        product_variants(id, product_id, size, color, sku, stock_quantity, price, compare_price)
-      `
-      )
-      .in("status", STOREFRONT_PRODUCT_STATUSES);
+      .select(PRODUCT_LIST_SELECT)
+      .in("status", STOREFRONT_PRODUCT_STATUSES)
+      .order("created_at", { ascending: false })
+      .limit(PRODUCT_LIST_LIMIT);
 
     if (filters.category) {
       const { data: cat } = await db
@@ -64,7 +69,8 @@ export async function GET(req: Request) {
     if (filters.priceMin) query = query.gte("price", Number(filters.priceMin));
     if (filters.priceMax) query = query.lte("price", Number(filters.priceMax));
 
-    const { data, error } = await query.order("created_at", { ascending: false });
+    const { data, error } = await query;
+    console.log("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
     if (!error && data) {
       let products = data.map((row) => normalizeDbProduct(row as DbRow));
       if (filters.color) {
@@ -87,6 +93,7 @@ export async function GET(req: Request) {
 
   products = filterMockProducts(products, filters);
 
+  console.log("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
   return NextResponse.json({ products, source: "mock" });
 }
 

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAdminEmail } from "@/lib/admin/admin-contacts";
+import { getAdminEmail, getStaffOrderAlertEmails, getWorkerEmails } from "@/lib/admin/admin-contacts";
 import {
   inAppTypeFromEvent,
   type DbNotification,
@@ -12,7 +12,12 @@ import {
   buildOrderWhatsAppText,
   buildPushPayload
 } from "@/lib/server/notifications/email-templates";
+import { createOrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import { sendPushToAdmins } from "@/lib/server/push";
+import {
+  resolveFcmPushEvent,
+  sendOrderFcmPush
+} from "@/lib/server/notifications/send-fcm-push";
 import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
 import { sendWhatsAppNotification } from "@/lib/server/whatsapp";
 import type { Order } from "@/types";
@@ -21,6 +26,13 @@ const DEDUP_EVENT_ALIASES: Record<string, string> = {
   worker_packed: "packed",
   ready_for_dispatch: "ready_for_shipping"
 };
+
+/** Admin email disabled for internal-only workflow events (in-app notifications still fire). */
+const SKIP_ADMIN_EMAIL_EVENTS = new Set([
+  "ready_for_shipping",
+  "ready_for_dispatch",
+  "shipped"
+]);
 
 function dedupEventKey(event: OrderNotificationEvent): string {
   return DEDUP_EVENT_ALIASES[event] ?? event;
@@ -145,36 +157,98 @@ async function sendEmailChannel(
   event: OrderNotificationEvent,
   force: boolean
 ): Promise<void> {
-  const adminEmail = getAdminEmail();
   const eventKey = dedupEventKey(event);
 
-  if (!adminEmail) {
+  if (SKIP_ADMIN_EMAIL_EVENTS.has(eventKey)) {
+    console.info("[admin-email] skipped — email disabled for internal workflow event", {
+      orderId: order.id,
+      event: eventKey
+    });
+
+    const fcmEvent = resolveFcmPushEvent(eventKey);
+    if (fcmEvent) {
+      await sendOrderFcmPush(order, fcmEvent);
+    }
+
+    return;
+  }
+
+  console.info("Starting admin email notification", {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    event: eventKey
+  });
+  console.info("ADMIN_EMAIL value", process.env.ADMIN_EMAIL ?? "(not set)");
+  console.info("WORKER_EMAILS value", process.env.WORKER_EMAILS ?? "(not set)");
+
+  const recipients = getStaffOrderAlertEmails();
+  console.info("Recipients array", recipients);
+
+  if (!recipients.length) {
+    console.error("[admin-email] no recipients configured", {
+      orderId: order.id,
+      adminEmail: getAdminEmail(),
+      workerEmails: getWorkerEmails()
+    });
     await logNotificationDelivery(db, {
       orderId: order.id,
       channel: "email",
       event: eventKey,
       success: false,
-      errorMessage: "ADMIN_EMAIL not configured"
+      errorMessage: "ADMIN_EMAIL / WORKER_EMAILS not configured"
     });
     return;
   }
 
-  if (!force && (await wasChannelSent(db, order.id, "email", eventKey))) return;
+  if (!force && (await wasChannelSent(db, order.id, "email", eventKey))) {
+    console.info("[admin-email] skipped — already sent for this order/event", {
+      orderId: order.id,
+      event: eventKey
+    });
+    return;
+  }
 
   try {
     const resendKey = process.env.RESEND_API_KEY;
     if (!resendKey) throw new Error("RESEND_API_KEY not configured");
 
+    let actionUrls =
+      event === "new_order" ? await createOrderEmailActionUrls(db, order.id) : null;
+    if (event === "new_order" && !actionUrls) {
+      console.warn("[admin-email] token creation failed — sending alert without action buttons", {
+        orderId: order.id,
+        orderNumber: order.order_number
+      });
+    }
+
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const template = buildOrderEmailTemplate(order, event);
+    const template = await buildOrderEmailTemplate(
+      order,
+      event,
+      actionUrls ?? undefined
+    );
 
-    await resend.emails.send({
+    console.info("Sending new-order email", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      event: eventKey,
+      to: recipients,
+      subject: template.subject
+    });
+
+    const response = await resend.emails.send({
       from: RESEND_FROM_ALERTS,
-      to: adminEmail,
+      to: recipients,
       subject: template.subject,
       html: template.html
     });
+
+    console.info("Resend response", response);
+
+    if (response.error) {
+      throw new Error(response.error.message ?? JSON.stringify(response.error));
+    }
 
     await markChannelSent(db, order.id, "email", eventKey);
     await logNotificationDelivery(db, {
@@ -183,8 +257,19 @@ async function sendEmailChannel(
       event: eventKey,
       success: true
     });
+
+    const fcmEvent = resolveFcmPushEvent(eventKey);
+    if (fcmEvent) {
+      await sendOrderFcmPush(order, fcmEvent);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Email send failed";
+    console.error("[admin-email] send failed", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      event: eventKey,
+      error: err
+    });
     await logNotificationDelivery(db, {
       orderId: order.id,
       channel: "email",
@@ -238,6 +323,11 @@ async function sendPushChannel(
   force: boolean
 ): Promise<void> {
   const eventKey = dedupEventKey(event);
+
+  if (resolveFcmPushEvent(eventKey)) {
+    return;
+  }
+
   if (!force && (await wasChannelSent(db, order.id, "push", eventKey))) return;
 
   try {

@@ -63,7 +63,7 @@ export function NewOrderNotificationActions({
         onClick={() => void approve()}
         className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
       >
-        {loading === "approve" ? "Approving…" : "Approve Order"}
+        {loading === "approve" ? "Approving…" : "Approve"}
       </button>
       <button
         type="button"
@@ -71,7 +71,7 @@ export function NewOrderNotificationActions({
         onClick={() => void remindLater()}
         className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
       >
-        {loading === "remind" ? "Scheduling…" : "Remind Me Later"}
+        {loading === "remind" ? "Scheduling…" : "Remind 2 Hours"}
       </button>
     </div>
   );

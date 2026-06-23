@@ -10,8 +10,9 @@ type OrderRowActionsProps = {
   primaryAction: OrderPrimaryAction;
   busy: boolean;
   onStartProcessing?: (order: OrderListRow) => void;
-  onPack?: (order: OrderListRow) => void;
-  onShip?: (order: OrderListRow) => void;
+  onApproveOrder?: (order: OrderListRow) => void;
+  onReadyForShipping?: (order: OrderListRow) => void;
+  onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
   onProcessRefund?: (orderId: string) => void;
   onPrint: (order: OrderListRow) => void;
@@ -23,8 +24,9 @@ export function OrderRowActions({
   primaryAction,
   busy,
   onStartProcessing,
-  onPack,
-  onShip,
+  onApproveOrder,
+  onReadyForShipping,
+  onMarkShipped,
   onMarkDelivered,
   onProcessRefund,
   onPrint,
@@ -47,11 +49,14 @@ export function OrderRowActions({
       case "start_processing":
         onStartProcessing?.(order);
         break;
-      case "pack":
-        onPack?.(order);
+      case "approve_order":
+        onApproveOrder?.(order);
         break;
-      case "ship":
-        onShip?.(order);
+      case "ready_for_shipping":
+        onReadyForShipping?.(order);
+        break;
+      case "mark_shipped":
+        onMarkShipped?.(order);
         break;
       case "mark_delivered":
         onMarkDelivered?.(order);

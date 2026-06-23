@@ -1,161 +1,95 @@
 import { NextResponse } from "next/server";
-import { requireAdminStaff } from "@/lib/admin/require-staff";
-import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
-import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
-import { cancelAdminApprovalReminders } from "@/lib/server/notifications/admin-approval-reminders";
-import { sendOrderConfirmation } from "@/lib/server/email";
-import { htmlResponse, renderApproveSuccessPage } from "@/lib/server/notifications/email-action-pages";
-import type { Order } from "@/types";
+import { requireStaff } from "@/lib/admin/require-staff";
+import { executeOrderApproval } from "@/lib/server/order-actions/approve";
+import { getRequestMeta } from "@/lib/server/order-actions/request-meta";
+import {
+  htmlResponse,
+  renderAlreadyApprovedPage,
+  renderApproveSuccessPage,
+  renderInvalidTokenPage
+} from "@/lib/server/notifications/email-action-pages";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-async function approveOrder(id: string, viaEmail: boolean) {
-  const auth = await requireAdminStaff();
-  if (!auth.ok) return { response: auth.response as NextResponse };
-
-  const { data: existing, error: fetchError } = await auth.ctx.db
-    .from("orders")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (fetchError) {
-    const res = NextResponse.json({ error: "Unable to load order" }, { status: 500 });
-    return { response: res };
-  }
-  if (!existing) {
-    const res = NextResponse.json({ error: "Order not found" }, { status: 404 });
-    return { response: res };
+async function approveOrder(req: Request, id: string, viaEmail: boolean) {
+  const auth = await requireStaff(["owner", "admin", "worker"]);
+  if (!auth.ok) {
+    if (viaEmail) return { response: htmlResponse(renderInvalidTokenPage()) };
+    return { response: auth.response as NextResponse };
   }
 
-  const order = existing as Order;
-  const status = order.status as string;
+  const meta = getRequestMeta(req);
+  const result = await executeOrderApproval(auth.ctx.db, id, {
+    performedBy: auth.ctx.userId,
+    ipAddress: meta.ipAddress,
+    userAgent: meta.userAgent
+  });
 
-  if (status === "confirmed") {
-    const normalized = await normalizeOrderRecord(auth.ctx.db, order, { persist: false });
+  if (result.ok && result.status === "already_approved") {
     if (viaEmail) {
-      return { response: htmlResponse(renderApproveSuccessPage(order.order_number, id)) };
+      return { response: htmlResponse(renderAlreadyApprovedPage(result.order.order_number)) };
     }
     return {
       response: NextResponse.json({
         success: true,
-        order: normalized,
-        message: "Order already confirmed"
+        order: result.order,
+        message: "Order has already been approved."
       })
     };
   }
 
-  if (!isAwaitingOrderApproval(status)) {
+  if (result.ok && result.status === "approved") {
     if (viaEmail) {
       return {
-        response: htmlResponse(
-          `<!DOCTYPE html><html><body style="font-family:system-ui;padding:24px;"><p>Order cannot be approved in its current status.</p></body></html>`
-        )
+        response: htmlResponse(renderApproveSuccessPage(result.order.order_number, result.order.id))
       };
     }
     return {
-      response: NextResponse.json({ error: "Only pending orders can be approved" }, { status: 400 })
+      response: NextResponse.json({
+        success: true,
+        order: result.order,
+        message: "Order confirmed"
+      })
     };
   }
 
-  const now = new Date().toISOString();
-  const { data: updated, error } = await auth.ctx.db
-    .from("orders")
-    .update({ status: "confirmed", confirmed_at: now, updated_at: now })
-    .eq("id", id)
-    .in("status", ["pending", "processing"])
-    .select("*")
-    .maybeSingle();
-
-  if (error) {
-    if (viaEmail) {
-      return {
-        response: htmlResponse(
-          `<!DOCTYPE html><html><body style="font-family:system-ui;padding:24px;"><p>Unable to approve order.</p></body></html>`
-        )
-      };
-    }
-    return { response: NextResponse.json({ error: "Unable to approve order" }, { status: 500 }) };
-  }
-
-  if (!updated) {
-    const { data: current } = await auth.ctx.db.from("orders").select("*").eq("id", id).maybeSingle();
-    if (current && (current.status as string) === "confirmed") {
-      if (viaEmail) {
-        return {
-          response: htmlResponse(renderApproveSuccessPage((current as Order).order_number, id))
-        };
-      }
-      const normalized = await normalizeOrderRecord(auth.ctx.db, current as Order, {
-        persist: false
-      });
-      return {
-        response: NextResponse.json({
-          success: true,
-          order: normalized,
-          message: "Order already confirmed"
-        })
-      };
-    }
-    if (viaEmail) {
-      return {
-        response: htmlResponse(
-          `<!DOCTYPE html><html><body style="font-family:system-ui;padding:24px;"><p>Order could not be approved.</p></body></html>`
-        )
-      };
-    }
-    return { response: NextResponse.json({ error: "Order could not be approved" }, { status: 409 }) };
-  }
-
-  await cancelAdminApprovalReminders(auth.ctx.db, id);
-
-  const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
-  const customerEmail = normalized.shipping_address?.email ?? normalized.guest_email;
-
-  if (customerEmail) {
-    console.info("[approve-order] sending customer confirmation", {
-      orderId: normalized.id,
-      orderNumber: normalized.order_number,
-      to: customerEmail
-    });
-    await sendOrderConfirmation({
-      to: customerEmail,
-      orderNumber: normalized.order_number,
-      total: Number(normalized.total),
-      order: normalized
-    });
-    console.info("[approve-order] customer confirmation sent", {
-      orderId: normalized.id,
-      orderNumber: normalized.order_number
-    });
-  }
-
   if (viaEmail) {
-    return { response: htmlResponse(renderApproveSuccessPage(normalized.order_number, id)) };
+    return {
+      response: htmlResponse(
+        `<!DOCTYPE html><html><body style="font-family:system-ui;padding:24px;"><p>Order could not be approved.</p></body></html>`
+      )
+    };
+  }
+
+  if (result.ok === false && result.status === "not_found") {
+    return { response: NextResponse.json({ error: "Order not found" }, { status: 404 }) };
+  }
+
+  if (result.ok === false && result.status === "not_awaiting") {
+    return { response: NextResponse.json({ error: "Only pending orders can be approved" }, { status: 400 }) };
   }
 
   return {
-    response: NextResponse.json({
-      success: true,
-      order: normalized,
-      message: "Order confirmed"
-    })
+    response: NextResponse.json(
+      { error: result.ok === false ? result.message ?? "Unable to approve order" : "Unable to approve order" },
+      { status: result.ok === false && result.status === "conflict" ? 409 : 500 }
+    )
   };
 }
 
-export async function POST(_req: Request, { params }: RouteContext) {
+export async function POST(req: Request, { params }: RouteContext) {
   const { id } = await params;
-  const result = await approveOrder(id, false);
+  const result = await approveOrder(req, id, false);
   return result.response;
 }
 
-/** Email link handler: approves order when still pending. */
+/** Legacy email link — prefer tokenized /api/order-actions/approve */
 export async function GET(req: Request, { params }: RouteContext) {
   const { id } = await params;
   const url = new URL(req.url);
   if (url.searchParams.get("via") !== "email") {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
-  const result = await approveOrder(id, true);
+  const result = await approveOrder(req, id, true);
   return result.response;
 }

@@ -6,10 +6,10 @@ export const ALLOWED_STATUS_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus
   pending: ["confirmed", "processing"],
   processing: ["confirmed", "ready_to_ship", "packing_assigned"],
   confirmed: ["packing_assigned", "ready_to_ship"],
-  packing_assigned: ["packed"],
+  packing_assigned: ["packed", "ready_to_ship"],
   packed: ["ready_to_ship"],
   ready_to_ship: ["shipped", "out_for_delivery"],
-  shipped: ["out_for_delivery"],
+  shipped: ["out_for_delivery", "delivered"],
   out_for_delivery: ["delivered"]
 };
 

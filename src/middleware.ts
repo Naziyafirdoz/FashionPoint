@@ -109,6 +109,10 @@ export const config = {
     "/signup",
     "/forgot-password",
     "/reset-password",
-    "/admin/:path*"
+    "/admin/:path*",
+    "/api/orders",
+    "/api/orders/:path*",
+    "/api/reviews",
+    "/api/reviews/:path*"
   ]
 };

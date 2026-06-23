@@ -36,7 +36,8 @@ export function renderRemindScheduledPage(orderNumber: string, remindAt: string,
   });
   return pageShell(
     "Reminder Scheduled",
-    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">🕒 Reminder scheduled</p>
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✓ Reminder Scheduled After 2 Hours</p>
+     <p style="margin:0 0 8px;">Reminder scheduled after 2 hours.</p>
      <p style="margin:0 0 8px;">Order <strong>${escapeHtml(orderNumber)}</strong> was not approved.</p>
      <p style="margin:0 0 16px;color:#555;">You will be reminded on <strong>${escapeHtml(when)}</strong>.</p>
      <p style="margin:0;"><a href="${adminOrderLink(orderId)}" style="color:${MAROON};font-weight:600;">Open order in admin</a></p>`
@@ -61,11 +62,47 @@ export function renderRemindErrorPage(orderId: string): string {
   );
 }
 
+export function renderInvalidTokenPage(): string {
+  return pageShell(
+    "Invalid Link",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link expired or invalid.</p>
+     <p style="margin:0;color:#555;">Please open the admin dashboard to manage this order.</p>`
+  );
+}
+
+export function renderTokenExpiredPage(): string {
+  return pageShell(
+    "Link Expired",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link expired.</p>
+     <p style="margin:0;color:#555;">Please open the admin dashboard to manage this order.</p>`
+  );
+}
+
+export function renderTokenUsedPage(): string {
+  return pageShell(
+    "Link Already Used",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link already used.</p>
+     <p style="margin:0;color:#555;">This action link has already been used.</p>`
+  );
+}
+
+export function renderAlreadyApprovedPage(orderNumber?: string): string {
+  const detail = orderNumber
+    ? `Order <strong>${escapeHtml(orderNumber)}</strong> has already been approved.`
+    : "This order has already been approved.";
+  return pageShell(
+    "Already Approved",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">This order has already been approved.</p>
+     <p style="margin:0;color:#555;">${detail}</p>`
+  );
+}
+
 export function renderApproveSuccessPage(orderNumber: string, orderId: string): string {
   return pageShell(
     "Order Approved",
-    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✅ Order approved</p>
-     <p style="margin:0 0 16px;">Order <strong>${escapeHtml(orderNumber)}</strong> has been confirmed.</p>
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✓ Order Approved</p>
+     <p style="margin:0 0 16px;">Order approved successfully.</p>
+     <p style="margin:0 0 8px;">Order <strong>${escapeHtml(orderNumber)}</strong> has been confirmed.</p>
      <p style="margin:0;"><a href="${adminOrderLink(orderId)}" style="color:${MAROON};font-weight:600;">View order</a></p>`
   );
 }

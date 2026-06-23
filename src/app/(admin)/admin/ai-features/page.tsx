@@ -1,10 +1,5 @@
-import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AiFeaturesClient } from "@/components/admin/ai/AiFeaturesClient";
 
 export default function AdminAiFeaturesPage() {
-  return (
-    <>
-      <AdminHeader title="AI Features" />
-      <div className="p-6 text-sm">Usage analytics for Size Finder, Color Matcher, Style Assistant, and Try-On.</div>
-    </>
-  );
+  return <AiFeaturesClient />;
 }

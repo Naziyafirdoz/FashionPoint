@@ -46,43 +46,43 @@ export const STATUS_CONFIG: Record<StatusDisplayKey, StatusConfig> = {
   },
   confirmed: {
     label: "Confirmed",
-    pill: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    flat: "bg-emerald-100 text-emerald-800"
+    pill: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    flat: "bg-emerald-100 text-emerald-700"
   },
   processing: {
     label: "Processing",
-    pill: "bg-orange-50 text-orange-800 border-orange-200",
-    flat: "bg-orange-100 text-orange-800"
+    pill: "bg-amber-100 text-amber-700 border-amber-200",
+    flat: "bg-amber-100 text-amber-700"
   },
   packing_assigned: {
-    label: "Packing Assigned",
-    pill: "bg-indigo-50 text-indigo-800 border-indigo-200",
-    flat: "bg-indigo-100 text-indigo-800"
+    label: "Packing",
+    pill: "bg-blue-100 text-blue-700 border-blue-200",
+    flat: "bg-blue-100 text-blue-700"
   },
   packed: {
     label: "Packed",
-    pill: "bg-violet-50 text-violet-800 border-violet-200",
-    flat: "bg-violet-100 text-violet-800"
+    pill: "bg-blue-100 text-blue-700 border-blue-200",
+    flat: "bg-blue-100 text-blue-700"
   },
   ready_to_ship: {
     label: "Ready For Shipping",
-    pill: "bg-blue-50 text-blue-800 border-blue-200",
-    flat: "bg-blue-100 text-blue-800"
+    pill: "bg-purple-100 text-purple-700 border-purple-200",
+    flat: "bg-purple-100 text-purple-700"
   },
   shipped: {
     label: "Shipped",
-    pill: "bg-cyan-50 text-cyan-800 border-cyan-200",
-    flat: "bg-cyan-100 text-cyan-800"
+    pill: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    flat: "bg-indigo-100 text-indigo-700"
   },
   out_for_delivery: {
     label: "Out For Delivery",
-    pill: "bg-purple-50 text-purple-800 border-purple-200",
-    flat: "bg-purple-100 text-purple-800"
+    pill: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    flat: "bg-indigo-100 text-indigo-700"
   },
   delivered: {
     label: "Delivered",
-    pill: "bg-green-50 text-green-800 border-green-200",
-    flat: "bg-green-100 text-green-800"
+    pill: "bg-green-100 text-green-700 border-green-200",
+    flat: "bg-green-100 text-green-700"
   },
   cancel_requested: {
     label: "Cancel Requested",
@@ -97,7 +97,7 @@ export const STATUS_CONFIG: Record<StatusDisplayKey, StatusConfig> = {
   cancelled: {
     label: "Cancelled",
     pill: "bg-red-50 text-red-800 border-red-200",
-    flat: "bg-red-100 text-red-800"
+    flat: "bg-red-100 text-red-700 font-semibold"
   },
   cancelled_awaiting_refund: {
     label: "Cancelled - Awaiting Refund",

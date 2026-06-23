@@ -11,10 +11,9 @@ export type OrderAgeTone = "fresh" | "pending" | "delayed";
 export type PrimaryActionType =
   | "approve_order"
   | "start_processing"
-  | "assign_worker"
-  | "pack"
-  | "ship"
-  | "mark_out_for_delivery"
+  | "start_packing"
+  | "ready_for_shipping"
+  | "mark_shipped"
   | "mark_delivered"
   | "process_refund"
   | "view";
@@ -55,7 +54,6 @@ export function ageToneClass(tone: OrderAgeTone): string {
 }
 
 export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
-  // Returns, exchanges, and refund workflows are intentionally disabled per client requirements.
   if (
     (isCancellationRefundWorkflowEnabled() || !RETURNS_EXCHANGES_REFUNDS_DISABLED) &&
     order.payment_status === "refund_pending"
@@ -71,17 +69,16 @@ export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
     case "processing":
       return { type: "approve_order", label: "Approve Order" };
     case "confirmed":
-      return { type: "assign_worker", label: "Assign Worker" };
+      return { type: "view", label: "View" };
     case "packing_assigned":
-      return { type: "view", label: "View" };
+      return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
     case "packed":
-      return { type: "view", label: "View" };
+      return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
     case "ready_to_ship":
-      return { type: "ship", label: "Ship Order" };
+      return { type: "mark_shipped", label: "🚚 Mark Shipped" };
     case "shipped":
-      return { type: "mark_out_for_delivery", label: "Mark Out For Delivery" };
     case "out_for_delivery":
-      return { type: "mark_delivered", label: "Mark Delivered" };
+      return { type: "mark_delivered", label: "✅ Mark Delivered" };
     case "delivered":
       return { type: "view", label: "View" };
     default:
@@ -124,8 +121,10 @@ export function filterOrdersByDateRange(
 
 export const PIPELINE_STAGES: { id: string; label: string }[] = [
   { id: "processing", label: "Processing" },
+  { id: "confirmed", label: "Confirmed" },
+  { id: "packing_assigned", label: "Packing" },
   { id: "ready_to_ship", label: "Ready To Ship" },
-  { id: "out_for_delivery", label: "Out For Delivery" },
+  { id: "shipped", label: "Shipped" },
   { id: "delivered", label: "Delivered" }
 ];
 

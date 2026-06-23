@@ -34,11 +34,11 @@ export default async function AccountDashboardPage() {
     supabase.from("customers").select("*").eq("id", user.id).maybeSingle(),
     supabase
       .from("orders")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "estimated", head: true })
       .eq("user_id", user.id),
     supabase
       .from("wishlist")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "estimated", head: true })
       .eq("user_id", user.id)
   ]);
 

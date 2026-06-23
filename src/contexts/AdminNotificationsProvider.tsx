@@ -25,6 +25,7 @@ import type {
 import { mapDbNotificationToAdmin } from "@/lib/notifications/map-db-notification";
 import type { DbNotification } from "@/lib/notifications/types";
 import { createClient } from "@/lib/supabase/client";
+import { broadcastOrderSync, subscribeOrderSyncBus } from "@/lib/orders/order-sync-bus";
 import type { Order } from "@/types";
 
 type AdminNotificationsContextValue = {
@@ -35,6 +36,7 @@ type AdminNotificationsContextValue = {
   clearAll: () => void;
   subscribeToOrderChanges: (listener: OrderChangeListener) => () => void;
   seedKnownOrders: (orders: Order[]) => void;
+  publishOrderSync: (order: Order, previous?: Order | null) => void;
 };
 
 const AdminNotificationsContext = createContext<AdminNotificationsContextValue | null>(null);
@@ -122,6 +124,24 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
     },
     [emitOrderChange]
   );
+
+  const publishOrderSync = useCallback(
+    (order: Order, previous?: Order | null) => {
+      const prior = previous ?? knownOrdersRef.current.get(order.id) ?? null;
+      knownOrdersRef.current.set(order.id, order);
+      emitOrderChange({ event: "UPDATE", order, previous: prior });
+      broadcastOrderSync({ event: "UPDATE", order, previous: prior });
+    },
+    [emitOrderChange]
+  );
+
+  useEffect(() => {
+    return subscribeOrderSyncBus(({ event, order, previous }) => {
+      const prior = previous ?? knownOrdersRef.current.get(order.id) ?? null;
+      knownOrdersRef.current.set(order.id, order);
+      emitOrderChange({ event, order, previous: prior });
+    });
+  }, [emitOrderChange]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -237,7 +257,8 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
       markAllAsRead,
       clearAll,
       subscribeToOrderChanges,
-      seedKnownOrders
+      seedKnownOrders,
+      publishOrderSync
     }),
     [
       notifications,
@@ -246,7 +267,8 @@ export function AdminNotificationsProvider({ children }: { children: ReactNode }
       markAllAsRead,
       clearAll,
       subscribeToOrderChanges,
-      seedKnownOrders
+      seedKnownOrders,
+      publishOrderSync
     ]
   );
 

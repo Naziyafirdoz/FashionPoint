@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase";
+import { fetchCustomerOrdersForUser, CUSTOMER_ORDER_LIST_SELECT } from "@/lib/orders/customer-order-retrieval";
 import { redirect } from "next/navigation";
 import { OrdersPageShell } from "@/components/account/OrdersList";
 import type { Order } from "@/types";
@@ -13,11 +15,45 @@ export default async function AccountOrdersPage() {
 
   if (!user) redirect("/login?redirect=/account/orders");
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const db = createServiceClient();
+  let orders: Order[] = [];
 
-  return <OrdersPageShell title="My Orders" orders={(orders ?? []) as Order[]} userId={user.id} />;
+  if (db) {
+    const result = await fetchCustomerOrdersForUser(db, user.id, user.email, { limit: 20 });
+    orders = result.orders;
+    if (result.error) {
+      console.error("[customer-orders] ssr fetch failed", {
+        userId: user.id,
+        email: user.email ?? null,
+        error: result.error
+      });
+    }
+  } else {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(CUSTOMER_ORDER_LIST_SELECT)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    orders = (data ?? []) as Order[];
+    if (error) {
+      console.error("[customer-orders] ssr rls fetch failed", {
+        userId: user.id,
+        message: error.message
+      });
+    }
+    console.info("[customer-orders] ssr rls fallback", {
+      userId: user.id,
+      count: orders.length
+    });
+  }
+
+  console.info("[customer-orders] ssr rendered", {
+    userId: user.id,
+    email: user.email ?? null,
+    count: orders.length
+  });
+
+  return <OrdersPageShell title="My Orders" orders={orders} userId={user.id} />;
 }

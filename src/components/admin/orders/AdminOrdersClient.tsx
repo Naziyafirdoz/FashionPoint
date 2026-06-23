@@ -5,21 +5,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminLiveStatus } from "@/components/admin/AdminLiveStatus";
 import { AdminTablePagination } from "@/components/admin/AdminTablePagination";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { MarkRefundedModal } from "@/components/admin/orders/MarkRefundedModal";
 import { OrderFulfillmentGuide } from "@/components/admin/orders/OrderFulfillmentGuide";
 import { showWorkflowSuccessToast } from "@/components/admin/orders/WorkflowSuccessToast";
-import { OrderActionCenter, type NotificationPulseKey } from "@/components/admin/orders/OrderActionCenter";
 import { OrderEmptyState } from "@/components/admin/orders/OrderEmptyState";
 import { OrdersTable } from "@/components/admin/orders/OrdersTable";
-import { ShippingModal } from "@/components/admin/orders/ShippingModal";
 import { useAdminNotifications } from "@/contexts/AdminNotificationsProvider";
 import {
   orderMatchesOrdersView,
   toOrderListRow
 } from "@/lib/admin/notifications/orders-view";
-import { computeNotificationSummary } from "@/lib/admin/order-action-center";
 import {
   PAGE_SIZE,
   printOrder,
@@ -27,6 +25,7 @@ import {
   type OrderListRow
 } from "@/lib/orders/admin-orders";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
+import { triggerPostShipSideEffects } from "@/lib/orders/post-ship-side-effects";
 import { refundAmountForOrder } from "@/lib/orders/refunds";
 import {
   matchesOrderListFilter,
@@ -35,10 +34,11 @@ import {
 } from "@/lib/orders/order-list-filter";
 import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import { applyOrderStatsDelta } from "@/lib/admin/notifications/stats-delta";
+import { useLiveTimestamp } from "@/lib/admin/use-live-timestamp";
 import { orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
 
-type ShipTarget = { order: OrderListRow };
+type RefundTarget = OrderListRow | null;
 
 const EMPTY_STATS: AdminOrderStatsV2 = {
   total: 0,
@@ -90,34 +90,32 @@ export function AdminOrdersClient() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
-  const [shipTarget, setShipTarget] = useState<ShipTarget | null>(null);
-  const [refundTarget, setRefundTarget] = useState<OrderListRow | null>(null);
-  const [pulseKey, setPulseKey] = useState<NotificationPulseKey>(null);
+  const [refundTarget, setRefundTarget] = useState<RefundTarget>(null);
 
-  const { subscribeToOrderChanges, seedKnownOrders } = useAdminNotifications();
+  const { subscribeToOrderChanges, seedKnownOrders, publishOrderSync } = useAdminNotifications();
+  const { lastUpdated, touch } = useLiveTimestamp();
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
 
   const activeFilter = useMemo(() => resolveOrderListFilter(statusFilter), [statusFilter]);
-  const notificationCounts = useMemo(() => computeNotificationSummary(stats), [stats]);
-  const prevNotificationCountsRef = useRef(notificationCounts);
-
-  useEffect(() => {
-    const prev = prevNotificationCountsRef.current;
-    let nextPulse: NotificationPulseKey = null;
-    if (notificationCounts.newOrders > prev.newOrders) nextPulse = "newOrders";
-
-    prevNotificationCountsRef.current = notificationCounts;
-
-    if (!nextPulse) return;
-    setPulseKey(nextPulse);
-    const timer = window.setTimeout(() => setPulseKey(null), 700);
-    return () => window.clearTimeout(timer);
-  }, [notificationCounts]);
 
   useEffect(() => {
     setStatusFilter(urlTab);
   }, [urlTab]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/orders?stats_only=true&include_stats=true", {
+        cache: "no-store"
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.stats) setStats(data.stats);
+      touch();
+    } catch {
+      // Stats load is non-blocking; cards update when available.
+    }
+  }, [touch]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -133,26 +131,36 @@ export function AdminOrdersClient() {
       params.set("page", String(page));
       params.set("limit", String(PAGE_SIZE));
       params.set("include_review_counts", "true");
-      params.set("include_stats", "true");
       if (paymentFilter !== "all") params.set("payment_method", paymentFilter);
       if (search.trim()) params.set("search", search.trim());
       const res = await fetch(`/api/orders?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       setOrders(data.orders ?? []);
       setTotalOrders(data.total ?? 0);
-      if (data.stats) setStats(data.stats);
       if (Array.isArray(data.orders)) {
         seedKnownOrders(data.orders);
       }
     } finally {
       setLoading(false);
+      touch();
     }
-  }, [statusFilter, paymentFilter, search, page, seedKnownOrders]);
+  }, [statusFilter, paymentFilter, search, page, seedKnownOrders, touch]);
 
   useEffect(() => {
     const viewOptions = { statusFilter, paymentFilter, search };
 
     return subscribeToOrderChanges(({ event, order, previous }) => {
+      touch();
+      const current = ordersRef.current.find((o) => o.id === order.id);
+      if (
+        event === "UPDATE" &&
+        current &&
+        current.status === order.status &&
+        current.updated_at === order.updated_at
+      ) {
+        return;
+      }
+
       const prior =
         event === "UPDATE"
           ? (previous ?? ordersRef.current.find((o) => o.id === order.id) ?? null)
@@ -197,7 +205,11 @@ export function AdminOrdersClient() {
         return prev;
       });
     });
-  }, [subscribeToOrderChanges, statusFilter, paymentFilter, search, page]);
+  }, [subscribeToOrderChanges, statusFilter, paymentFilter, search, page, touch]);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     const t = setTimeout(loadOrders, search ? 300 : 0);
@@ -214,10 +226,16 @@ export function AdminOrdersClient() {
     [normalizedOrders, activeFilter]
   );
 
-  const applyOrderUpdate = useCallback((updated: Order) => {
-    const row = applyPaymentRulesToOrder(updated) as OrderListRow;
-    setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, ...row } : o)));
-  }, []);
+  const applyOrderUpdate = useCallback(
+    (updated: Order) => {
+      const row = applyPaymentRulesToOrder(updated) as OrderListRow;
+      const prior = ordersRef.current.find((o) => o.id === updated.id) ?? null;
+      setStats((current) => applyOrderStatsDelta(current, updated, prior));
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, ...row } : o)));
+      publishOrderSync(updated, prior);
+    },
+    [publishOrderSync]
+  );
 
   const setFilter = useCallback(
     (tab: string) => {
@@ -247,81 +265,62 @@ export function AdminOrdersClient() {
     }
   };
 
-  const packOrder = async (order: OrderListRow) => {
+  const runFulfillmentAction = async (
+    order: OrderListRow,
+    path: string,
+    successMessage: string,
+    toastKind?: "pack" | "ship" | "deliver"
+  ) => {
     setUpdatingOrderId(order.id);
     try {
-      const res = await fetch(`/api/orders/${order.id}/pack`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to pack order");
-        return;
-      }
-      applyOrderUpdate(data.order);
-      showWorkflowSuccessToast("pack", setFilter);
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  };
-
-  const handleShipConfirm = async (payload: {
-    tracking_number: string;
-    courier_partner: string;
-    shipping_date: string;
-  }) => {
-    if (!shipTarget) return;
-    setUpdatingOrderId(shipTarget.order.id);
-    try {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[ship-order] modal submit", {
-          orderId: shipTarget.order.id,
-          orderNumber: shipTarget.order.order_number,
-          payload
-        });
-      }
-      const res = await fetch(`/api/orders/${shipTarget.order.id}/ship`, {
+      const res = await fetch(`/api/orders/${order.id}/${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        credentials: "include",
+        cache: "no-store"
       });
       const data = await res.json();
       if (!res.ok) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("[ship-order] API error", {
-            orderId: shipTarget.order.id,
-            status: res.status,
-            response: data
-          });
-        }
-        toast.error(data.error ?? data.details?.message ?? "Failed to ship order");
+        toast.error(data.error ?? "Action failed");
         return;
       }
       applyOrderUpdate(data.order);
-      setShipTarget(null);
-      showWorkflowSuccessToast("ship", setFilter);
+      if (path === "mark-shipped") {
+        triggerPostShipSideEffects(order.id);
+      }
+      if (toastKind) {
+        showWorkflowSuccessToast(toastKind, setFilter);
+      } else {
+        toast.success(data.message ?? successMessage);
+      }
     } finally {
       setUpdatingOrderId(null);
     }
   };
 
-  const markDelivered = async (order: OrderListRow) => {
+  const approveOrder = async (order: OrderListRow) => {
     setUpdatingOrderId(order.id);
     try {
-      const res = await fetch(`/api/orders/${order.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "delivered" })
-      });
+      const res = await fetch(`/api/admin/orders/${order.id}/approve-order`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Failed to mark delivered");
+        toast.error(data.error ?? "Failed to approve order");
         return;
       }
       applyOrderUpdate(data.order);
-      showWorkflowSuccessToast("deliver", setFilter);
+      toast.success(data.message ?? "Order approved");
     } finally {
       setUpdatingOrderId(null);
     }
   };
+
+  const readyForShipping = (order: OrderListRow) =>
+    void runFulfillmentAction(order, "ready-for-shipping", "Order marked ready for shipping", "pack");
+
+  const markShipped = (order: OrderListRow) =>
+    void runFulfillmentAction(order, "mark-shipped", "Order marked as shipped", "ship");
+
+  const markDelivered = (order: OrderListRow) =>
+    void runFulfillmentAction(order, "mark-delivered", "Order marked as delivered", "deliver");
 
   const markAsRefunded = async (payload: { refund_reference: string; refund_notes?: string }) => {
     if (!refundTarget) return;
@@ -359,7 +358,10 @@ export function AdminOrdersClient() {
 
   return (
     <>
-      <AdminHeader title="Orders" />
+      <AdminHeader
+        title="Orders"
+        action={<AdminLiveStatus lastUpdated={lastUpdated} live />}
+      />
       <div className="min-w-0 space-y-5 overflow-x-hidden p-4 sm:p-6">
         <OrderFulfillmentGuide />
 
@@ -465,13 +467,6 @@ export function AdminOrdersClient() {
           </Link>
         </div>
 
-        <OrderActionCenter
-          counts={notificationCounts}
-          pulseKey={pulseKey}
-          onNewOrdersClick={() => setFilter("new_orders")}
-          onReadyForShippingClick={() => setFilter("ready_to_ship")}
-        />
-
         {showCancelledSubFilters ? (
           <div
             className="flex flex-wrap items-center gap-2"
@@ -511,8 +506,9 @@ export function AdminOrdersClient() {
               onPrint={printOrder}
               onDownloadInvoice={downloadInvoicePdf}
               onStartProcessing={startProcessing}
-              onPack={packOrder}
-              onShip={(order) => setShipTarget({ order })}
+              onApproveOrder={approveOrder}
+              onReadyForShipping={readyForShipping}
+              onMarkShipped={markShipped}
               onMarkDelivered={markDelivered}
               onProcessRefund={(orderId) => {
                 const order = filteredOrders.find((row) => row.id === orderId);
@@ -530,17 +526,6 @@ export function AdminOrdersClient() {
           onPageChange={setPage}
         />
       </div>
-
-      <ShippingModal
-        open={shipTarget != null}
-        orderNumber={shipTarget?.order.order_number ?? ""}
-        initialTracking={shipTarget?.order.tracking_number ?? shipTarget?.order.tracking_id ?? ""}
-        initialCourier={shipTarget?.order.courier_partner ?? shipTarget?.order.courier_name ?? ""}
-        autoBooked={Boolean(shipTarget?.order.shipment_id || shipTarget?.order.tracking_number)}
-        loading={updatingOrderId != null}
-        onConfirm={handleShipConfirm}
-        onCancel={() => setShipTarget(null)}
-      />
 
       <MarkRefundedModal
         open={refundTarget != null}

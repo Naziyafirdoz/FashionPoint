@@ -5,11 +5,15 @@ import {
   paymentMethodLabel,
   paymentStatusLabel
 } from "@/lib/orders/admin-orders";
-import { formatShippingAddress } from "@/lib/orders/fulfillment-workflow";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
+import {
+  formatPickupTimeDisplay,
+  getRapidoDeliveryDetails
+} from "@/lib/orders/rapido-delivery-metadata";
 import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
+import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
-import { resolveEmailProductImage } from "@/lib/server/notifications/email-image";
+import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
 import type { Order } from "@/types";
 
@@ -24,13 +28,7 @@ function orderAdminUrl(orderId: string): string {
   return emailAppUrl(`/admin/orders/${orderId}`);
 }
 
-function approveUrl(orderId: string): string {
-  return emailAppUrl(`/api/admin/orders/${orderId}/approve-order?via=email`);
-}
-
-function remindUrl(orderId: string): string {
-  return emailAppUrl(`/api/admin/orders/${orderId}/remind-later?via=email`);
-}
+export type { OrderEmailActionUrls };
 
 /** Email templates: online payments only — never show COD. */
 function emailPaymentMethodLabel(method: string | undefined): string {
@@ -46,16 +44,16 @@ function emailPaymentStatusLabel(status: string | undefined): string {
 }
 
 const CUSTOMER_CONFIRMED_MESSAGES = [
-  "Thank you for your order.",
-  "Fashion Point is preparing your parcel.",
-  "Shipping updates will be shared once dispatched."
+  "Your order has been confirmed.",
+  "We are preparing your parcel.",
+  "We'll notify you when your order is shipped."
 ];
 
 const CUSTOMER_PLACED_MESSAGES = [
-  "Thank you for shopping with Fashion Point.",
-  "We have successfully received your order and payment.",
+  "Thank you for your order.",
+  "We have successfully received your payment.",
   "Our team will review and prepare your parcel.",
-  "You will receive another email once your order has been approved."
+  "We'll notify you when your order is confirmed."
 ];
 
 const PREHEADER_CUSTOMER_PLACED =
@@ -74,21 +72,17 @@ function messageBlockHtml(lines: string[]): string {
     .join("");
 }
 
-function orderTotalCardHtml(order: Order): string {
-  return `${cardOpen()}<tr><td style="padding:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;"><tr><td style="color:${MUTED};">Order Amount</td><td style="font-size:18px;font-weight:700;color:${MAROON};text-align:right;">${formatCurrency(Number(order.total))}</td></tr></table></td></tr>${cardClose()}`;
+function customerGreetingHtml(order: Order): string {
+  const name = escapeHtml(customerName(order));
+  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};">Hello ${name},</p>`;
 }
 
-function orderIdAmountCardHtml(orderNumber: string, total: number): string {
-  return `${cardOpen()}<tr><td style="padding:16px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;"><tr><td style="color:${MUTED};padding:4px 0;">Order ID</td><td style="font-weight:700;color:${MAROON};text-align:right;">${escapeHtml(orderNumber)}</td></tr><tr><td style="color:${MUTED};padding:4px 0;">Amount</td><td style="font-weight:700;color:${GOLD};text-align:right;">${formatCurrency(total)}</td></tr></table></td></tr>${cardClose()}`;
-}
-
-function shippingAddressCardHtml(order: Order): string {
-  const address = escapeHtml(formatShippingAddress(order)).replace(/\n/g, "<br/>");
+function customerPlacedShippingAddressCardHtml(order: Order): string {
+  const address = escapeHtml(formatAddressLinesOnly(order)).replace(/\n/g, "<br/>");
   return `${cardOpen()}<tr><td style="padding:16px;"><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;">Shipping Address</p><p style="margin:0;font-size:14px;line-height:1.6;">${address}</p></td></tr>${cardClose()}`;
 }
 
-/** Admin emails: address lines only — no repeated customer name or phone. */
-function formatAddressLinesOnly(order: Order): string {
+/** Admin emails: address lines only — no repeated customer name or phone. */function formatAddressLinesOnly(order: Order): string {
   const a = order.shipping_address;
   if (!a) return "—";
   const parts = [
@@ -102,10 +96,6 @@ function formatAddressLinesOnly(order: Order): string {
   return parts.length ? parts.join("\n") : "—";
 }
 
-function adminShippingAddressCardHtml(order: Order): string {
-  const address = escapeHtml(formatAddressLinesOnly(order)).replace(/\n/g, "<br/>");
-  return `${cardOpen()}<tr><td style="padding:16px;"><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;">Shipping Address</p><p style="margin:0;font-size:14px;line-height:1.6;">${address}</p></td></tr>${cardClose()}`;
-}
 
 function escapeHtml(value: string): string {
   return value
@@ -121,18 +111,24 @@ function preheaderHtml(text: string): string {
 }
 
 type EmailShellOptions = {
-  adminOrderId?: string;
   preheader?: string;
+  footer?: "standard" | "minimal";
 };
 
-function emailShell(title: string, body: string, options?: EmailShellOptions): string {
-  const adminOrderId = options?.adminOrderId;
-  const preheaderBlock = options?.preheader ? preheaderHtml(options.preheader) : "";
-  const footer = adminOrderId
-    ? `<tr><td style="background:${MAROON};padding:16px;text-align:center;"><a href="${orderAdminUrl(adminOrderId)}" style="color:#fff;text-decoration:underline;font-size:14px;font-weight:600;">View Full Order Details</a></td></tr>`
-    : `<tr><td style="padding:12px;text-align:center;font-size:11px;color:${MUTED};">Fashion Point • Vijayawada</td></tr>`;
+function customerFooterHtml(): string {
+  return `<tr><td style="padding:24px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 6px;font-size:14px;color:${MAROON};font-weight:600;">❤️ Thank you for shopping with Fashion Point ❤️</p><p style="margin:0;font-size:12px;color:${MUTED};">Fashion Point • Vijayawada</p></td></tr>`;
+}
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px 8px;"><table width="100%" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:20px 18px;text-align:center;color:#fff;font-size:20px;font-weight:700;">🛍 Fashion Point</td></tr><tr><td style="padding:20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
+function minimalFooterHtml(): string {
+  return `<tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0;font-size:12px;color:${MUTED};">Fashion Point • Vijayawada</p></td></tr>`;
+}
+
+function emailShell(title: string, body: string, options?: EmailShellOptions): string {
+  const preheaderBlock = options?.preheader ? preheaderHtml(options.preheader) : "";
+  const footer =
+    options?.footer === "minimal" ? minimalFooterHtml() : customerFooterHtml();
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">Fashion Point</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
 }
 
 function sectionHeading(text: string): string {
@@ -147,51 +143,46 @@ function cardClose(): string {
   return `</table>`;
 }
 
-function productImageHtml(imageUrl: string | undefined, alt: string): string {
-  if (!imageUrl) return "";
-  const safeAlt = escapeHtml(alt);
-  const safeUrl = escapeHtml(imageUrl);
-  return `<img src="${safeUrl}" alt="${safeAlt}" width="120" height="120" style="display:block;width:120px;height:120px;object-fit:cover;border-radius:10px;border:1px solid ${BORDER};"/>`;
-}
-
-function productCardsHtml(order: Order): string {
+function compactProductCardHtml(order: Order): string {
   const lines = normalizeOrderItems(order.items);
-  const rawItems = Array.isArray(order.items) ? order.items : [];
   if (!lines.length) {
-    return `<p style="margin:0 0 12px;font-size:14px;color:${MUTED};">No line items on this order.</p>`;
+    return `<p style="margin:0 0 16px;font-size:14px;color:${MUTED};">No items on this order.</p>`;
   }
-  return lines
+
+  const itemsHtml = lines
     .map((line, index) => {
-      const imageUrl = resolveEmailProductImage(rawItems[index], line.image);
-      return productCardHtml(line, imageUrl);
+      const border =
+        index < lines.length - 1
+          ? `padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid ${BORDER};`
+          : "";
+      return `
+        <div style="${border}">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:600;color:${TEXT};">${escapeHtml(line.name)}</p>
+          <p style="margin:0 0 4px;font-size:13px;color:${MUTED};">Size: ${escapeHtml(line.size || "—")}</p>
+          <p style="margin:0 0 4px;font-size:13px;color:${MUTED};">Color: ${escapeHtml(line.color || "—")}</p>
+          <p style="margin:0 0 4px;font-size:13px;color:${MUTED};">Quantity: ${line.quantity}</p>
+          <p style="margin:0;font-size:15px;font-weight:700;color:${MAROON};">${formatCurrency(line.price * line.quantity)}</p>
+        </div>`;
     })
     .join("");
+
+  return `${cardOpen()}<tr><td style="padding:16px;">${itemsHtml}</td></tr>${cardClose()}`;
 }
 
-function productCardHtml(
-  line: ReturnType<typeof normalizeOrderItems>[number],
-  imageUrl?: string
-): string {
-  const lineTotal = formatCurrency(line.price * line.quantity);
-  const imageBlock = productImageHtml(imageUrl, line.name);
-  const imageCell = imageBlock
-    ? `<td width="120" valign="top" style="padding-right:16px;">${imageBlock}</td>`
-    : "";
+function adminCustomerDetailsCardHtml(order: Order): string {
   return `
     ${cardOpen()}
       <tr>
         <td style="padding:16px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;letter-spacing:0.5px;">Customer Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.8;">
             <tr>
-              ${imageCell}
-              <td valign="top" style="font-size:14px;line-height:1.6;color:${TEXT};">
-                <p style="margin:0 0 8px;font-size:16px;font-weight:700;color:${MAROON};">${escapeHtml(line.name)}</p>
-                <p style="margin:0 0 4px;"><span style="color:${MUTED};">SKU:</span> ${escapeHtml(line.sku?.trim() || "—")}</p>
-                <p style="margin:0 0 4px;"><span style="color:${MUTED};">Size:</span> ${escapeHtml(line.size || "—")}</p>
-                <p style="margin:0 0 4px;"><span style="color:${MUTED};">Color:</span> ${escapeHtml(line.color || "—")}</p>
-                <p style="margin:0 0 4px;"><span style="color:${MUTED};">Quantity:</span> ${line.quantity}</p>
-                <p style="margin:8px 0 0;font-size:16px;font-weight:700;color:${GOLD};">${lineTotal}</p>
-              </td>
+              <td style="color:${MUTED};width:46%;">Customer Name</td>
+              <td style="font-weight:600;">${escapeHtml(customerName(order))}</td>
+            </tr>
+            <tr>
+              <td style="color:${MUTED};">Primary Mobile Number</td>
+              <td style="font-weight:600;">${escapeHtml(customerPhone(order))}</td>
             </tr>
           </table>
         </td>
@@ -199,7 +190,31 @@ function productCardHtml(
     ${cardClose()}`;
 }
 
-function orderSummaryCardHtml(order: Order): string {
+function adminShippingAddressStructuredCardHtml(order: Order): string {
+  const a = order.shipping_address;
+  const row = (label: string, value: string) =>
+    `<tr><td style="color:${MUTED};padding:3px 0;width:42%;vertical-align:top;">${escapeHtml(label)}</td><td style="font-weight:600;color:${TEXT};">${escapeHtml(value || "—")}</td></tr>`;
+
+  return `
+    ${cardOpen()}
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;letter-spacing:0.5px;">Shipping Address</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.8;">
+            ${row("House / Flat", a?.house_flat || a?.address_line1 || "")}
+            ${row("Street / Area", a?.street || a?.address_line2 || "")}
+            ${row("Landmark", a?.landmark || "")}
+            ${row("City", a?.city || "")}
+            ${row("State", a?.state || "")}
+            ${row("Pincode", a?.pincode || a?.postal_code || "")}
+          </table>
+        </td>
+      </tr>
+    ${cardClose()}`;
+}
+
+function orderSummaryCardHtml(order: Order, options?: { totalAmountLabel?: boolean }): string {
+  const amountLabel = options?.totalAmountLabel ? "Total Amount" : "Amount";
   return `
     ${cardOpen()}
       <tr>
@@ -219,7 +234,7 @@ function orderSummaryCardHtml(order: Order): string {
               <td style="font-weight:600;color:${TEXT};">${escapeHtml(emailPaymentStatusLabel(order.payment_status))}</td>
             </tr>
             <tr>
-              <td style="color:${MUTED};padding:2px 0;">Amount</td>
+              <td style="color:${MUTED};padding:2px 0;">${amountLabel}</td>
               <td style="font-size:18px;font-weight:700;color:${MAROON};">${formatCurrency(Number(order.total))}</td>
             </tr>
           </table>
@@ -228,49 +243,184 @@ function orderSummaryCardHtml(order: Order): string {
     ${cardClose()}`;
 }
 
-function customerDetailsCardHtml(order: Order): string {
-  const name = escapeHtml(customerName(order));
-  const phone = escapeHtml(customerPhone(order));
-  return `${cardOpen()}<tr><td style="padding:16px;"><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;">Customer Details</p><p style="margin:0 0 4px;font-size:14px;font-weight:700;">${name}</p><p style="margin:0;font-size:14px;">${phone}</p></td></tr>${cardClose()}`;
+function customerOrderSummaryCardHtml(
+  orderNumber: string,
+  total: number,
+  paymentMethod?: string,
+  paymentStatus?: string
+): string {
+  const order = {
+    order_number: orderNumber,
+    total,
+    payment_method: paymentMethod,
+    payment_status: paymentStatus
+  } as Order;
+  return orderSummaryCardHtml(order, { totalAmountLabel: true });
 }
 
-function adminActionButtonsHtml(orderId: string): string {
-  return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:8px;">
-      <tr>
-        <td align="center" style="padding:4px;">
-          <a href="${approveUrl(orderId)}" target="_blank" rel="noopener noreferrer"
-             style="display:inline-block;min-width:200px;padding:14px 24px;background-color:#2E7D32;color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;text-align:center;box-sizing:border-box;">
-            ✅ Approve Order
-          </a>
-        </td>
-      </tr>
-      <tr>
-        <td align="center" style="padding:4px;">
-          <a href="${remindUrl(orderId)}" target="_blank" rel="noopener noreferrer"
-             style="display:inline-block;min-width:200px;padding:14px 24px;background-color:${GOLD};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;text-align:center;box-sizing:border-box;">
-            🕒 Remind Me Later
-          </a>
-        </td>
-      </tr>
-    </table>`;
-}
 
-function adminNewOrderBody(order: Order): string {
-  return `${sectionHeading("New Order Alert")}${orderSummaryCardHtml(order)}${productCardsHtml(order)}${customerDetailsCardHtml(order)}${adminShippingAddressCardHtml(order)}${adminActionButtonsHtml(order.id)}`;
+function adminActionButtonsHtml(actionUrls: OrderEmailActionUrls): string {
+  const dashboardUrl = emailAppUrl("/admin/dashboard");
+  return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;">
+    <tr>
+      <td class="fp-btn-col" align="center" width="50%" style="padding:0 6px 0 0;">
+        <a href="${actionUrls.approveUrl}" target="_blank" rel="noopener noreferrer" style="display:block;height:54px;line-height:54px;background-color:${MAROON};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;text-align:center;">✓ Approve Order</a>
+      </td>
+      <td class="fp-btn-col" align="center" width="50%" style="padding:0 0 0 6px;">
+        <a href="${escapeHtml(dashboardUrl)}" target="_blank" rel="noopener noreferrer" style="display:block;height:54px;line-height:54px;background-color:#FFFFFF;color:${MAROON};font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;text-align:center;border:1px solid ${MAROON};">📋 Open Dashboard</a>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function adminGenericBody(order: Order, title: string): string {
-  return `${sectionHeading(title)}${orderSummaryCardHtml(order)}${productCardsHtml(order)}${customerDetailsCardHtml(order)}${adminShippingAddressCardHtml(order)}`;
+  return `${sectionHeading(title)}${orderSummaryCardHtml(order)}${adminCustomerDetailsCardHtml(order)}${adminShippingAddressStructuredCardHtml(order)}`;
 }
 
-export function buildPendingOrderReminderEmail(order: Order): { subject: string; html: string } {
-  const body = `${sectionHeading("Pending Order Reminder")}<p style="margin:0 0 16px;font-size:15px;line-height:1.6;">This order has been awaiting approval for more than ${formatReminderDelayLabel()}.</p>${orderSummaryCardHtml(order)}${productCardsHtml(order)}${customerDetailsCardHtml(order)}${adminShippingAddressCardHtml(order)}${adminActionButtonsHtml(order.id)}`;
+function resolveDeliveryPartnerLabel(order: Order): string {
+  if (order.courier_partner?.trim()) return order.courier_partner.trim();
+  if (order.delivery_partner?.trim()) return order.delivery_partner.trim();
+  if (order.courier_name?.trim()) return order.courier_name.trim();
+  return "Rapido";
+}
+
+function customerDeliveryPartnerCardHtml(order: Order): string {
+  const rapido = getRapidoDeliveryDetails(order);
+  const deliveryPartner = escapeHtml(resolveDeliveryPartnerLabel(order));
+  const riderName = escapeHtml(rapido?.rider_name?.trim() || "—");
+  const riderPhone = escapeHtml(rapido?.rider_phone?.trim() || "—");
+  const vehicleNumber = escapeHtml(rapido?.vehicle_number?.trim() || "—");
+  const dispatchedOn = rapido?.pickup_time
+    ? escapeHtml(formatPickupTimeDisplay(rapido.pickup_time))
+    : "—";
+  const notes = rapido?.notes?.trim()
+    ? `<tr><td style="color:${MUTED};padding:2px 0;vertical-align:top;">Notes</td><td style="font-weight:600;color:${TEXT};">${escapeHtml(rapido.notes.trim())}</td></tr>`
+    : "";
+
+  return `
+    ${cardOpen()}
+      <tr>
+        <td style="padding:18px 16px;">
+          <p style="margin:0 0 14px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${GOLD};">Delivery Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.9;">
+            <tr><td style="color:${MUTED};width:46%;vertical-align:top;">Delivery Partner</td><td style="font-weight:600;">${deliveryPartner}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Rider Name</td><td style="font-weight:600;">${riderName}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Phone</td><td style="font-weight:600;">${riderPhone}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Vehicle Number</td><td style="font-weight:600;">${vehicleNumber}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Parcel Handed Over Time</td><td style="font-weight:600;">${dispatchedOn}</td></tr>
+            ${notes}
+          </table>
+        </td>
+      </tr>
+    ${cardClose()}`;
+}
+
+function adminOrderShippedBody(order: Order): string {
+  const rapido = getRapidoDeliveryDetails(order);
+  const deliveryPartner = escapeHtml(resolveDeliveryPartnerLabel(order));
+  const riderName = escapeHtml(rapido?.rider_name?.trim() || "—");
+  const vehicleNumber = escapeHtml(rapido?.vehicle_number?.trim() || "—");
+
+  return `
+    ${sectionHeading("📦 Order Marked Shipped")}
+    ${cardOpen()}
+      <tr>
+        <td style="padding:18px 16px;font-size:14px;line-height:1.9;">
+          <p style="margin:0 0 6px;"><strong>Order ID:</strong> ${escapeHtml(order.order_number)}</p>
+          <p style="margin:0 0 6px;"><strong>Customer Name:</strong> ${escapeHtml(customerName(order))}</p>
+          <p style="margin:0 0 6px;"><strong>Mobile Number:</strong> ${escapeHtml(customerPhone(order))}</p>
+          <p style="margin:0 0 6px;"><strong>Delivery Partner:</strong> ${deliveryPartner}</p>
+          <p style="margin:0 0 6px;"><strong>Rider Name:</strong> ${riderName}</p>
+          <p style="margin:0 0 6px;"><strong>Vehicle Number:</strong> ${vehicleNumber}</p>
+          <p style="margin:0 0 6px;"><strong>Amount:</strong> ${formatCurrency(Number(order.total))}</p>
+          <p style="margin:14px 0 0;font-size:12px;color:${MUTED};font-style:italic;">This email is for internal use only.</p>
+        </td>
+      </tr>
+    ${cardClose()}`;
+}
+
+export function buildCustomerOrderShippedEmail(order: Order): { subject: string; html: string } {
+  const body = `
+    ${customerGreetingHtml(order)}
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Good news! Your order has been shipped and is on its way.</p>
+    ${customerDeliveryPartnerCardHtml(order)}`;
+
+  return {
+    subject: `📦 Your Order Has Been Shipped — ${order.order_number}`,
+    html: emailShell(`Your Order Has Been Shipped — ${order.order_number}`, body, {
+      preheader: `Your order ${order.order_number} has been shipped and is on its way.`
+    })
+  };
+}
+
+export function buildCustomerOrderPackingStartedEmail(order: Order): { subject: string; html: string } {
+  const body = `
+    ${customerGreetingHtml(order)}
+    ${messageBlockHtml([
+      "Good news!",
+      "Your order is currently being packed carefully.",
+      "No action is required.",
+      "We'll notify you once it is ready for dispatch."
+    ])}`;
+
+  return {
+    subject: `📦 Packing Started — ${order.order_number}`,
+    html: emailShell(`Packing Started — ${order.order_number}`, body, {
+      preheader: `Your order ${order.order_number} is being packed.`
+    })
+  };
+}
+
+export function buildCustomerOrderReadyForShippingEmail(order: Order): { subject: string; html: string } {
+  const body = `
+    ${customerGreetingHtml(order)}
+    ${messageBlockHtml([
+      "Your parcel is packed and ready for dispatch.",
+      "We are arranging shipment.",
+      "We'll notify you once the parcel is handed over to our delivery partner.",
+      "No action is required."
+    ])}`;
+
+  return {
+    subject: `🚚 Ready For Shipping — ${order.order_number}`,
+    html: emailShell(`Ready For Shipping — ${order.order_number}`, body, {
+      preheader: `Your order ${order.order_number} is ready for dispatch.`
+    })
+  };
+}
+
+export function buildCustomerOrderDeliveredEmail(order: Order): { subject: string; html: string } {
+  const body = `
+    ${customerGreetingHtml(order)}
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">Your order has been delivered successfully.</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">Thank you for shopping with Fashion Point ❤️</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:${TEXT};">We hope to see you again.</p>`;
+
+  return {
+    subject: `🎉 Order Delivered — ${order.order_number}`,
+    html: emailShell(`Order Delivered — ${order.order_number}`, body, {
+      preheader: `Your order ${order.order_number} has been delivered.`,
+      footer: "minimal"
+    })
+  };
+}
+
+export function buildPendingOrderReminderEmail(
+  order: Order,
+  actionUrls: OrderEmailActionUrls
+): { subject: string; html: string } {
+  const body = `
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${TEXT};">This order has been awaiting approval for more than ${formatReminderDelayLabel()}.</p>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Please review and approve the order.</p>
+    ${orderSummaryCardHtml(order, { totalAmountLabel: true })}
+    ${adminCustomerDetailsCardHtml(order)}
+    ${adminShippingAddressStructuredCardHtml(order)}
+    ${adminActionButtonsHtml(actionUrls)}`;
   return {
     subject: `🔔 Pending Order Reminder — ${order.order_number}`,
     html: emailShell(`Pending Order Reminder — ${order.order_number}`, body, {
-      adminOrderId: order.id,
-      preheader: PREHEADER_ADMIN_NEW_ORDER
+      preheader: PREHEADER_ADMIN_NEW_ORDER,
+      footer: "minimal"
     })
   };
 }
@@ -286,7 +436,7 @@ function eventTitle(event: OrderNotificationEvent, order: Order): string {
       return `Worker Packed Order ${order.order_number}`;
     case "ready_for_shipping":
     case "ready_for_dispatch":
-      return `Order ${order.order_number} Ready For Dispatch`;
+      return `🚚 Order ${order.order_number} Ready For Shipping`;
     case "shipped":
       return `Order ${order.order_number} Shipped`;
     default:
@@ -294,30 +444,44 @@ function eventTitle(event: OrderNotificationEvent, order: Order): string {
   }
 }
 
-export function buildOrderEmailTemplate(
+export async function buildOrderEmailTemplate(
   order: Order,
-  event: OrderNotificationEvent
-): { subject: string; html: string } {
+  event: OrderNotificationEvent,
+  actionUrls?: OrderEmailActionUrls
+): Promise<{ subject: string; html: string }> {
+  if (event === "new_order" && actionUrls) {
+    return buildAdminNewOrderPremiumEmail(order, actionUrls);
+  }
+
   const title = eventTitle(event, order);
   const body =
-    event === "new_order" ? adminNewOrderBody(order) : adminGenericBody(order, title);
+    event === "shipped"
+      ? adminOrderShippedBody(order)
+      : adminGenericBody(order, title);
 
   const subject =
-    event === "new_order"
-      ? `🛍 New Order Alert — ${order.order_number}`
-      : `${title} — ${order.order_number}`;
+    event === "shipped"
+        ? `📦 Order Marked Shipped — ${order.order_number}`
+        : event === "ready_for_shipping" || event === "ready_for_dispatch"
+          ? `🚚 Order ${order.order_number} Ready For Shipping`
+          : `${title} — ${order.order_number}`;
 
   return {
     subject,
     html: emailShell(title, body, {
-      adminOrderId: order.id,
-      preheader: event === "new_order" ? PREHEADER_ADMIN_NEW_ORDER : undefined
+      preheader: event === "new_order" ? PREHEADER_ADMIN_NEW_ORDER : undefined,
+      footer: "minimal"
     })
   };
 }
 
 export function buildCustomerOrderReceivedEmail(order: Order): { subject: string; html: string } {
-  const body = `<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:${GOLD};">🛍 Thanks for Placing Your Order</p>${sectionHeading(`Order ${escapeHtml(order.order_number)}`)}${messageBlockHtml(CUSTOMER_PLACED_MESSAGES)}${productCardsHtml(order)}${orderTotalCardHtml(order)}${shippingAddressCardHtml(order)}`;
+  const body = `
+    ${customerGreetingHtml(order)}
+    ${messageBlockHtml(CUSTOMER_PLACED_MESSAGES)}
+    ${orderSummaryCardHtml(order, { totalAmountLabel: true })}
+    ${compactProductCardHtml(order)}
+    ${customerPlacedShippingAddressCardHtml(order)}`;
 
   return {
     subject: `🛍 Thanks for Placing Your Order — ${order.order_number}`,
@@ -328,7 +492,10 @@ export function buildCustomerOrderReceivedEmail(order: Order): { subject: string
 }
 
 export function buildCustomerOrderConfirmedEmail(order: Order): { subject: string; html: string } {
-  const body = `<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:${GOLD};">✓ Order Confirmed</p>${sectionHeading(`Order ${escapeHtml(order.order_number)}`)}${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}${orderIdAmountCardHtml(order.order_number, Number(order.total))}`;
+  const body = `
+    ${customerGreetingHtml(order)}
+    ${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}
+    ${orderSummaryCardHtml(order, { totalAmountLabel: true })}`;
 
   return {
     subject: `✅ Order Confirmed — ${order.order_number}`,
@@ -342,7 +509,10 @@ export function buildCustomerOrderConfirmedEmailSimple(params: {
   orderNumber: string;
   total: number;
 }): { subject: string; html: string } {
-  const body = `<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:${GOLD};">✓ Order Confirmed</p>${sectionHeading(`Order ${escapeHtml(params.orderNumber)}`)}${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}${orderIdAmountCardHtml(params.orderNumber, params.total)}`;
+  const body = `
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};">Hello,</p>
+    ${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}
+    ${customerOrderSummaryCardHtml(params.orderNumber, params.total, "online", "paid")}`;
 
   return {
     subject: `✅ Order Confirmed — ${params.orderNumber}`,

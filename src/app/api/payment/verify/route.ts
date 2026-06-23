@@ -3,7 +3,6 @@ import { verifyPaymentSignature } from "@/lib/razorpay";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { sendNewOrderAlerts, notifyCustomerOrderReceived } from "@/lib/server/notifications/new-order-alerts";
-import { notifyAdminNewOrder } from "@/lib/notifications";
 import { generateOrderNumber } from "@/lib/orders";
 import { validateOrderItems } from "@/lib/checkout/validation";
 import { itemsSubtotal } from "@/lib/checkout/totals";
@@ -133,8 +132,25 @@ export async function POST(req: Request) {
   const normalized = await normalizeOrderRecord(db, order, { persist: false });
   await createShipmentForOrder(db, normalized);
 
-  await sendNewOrderAlerts(db, normalized);
-  await notifyCustomerOrderReceived(normalized);
-  await notifyAdminNewOrder(normalized);
+  try {
+    await sendNewOrderAlerts(db, normalized);
+  } catch (error) {
+    console.error("[payment/verify] admin new-order alerts failed", {
+      orderId: normalized.id,
+      orderNumber: normalized.order_number,
+      error
+    });
+  }
+
+  try {
+    await notifyCustomerOrderReceived(normalized);
+  } catch (error) {
+    console.error("[payment/verify] customer thank-you email failed", {
+      orderId: normalized.id,
+      orderNumber: normalized.order_number,
+      error
+    });
+  }
+
   return NextResponse.json({ success: true, orderNumber: order.order_number, orderId: order.id });
 }

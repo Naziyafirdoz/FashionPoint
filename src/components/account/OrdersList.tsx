@@ -23,7 +23,7 @@ export function OrdersPageShell({
   backHref?: string;
 }) {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
+    <div className="mx-auto max-w-[780px] px-4 py-12">
       <Link href={backHref} className="text-sm text-primary hover:underline">
         ← Back to dashboard
       </Link>

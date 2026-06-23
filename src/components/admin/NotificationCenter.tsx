@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { NewOrderNotificationCard } from "@/components/admin/orders/NewOrderNotificationCard";
+import { DeliveryFollowUpNotificationCard } from "@/components/admin/orders/DeliveryFollowUpNotificationCard";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useAdminNotificationsOptional } from "@/contexts/AdminNotificationsProvider";
 import type { AdminNotification } from "@/lib/admin/notifications/types";
@@ -36,6 +37,19 @@ function formatTime(iso: string): string {
 }
 
 function isVisibleAdminNotification(notification: AdminNotification): boolean {
+  if (notification.status === "cancelled") {
+    return false;
+  }
+
+  if (
+    notification.type === "reminder" &&
+    notification.payload?.event === "delivery_follow_up" &&
+    notification.remindAfter &&
+    new Date(notification.remindAfter) > new Date()
+  ) {
+    return false;
+  }
+
   if (
     notification.type === "new_order" ||
     notification.type === "packing_assigned" ||
@@ -55,11 +69,19 @@ function notificationActionLabel(notification: AdminNotification): string {
   return notification.actionLabel ?? "View order";
 }
 
+function isDeliveryFollowUpNotification(notification: AdminNotification): boolean {
+  return (
+    notification.type === "reminder" &&
+    notification.payload?.event === "delivery_follow_up" &&
+    notification.title.includes("Delivery Follow-up")
+  );
+}
+
 function hasHighPriorityUnread(notifications: AdminNotification[]): boolean {
   return notifications.some((n) => !n.read && n.priority === "high");
 }
 
-export function NotificationCenter() {
+export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprovalCount?: number }) {
   const ctx = useAdminNotificationsOptional();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,7 +109,8 @@ export function NotificationCenter() {
 
   const visibleNotifications = notifications.filter(isVisibleAdminNotification);
   const visibleUnreadCount = visibleNotifications.filter((n) => !n.read).length;
-  const showHighPriorityBadge = hasHighPriorityUnread(visibleNotifications);
+  const badgeCount = Math.max(visibleUnreadCount, pendingApprovalCount);
+  const showHighPriorityBadge = hasHighPriorityUnread(visibleNotifications) || pendingApprovalCount > 0;
 
   return (
     <div className="relative" ref={panelRef}>
@@ -101,13 +124,13 @@ export function NotificationCenter() {
         }`}
       >
         <Bell className={`h-5 w-5 ${showHighPriorityBadge ? "text-red-700" : ""}`} />
-        {visibleUnreadCount > 0 ? (
+        {badgeCount > 0 ? (
           <span
             className={`absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ${
               showHighPriorityBadge ? "animate-pulse bg-red-600" : "bg-accent"
             }`}
           >
-            {visibleUnreadCount > 99 ? "99+" : visibleUnreadCount}
+            {badgeCount > 99 ? "99+" : badgeCount}
           </span>
         ) : null}
       </button>
@@ -186,6 +209,14 @@ export function NotificationCenter() {
                                   fallbackMessage={n.message}
                                   onActionComplete={() => markAsRead(n.id)}
                                 />
+                              ) : isDeliveryFollowUpNotification(n) ? (
+                                <DeliveryFollowUpNotificationCard
+                                  orderId={n.orderId}
+                                  orderNumber={n.orderNumber}
+                                  notificationId={n.id}
+                                  fallbackMessage={n.message}
+                                  onActionComplete={() => markAsRead(n.id)}
+                                />
                               ) : (
                                 n.message.split("\n").map((line, index) =>
                                   line.trim() ? (
@@ -195,7 +226,7 @@ export function NotificationCenter() {
                               )}
                             </div>
                             <p className="mt-2 text-[11px] text-gray-400">{formatTime(n.createdAt)}</p>
-                            {n.type !== "new_order" ? (
+                            {n.type !== "new_order" && !isDeliveryFollowUpNotification(n) ? (
                               <Link
                                 href={`/admin/orders/${n.orderId}`}
                                 className="mt-2 inline-flex rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"
@@ -206,7 +237,7 @@ export function NotificationCenter() {
                               >
                                 {notificationActionLabel(n)}
                               </Link>
-                            ) : (
+                            ) : n.type === "new_order" ? (
                               <Link
                                 href={`/admin/orders/${n.orderId}`}
                                 className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
@@ -217,7 +248,7 @@ export function NotificationCenter() {
                               >
                                 View order details
                               </Link>
-                            )}
+                            ) : null}
                           </div>
                           {isUnread ? (
                             <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600" aria-hidden />

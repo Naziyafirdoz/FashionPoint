@@ -9,13 +9,14 @@ import {
 } from "@/lib/admin/notifications/storage";
 import type { AdminNotification, AdminNotificationType } from "@/lib/admin/notifications/types";
 import type { Order } from "@/types";
+import { parseRealtimeOrderRow } from "@/lib/orders/parse-realtime-order";
 
 function formatCurrency(amount: number): string {
   return `₹${Number(amount).toLocaleString("en-IN")}`;
 }
 
 export function parseOrderRow(row: Record<string, unknown>): Order {
-  return row as unknown as Order;
+  return parseRealtimeOrderRow(row);
 }
 
 export function detectNotificationEvents(

@@ -5,14 +5,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   BarChart3,
-  Bell,
   ChevronDown,
   LayoutDashboard,
   Package,
   Settings,
   ShoppingCart,
-  Sparkles,
-  Users
+  Sparkles
 } from "lucide-react";
 
 type NavLink = {
@@ -26,6 +24,47 @@ type ProductChild = {
   label: string;
   isActive: (path: string, featured: boolean) => boolean;
 };
+
+type AnalyticsChild = {
+  href: string;
+  label: string;
+  isActive: (path: string) => boolean;
+};
+
+const ANALYTICS_CHILDREN: AnalyticsChild[] = [
+  {
+    href: "/admin/analytics",
+    label: "Overview",
+    isActive: (path) => path === "/admin/analytics"
+  },
+  {
+    href: "/admin/analytics/sales",
+    label: "Sales Analytics",
+    isActive: (path) => path.startsWith("/admin/analytics/sales")
+  },
+  {
+    href: "/admin/analytics/orders",
+    label: "Order Analytics",
+    isActive: (path) => path.startsWith("/admin/analytics/orders")
+  },
+  {
+    href: "/admin/analytics/products",
+    label: "Product Analytics",
+    isActive: (path) => path.startsWith("/admin/analytics/products")
+  },
+  {
+    href: "/admin/analytics/reviews",
+    label: "Review Analytics",
+    isActive: (path) => path.startsWith("/admin/analytics/reviews")
+  },
+  {
+    href: "/admin/analytics/inventory",
+    label: "Inventory Analytics",
+    isActive: (path) => path.startsWith("/admin/analytics/inventory")
+  }
+];
+
+const ANALYTICS_SECTION_PATH = "/admin/analytics";
 
 const PRODUCT_CHILDREN: ProductChild[] = [
   {
@@ -72,15 +111,16 @@ const PRODUCT_SECTION_PATHS = [
 const LINKS: NavLink[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/admin/notifications", label: "Notifications", icon: Bell },
-  { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/ai-features", label: "AI Features", icon: Sparkles },
   { href: "/admin/marketing", label: "Marketing", icon: BarChart3 },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/blogs", label: "Blogs", icon: Package },
   { href: "/admin/settings", label: "Settings", icon: Settings }
 ];
+
+function isAnalyticsSectionActive(path: string) {
+  return path === ANALYTICS_SECTION_PATH || path.startsWith(`${ANALYTICS_SECTION_PATH}/`);
+}
 
 function isProductSectionActive(path: string) {
   return PRODUCT_SECTION_PATHS.some(
@@ -93,13 +133,21 @@ function AdminSidebarNav() {
   const searchParams = useSearchParams();
   const featured = searchParams.get("featured") === "true";
   const productSectionActive = isProductSectionActive(path);
+  const analyticsSectionActive = isAnalyticsSectionActive(path);
   const [productsOpen, setProductsOpen] = useState(productSectionActive);
+  const [analyticsOpen, setAnalyticsOpen] = useState(analyticsSectionActive);
 
   useEffect(() => {
     if (productSectionActive) {
       setProductsOpen(true);
     }
   }, [productSectionActive]);
+
+  useEffect(() => {
+    if (analyticsSectionActive) {
+      setAnalyticsOpen(true);
+    }
+  }, [analyticsSectionActive]);
 
   const linkClass = (active: boolean) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
@@ -138,6 +186,36 @@ function AdminSidebarNav() {
           <div className="mt-1 space-y-0.5">
             {PRODUCT_CHILDREN.map((child) => {
               const active = child.isActive(path, featured);
+              return (
+                <Link key={child.href} href={child.href} className={childLinkClass(active)}>
+                  {child.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setAnalyticsOpen((open) => !open)}
+          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+            analyticsSectionActive ? "bg-primary text-white" : "text-foreground/70 hover:bg-blush"
+          }`}
+          aria-expanded={analyticsOpen}
+        >
+          <BarChart3 className="h-4 w-4 shrink-0" />
+          <span className="flex-1 text-left">Analytics</span>
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 transition-transform ${analyticsOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {analyticsOpen && (
+          <div className="mt-1 space-y-0.5">
+            {ANALYTICS_CHILDREN.map((child) => {
+              const active = child.isActive(path);
               return (
                 <Link key={child.href} href={child.href} className={childLinkClass(active)}>
                   {child.label}

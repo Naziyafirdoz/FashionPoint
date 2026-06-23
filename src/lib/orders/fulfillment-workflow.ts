@@ -1,5 +1,5 @@
 import { isVijayawadaDelivery } from "@/lib/shipping/city-detection";
-import { normalizeLegacyStatus, orderStatusLabel } from "@/lib/orders/status-config";
+import { getStageLabel, normalizeLegacyStatus, orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order, OrderStatus } from "@/types";
 
 /** Internal statuses hidden from customers. */
@@ -26,32 +26,11 @@ export function isAwaitingOrderApproval(status: string): boolean {
   return s === "pending" || s === "processing";
 }
 
-export function getCustomerFacingStatusLabel(order: Pick<Order, "status" | "payment_status">): string {
-  const status = order.status as string;
-  if (status === "cancel_requested") return "Cancel Requested";
-  if (status === "cancellation_approved") return "Cancellation Approved";
-  if (status === "cancelled") return "Cancelled";
-  if (status === "returned") return "Returned";
-
-  const normalized = normalizeLegacyStatus(status);
-  switch (normalized) {
-    case "pending":
-      return "Pending";
-    case "confirmed":
-    case "processing":
-    case "packing_assigned":
-    case "packed":
-    case "ready_to_ship":
-      return "Confirmed";
-    case "shipped":
-      return "Shipped";
-    case "out_for_delivery":
-      return "Out For Delivery";
-    case "delivered":
-      return "Delivered";
-    default:
-      return orderStatusLabel(normalized);
-  }
+/** Customer-facing label — same source as admin (`order.status` via STATUS_CONFIG). */
+export function getCustomerFacingStatusLabel(
+  order: Pick<Order, "status" | "payment_status" | "refund_status" | "payment_method">
+): string {
+  return getStageLabel(order);
 }
 
 export function getAdminFulfillmentStatusLabel(status: string): string {

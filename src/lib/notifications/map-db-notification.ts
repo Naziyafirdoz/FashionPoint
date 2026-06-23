@@ -10,6 +10,9 @@ export function mapDbNotificationToAdmin(row: DbNotification): AdminNotification
     orderNumber: String((row.payload as { order_number?: string })?.order_number ?? ""),
     title: row.title,
     message: row.message,
+    payload: (row.payload as Record<string, unknown> | null) ?? undefined,
+    status: row.status,
+    remindAfter: row.remind_after ?? null,
     read: row.is_read,
     createdAt: row.created_at,
     source: "database"

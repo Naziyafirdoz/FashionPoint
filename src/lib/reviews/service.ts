@@ -165,6 +165,27 @@ export async function getUserReviewForProduct(
   return mapUserReview(data as DbReviewRow);
 }
 
+export async function listUserReviewsForProducts(
+  db: SupabaseClient,
+  userId: string,
+  productIds: string[]
+): Promise<UserReviewPreview[]> {
+  const uniqueIds = [...new Set(productIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await db
+    .from("reviews")
+    .select(
+      "id, product_id, user_id, order_id, rating, title, body, images, size_purchased, color_purchased, status, is_verified_purchase, created_at"
+    )
+    .eq("user_id", userId)
+    .in("product_id", uniqueIds)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as DbReviewRow[]).map(mapUserReview);
+}
+
 export async function listUserReviews(db: SupabaseClient, userId: string): Promise<UserReviewPreview[]> {
   const { data, error } = await db
     .from("reviews")
@@ -243,8 +264,23 @@ export async function createCustomerReview(
   const productId = input.product_id.trim();
   if (!productId) return { error: "Product is required" };
 
-  const existing = await getUserReviewForProduct(db, userId, productId);
-  if (existing) return { error: "You have already reviewed this product" };
+  const orderId = input.order_id?.trim() || null;
+  if (orderId) {
+    const { data: orderReview } = await db
+      .from("reviews")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("product_id", productId)
+      .eq("order_id", orderId)
+      .maybeSingle();
+
+    if (orderReview) {
+      return { error: "You have already reviewed this product" };
+    }
+  } else {
+    const existing = await getUserReviewForProduct(db, userId, productId);
+    if (existing) return { error: "You have already reviewed this product" };
+  }
 
   const verified = await findVerifiedPurchase(db, userId, productId, input.order_id ?? null);
 

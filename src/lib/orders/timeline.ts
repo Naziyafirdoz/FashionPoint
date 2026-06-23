@@ -4,6 +4,111 @@ import { isPrepaidPayment } from "@/lib/orders/payment-rules";
 import { wasOrderPaidBeforeRefund } from "@/lib/orders/refunds";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 
+export type FulfillmentMilestoneStep = {
+  label: string;
+  completed: boolean;
+  at?: string;
+  notes?: string;
+};
+
+const FULFILLMENT_RANK: Record<string, number> = {
+  pending: 0,
+  processing: 1,
+  confirmed: 2,
+  packing_assigned: 3,
+  packed: 3,
+  ready_to_ship: 4,
+  shipped: 5,
+  out_for_delivery: 5,
+  delivered: 6
+};
+
+function statusRank(status: string): number {
+  return FULFILLMENT_RANK[normalizeLegacyStatus(status)] ?? -1;
+}
+
+/** All fulfillment milestones with completion derived from order status. */
+export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilestoneStep[] {
+  const status = normalizeLegacyStatus(order.status);
+  const rank = statusRank(status);
+  const payment = (order.payment_status ?? "").toLowerCase();
+  const prepaid = isPrepaidPayment(order.payment_method);
+  const paid = prepaid && wasOrderPaidBeforeRefund(payment);
+
+  const steps: FulfillmentMilestoneStep[] = [
+    {
+      label: "Order Placed",
+      completed: true,
+      at: order.created_at,
+      notes: "Customer placed the order"
+    }
+  ];
+
+  if (prepaid) {
+    steps.push({
+      label: "Payment Received",
+      completed: paid,
+      at: paid ? order.created_at : undefined,
+      notes: paid ? "Online payment confirmed" : undefined
+    });
+  }
+
+  steps.push(
+    {
+      label: "Order Confirmed",
+      completed: rank >= 2,
+      at: rank >= 2 ? (order.confirmed_at ?? order.updated_at ?? order.created_at) : undefined,
+      notes: rank >= 2 ? "Order approved by staff" : undefined
+    },
+    {
+      label: "Packing Started",
+      completed: rank >= 3,
+      at:
+        rank >= 3
+          ? (order.assigned_at ?? order.packed_at ?? order.updated_at ?? order.created_at)
+          : undefined,
+      notes: rank >= 3 ? "Packing in progress" : undefined
+    },
+    {
+      label: "Ready For Shipping",
+      completed: rank >= 4,
+      at: rank >= 4 ? (order.updated_at ?? order.created_at) : undefined,
+      notes: rank >= 4 ? "Ready for dispatch" : undefined
+    },
+    {
+      label: "Shipped",
+      completed: rank >= 5,
+      at:
+        rank >= 5
+          ? (order.shipping_date ?? order.updated_at ?? order.created_at)
+          : undefined,
+      notes: rank >= 5 ? "Order shipped" : undefined
+    },
+    {
+      label: "Delivered",
+      completed: rank >= 6,
+      at:
+        rank >= 6
+          ? (order.delivery_confirmed_at ?? order.otp_verified_at ?? order.updated_at ?? order.created_at)
+          : undefined,
+      notes: rank >= 6 ? "Delivery completed" : undefined
+    }
+  );
+
+  return steps;
+}
+
+/** Admin order detail — completed milestones only. */
+export function buildFulfillmentMilestoneTimeline(order: Order): OrderTimelineEntry[] {
+  return buildFulfillmentMilestoneSteps(order)
+    .filter((step) => step.completed && step.at)
+    .map((step) => ({
+      label: step.label,
+      at: step.at!,
+      notes: step.notes
+    }));
+}
+
 const RETURN_TIMELINE: Partial<Record<string, string>> = {
   return_requested: "Return Requested",
   return_approved: "Return Approved",
