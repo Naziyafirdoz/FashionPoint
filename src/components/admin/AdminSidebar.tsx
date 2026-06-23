@@ -9,8 +9,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
-  ShoppingCart,
-  Sparkles
+  ShoppingCart
 } from "lucide-react";
 
 type NavLink = {
@@ -26,6 +25,12 @@ type ProductChild = {
 };
 
 type AnalyticsChild = {
+  href: string;
+  label: string;
+  isActive: (path: string) => boolean;
+};
+
+type AIGrowthChild = {
   href: string;
   label: string;
   isActive: (path: string) => boolean;
@@ -64,7 +69,36 @@ const ANALYTICS_CHILDREN: AnalyticsChild[] = [
   }
 ];
 
+const AI_GROWTH_CHILDREN: AIGrowthChild[] = [
+  {
+    href: "/admin/ai-growth/customers",
+    label: "Customer Intelligence",
+    isActive: (path) => path.startsWith("/admin/ai-growth/customers")
+  },
+  {
+    href: "/admin/ai-growth/revenue",
+    label: "Revenue Intelligence",
+    isActive: (path) => path.startsWith("/admin/ai-growth/revenue")
+  },
+  {
+    href: "/admin/ai-growth/products",
+    label: "Product Intelligence",
+    isActive: (path) => path.startsWith("/admin/ai-growth/products")
+  },
+  {
+    href: "/admin/ai-growth/conversion",
+    label: "Conversion Intelligence",
+    isActive: (path) => path.startsWith("/admin/ai-growth/conversion")
+  },
+  {
+    href: "/admin/ai-growth/suggestions",
+    label: "AI Suggestions",
+    isActive: (path) => path.startsWith("/admin/ai-growth/suggestions")
+  }
+];
+
 const ANALYTICS_SECTION_PATH = "/admin/analytics";
+const AI_GROWTH_SECTION_PATH = "/admin/ai-growth";
 
 const PRODUCT_CHILDREN: ProductChild[] = [
   {
@@ -111,15 +145,22 @@ const PRODUCT_SECTION_PATHS = [
 const LINKS: NavLink[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/admin/ai-features", label: "AI Features", icon: Sparkles },
   { href: "/admin/marketing", label: "Marketing", icon: BarChart3 },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/blogs", label: "Blogs", icon: Package },
   { href: "/admin/settings", label: "Settings", icon: Settings }
 ];
 
+function isAIGrowthSectionActive(path: string) {
+  return path === AI_GROWTH_SECTION_PATH || path.startsWith(`${AI_GROWTH_SECTION_PATH}/`);
+}
+
 function isAnalyticsSectionActive(path: string) {
-  return path === ANALYTICS_SECTION_PATH || path.startsWith(`${ANALYTICS_SECTION_PATH}/`);
+  return (
+    path === ANALYTICS_SECTION_PATH ||
+    path.startsWith(`${ANALYTICS_SECTION_PATH}/`) ||
+    isAIGrowthSectionActive(path)
+  );
 }
 
 function isProductSectionActive(path: string) {
@@ -134,8 +175,10 @@ function AdminSidebarNav() {
   const featured = searchParams.get("featured") === "true";
   const productSectionActive = isProductSectionActive(path);
   const analyticsSectionActive = isAnalyticsSectionActive(path);
+  const aiGrowthSectionActive = isAIGrowthSectionActive(path);
   const [productsOpen, setProductsOpen] = useState(productSectionActive);
   const [analyticsOpen, setAnalyticsOpen] = useState(analyticsSectionActive);
+  const [aiGrowthOpen, setAiGrowthOpen] = useState(aiGrowthSectionActive);
 
   useEffect(() => {
     if (productSectionActive) {
@@ -149,6 +192,12 @@ function AdminSidebarNav() {
     }
   }, [analyticsSectionActive]);
 
+  useEffect(() => {
+    if (aiGrowthSectionActive) {
+      setAiGrowthOpen(true);
+    }
+  }, [aiGrowthSectionActive]);
+
   const linkClass = (active: boolean) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
       active ? "bg-primary text-white" : "text-foreground/70 hover:bg-blush"
@@ -156,6 +205,11 @@ function AdminSidebarNav() {
 
   const childLinkClass = (active: boolean) =>
     `block rounded-lg py-1.5 pl-9 pr-3 text-sm ${
+      active ? "bg-primary text-white font-medium" : "text-foreground/70 hover:bg-blush"
+    }`;
+
+  const nestedChildLinkClass = (active: boolean) =>
+    `block rounded-lg py-1.5 pl-14 pr-3 text-sm ${
       active ? "bg-primary text-white font-medium" : "text-foreground/70 hover:bg-blush"
     }`;
 
@@ -222,6 +276,37 @@ function AdminSidebarNav() {
                 </Link>
               );
             })}
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setAiGrowthOpen((open) => !open)}
+                className={`flex w-full items-center gap-2 rounded-lg py-1.5 pl-9 pr-3 text-sm ${
+                  aiGrowthSectionActive
+                    ? "bg-primary text-white font-medium"
+                    : "text-foreground/70 hover:bg-blush"
+                }`}
+                aria-expanded={aiGrowthOpen}
+              >
+                <span className="flex-1 text-left">AI Growth Intelligence</span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 shrink-0 transition-transform ${aiGrowthOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {aiGrowthOpen && (
+                <div className="mt-0.5 space-y-0.5">
+                  {AI_GROWTH_CHILDREN.map((child) => {
+                    const active = child.isActive(path);
+                    return (
+                      <Link key={child.href} href={child.href} className={nestedChildLinkClass(active)}>
+                        {child.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

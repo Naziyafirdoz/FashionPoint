@@ -3,36 +3,22 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis
 } from "recharts";
-import { CheckCircle2, MessageSquare, Star, StarHalf, TrendingUp } from "lucide-react";
+import { MessageSquare, Star, StarHalf } from "lucide-react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminLiveStatus } from "@/components/admin/AdminLiveStatus";
 import { EmptyState } from "@/components/admin/dashboard/EmptyState";
-import {
-  CHART_HEIGHT,
-  KpiCard,
-  PanelCard,
-  StatCard
-} from "@/components/admin/analytics/analytics-shared";
+import { CHART_HEIGHT, KpiCard, PanelCard } from "@/components/admin/analytics/analytics-shared";
 import type { AdminReviewRow } from "@/lib/admin/reviews";
-import {
-  computeReviewAnalytics,
-  REVIEW_ANALYTICS_MIN_LOW_RATED,
-  REVIEW_ANALYTICS_MIN_TOP_RATED,
-  type ReviewAnalyticsSnapshot
-} from "@/lib/admin/review-analytics";
+import { computeReviewAnalytics } from "@/lib/admin/review-analytics";
 import { useLiveTimestamp } from "@/lib/admin/use-live-timestamp";
 import { createClient } from "@/lib/supabase/client";
 
@@ -43,8 +29,6 @@ const RATING_COLORS: Record<number, string> = {
   2: "#f97316",
   1: "#ef4444"
 };
-
-type TrendRange = "daily" | "weekly" | "monthly";
 
 function RatingStars({ rating }: { rating: number }) {
   return (
@@ -86,7 +70,6 @@ export function ReviewAnalyticsPageClient() {
   const [reviews, setReviews] = useState<AdminReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [trendRange, setTrendRange] = useState<TrendRange>("daily");
   const [realtimeLive, setRealtimeLive] = useState(false);
   const { lastUpdated, touch } = useLiveTimestamp();
 
@@ -124,19 +107,8 @@ export function ReviewAnalyticsPageClient() {
     };
   }, [load]);
 
-  const analytics: ReviewAnalyticsSnapshot = useMemo(
-    () => computeReviewAnalytics(reviews),
-    [reviews]
-  );
-
-  const trendData = useMemo(() => {
-    if (trendRange === "weekly") return analytics.weeklyTrend;
-    if (trendRange === "monthly") return analytics.monthlyTrend;
-    return analytics.dailyTrend;
-  }, [analytics, trendRange]);
-
+  const analytics = useMemo(() => computeReviewAnalytics(reviews), [reviews]);
   const hasReviews = analytics.overview.totalReviews > 0;
-  const hasTrendData = trendData.length >= 2;
 
   return (
     <>
@@ -163,7 +135,7 @@ export function ReviewAnalyticsPageClient() {
               <p className="text-xs text-foreground/55">Customer satisfaction from real review history</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <KpiCard
                 icon={MessageSquare}
                 label="Total Reviews"
@@ -178,100 +150,33 @@ export function ReviewAnalyticsPageClient() {
                     : "—"
                 }
               />
-              <KpiCard
-                icon={CheckCircle2}
-                label="Verified Purchase Reviews"
-                value={String(analytics.overview.verifiedPurchaseReviews)}
-              />
-              <KpiCard
-                icon={TrendingUp}
-                label="Reviews Today"
-                value={String(analytics.overview.reviewsToday)}
-              />
             </div>
 
             {analytics.ratingDistribution.length > 0 ? (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <PanelCard title="Rating Distribution" subtitle="Share of approved reviews by star rating">
-                  <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                    <BarChart
-                      data={analytics.ratingDistribution}
-                      layout="vertical"
-                      margin={{ top: 4, right: 8, left: 8, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0d8e4" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 100]} />
-                      <YAxis
-                        type="category"
-                        dataKey="label"
-                        tick={{ fontSize: 10 }}
-                        width={48}
-                      />
-                      <Tooltip
-                        formatter={(value: number, _name, item) => {
-                          const row = item.payload as { count: number; percentage: number };
-                          return [`${value}% (${row.count} reviews)`, "Share"];
-                        }}
-                      />
-                      <Bar dataKey="percentage" radius={[0, 4, 4, 0]} maxBarSize={22}>
-                        {analytics.ratingDistribution.map((entry) => (
-                          <Cell key={entry.stars} fill={RATING_COLORS[entry.stars] ?? "#7b0d2b"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </PanelCard>
-
-                <PanelCard title="Rating Breakdown" subtitle="Distribution by stars">
-                  <div className="flex h-full flex-col items-center justify-center gap-4 sm:flex-row">
-                    <div className="h-[11rem] w-full max-w-[11rem]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={analytics.ratingDistribution}
-                            dataKey="count"
-                            nameKey="label"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={36}
-                            outerRadius={58}
-                            paddingAngle={2}
-                          >
-                            {analytics.ratingDistribution.map((entry) => (
-                              <Cell
-                                key={entry.stars}
-                                fill={RATING_COLORS[entry.stars] ?? "#9ca3af"}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <ul className="min-w-0 flex-1 space-y-1.5">
+              <PanelCard title="Rating Distribution" subtitle="Share of approved reviews by star rating">
+                <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+                  <BarChart
+                    data={analytics.ratingDistribution}
+                    layout="vertical"
+                    margin={{ top: 4, right: 8, left: 8, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0d8e4" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10 }} unit="%" domain={[0, 100]} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 10 }} width={48} />
+                    <Tooltip
+                      formatter={(value: number, _name, item) => {
+                        const row = item.payload as { count: number; percentage: number };
+                        return [`${value}% (${row.count} reviews)`, "Share"];
+                      }}
+                    />
+                    <Bar dataKey="percentage" radius={[0, 4, 4, 0]} maxBarSize={22}>
                       {analytics.ratingDistribution.map((entry) => (
-                        <li
-                          key={entry.stars}
-                          className="flex items-center justify-between gap-2 text-xs text-foreground/70"
-                        >
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: RATING_COLORS[entry.stars] ?? "#9ca3af"
-                              }}
-                            />
-                            <span>{entry.label}</span>
-                          </span>
-                          <span className="font-semibold tabular-nums text-primary">
-                            {entry.count} ({entry.percentage}%)
-                          </span>
-                        </li>
+                        <Cell key={entry.stars} fill={RATING_COLORS[entry.stars] ?? "#7b0d2b"} />
                       ))}
-                    </ul>
-                  </div>
-                </PanelCard>
-              </div>
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </PanelCard>
             ) : null}
 
             {analytics.recentReviews.length > 0 ? (
@@ -285,14 +190,10 @@ export function ReviewAnalyticsPageClient() {
                       <ProductThumb image={review.productImage} name={review.productName} />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">
-                            {review.customerName}
-                          </p>
+                          <p className="text-sm font-semibold text-foreground">{review.customerName}</p>
                           <p className="text-[11px] text-foreground/50">{review.dateLabel}</p>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-foreground/65">
-                          {review.productName}
-                        </p>
+                        <p className="mt-0.5 truncate text-xs text-foreground/65">{review.productName}</p>
                         <div className="mt-1">
                           <RatingStars rating={review.rating} />
                         </div>
@@ -305,64 +206,6 @@ export function ReviewAnalyticsPageClient() {
                 </ul>
               </PanelCard>
             ) : null}
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              {analytics.topRatedProducts.length > 0 ? (
-                <PanelCard
-                  title="Top Rated Products"
-                  subtitle={`Minimum ${REVIEW_ANALYTICS_MIN_TOP_RATED} approved reviews`}
-                >
-                  <ul className="space-y-2">
-                    {analytics.topRatedProducts.map((product) => (
-                      <li
-                        key={product.productId}
-                        className="flex items-center gap-2.5 rounded-lg border border-accent/10 bg-blush/15 px-2 py-2"
-                      >
-                        <ProductThumb image={product.productImage} name={product.productName} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {product.productName}
-                          </p>
-                          <p className="text-[11px] text-foreground/55">
-                            {product.averageRating} avg · {product.reviewCount}{" "}
-                            {product.reviewCount === 1 ? "review" : "reviews"}
-                          </p>
-                        </div>
-                        <RatingStars rating={Math.round(product.averageRating)} />
-                      </li>
-                    ))}
-                  </ul>
-                </PanelCard>
-              ) : null}
-
-              {analytics.lowRatedProducts.length > 0 ? (
-                <PanelCard
-                  title="Low Rated Products"
-                  subtitle={`Minimum ${REVIEW_ANALYTICS_MIN_LOW_RATED} approved reviews`}
-                >
-                  <ul className="space-y-2">
-                    {analytics.lowRatedProducts.map((product) => (
-                      <li
-                        key={product.productId}
-                        className="flex items-center gap-2.5 rounded-lg border border-accent/10 bg-blush/15 px-2 py-2"
-                      >
-                        <ProductThumb image={product.productImage} name={product.productName} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            {product.productName}
-                          </p>
-                          <p className="text-[11px] text-foreground/55">
-                            {product.averageRating} avg · {product.reviewCount}{" "}
-                            {product.reviewCount === 1 ? "review" : "reviews"}
-                          </p>
-                        </div>
-                        <RatingStars rating={Math.round(product.averageRating)} />
-                      </li>
-                    ))}
-                  </ul>
-                </PanelCard>
-              ) : null}
-            </div>
 
             {analytics.mostReviewedProducts.length > 0 ? (
               <PanelCard title="Most Reviewed Products" subtitle="Sorted by review count">
@@ -388,89 +231,6 @@ export function ReviewAnalyticsPageClient() {
                     </li>
                   ))}
                 </ul>
-              </PanelCard>
-            ) : null}
-
-            {analytics.verifiedPurchase.total > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <StatCard
-                  label="Verified Purchase Reviews"
-                  value={String(analytics.verifiedPurchase.count)}
-                />
-                {analytics.verifiedPurchase.percent !== null ? (
-                  <div className="rounded-xl border border-accent/20 bg-white p-4 shadow-card">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                      Verified Purchase Share
-                    </p>
-                    <p className="mt-2 text-2xl font-bold text-primary">
-                      {analytics.verifiedPurchase.percent}%
-                    </p>
-                    <p className="mt-1 text-xs text-foreground/60">
-                      {analytics.verifiedPurchase.count} of {analytics.verifiedPurchase.total} total
-                      reviews
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {hasTrendData ? (
-              <PanelCard
-                title="Rating Trend"
-                subtitle="Average rating over time (approved reviews)"
-                action={
-                  <select
-                    aria-label="Rating trend range"
-                    value={trendRange}
-                    onChange={(e) => setTrendRange(e.target.value as TrendRange)}
-                    className="h-8 rounded-lg border border-accent/30 bg-white px-2 text-xs text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                }
-              >
-                <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-                  <AreaChart data={trendData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="reviewRatingGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#c9a227" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#c9a227" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0d8e4" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-                    <YAxis domain={[1, 5]} tick={{ fontSize: 10 }} width={32} />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null;
-                        const point = payload[0]?.payload as {
-                          averageRating: number;
-                          reviewCount: number;
-                        };
-                        return (
-                          <div className="rounded-lg border bg-white px-3 py-2 text-xs shadow-md">
-                            <p className="font-semibold text-primary">{label}</p>
-                            <p className="mt-1 text-foreground/70">
-                              Avg rating: {point.averageRating} / 5
-                            </p>
-                            <p className="text-foreground/70">
-                              Reviews: {point.reviewCount}
-                            </p>
-                          </div>
-                        );
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="averageRating"
-                      stroke="#c9a227"
-                      strokeWidth={2}
-                      fill="url(#reviewRatingGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
               </PanelCard>
             ) : null}
           </div>

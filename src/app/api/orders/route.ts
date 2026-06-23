@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
-import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
+import { ADMIN_ORDER_LIST_SELECT, ADMIN_ORDER_LIST_WITH_ITEMS_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { orderMatchesPaymentFilter, orderMatchesSearch } from "@/lib/admin/notifications/orders-view";
 import { fetchAdminOrderStats } from "@/lib/orders/admin-stats";
@@ -145,6 +145,8 @@ export async function GET(req: Request) {
   const includeReviewCounts = url.searchParams.get("include_review_counts") === "true";
   const includeStats = url.searchParams.get("include_stats") === "true";
   const statsOnly = url.searchParams.get("stats_only") === "true";
+  const withItems = url.searchParams.get("with_items") === "true";
+  const adminOrderSelect = withItems ? ADMIN_ORDER_LIST_WITH_ITEMS_SELECT : ADMIN_ORDER_LIST_SELECT;
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
   const limit = Math.min(
     MAX_LIMIT,
@@ -188,7 +190,7 @@ export async function GET(req: Request) {
   if (admin && listFilter.kind !== "returns") {
     let query = db
       .from("orders")
-      .select(ADMIN_ORDER_LIST_SELECT, { count: "estimated" })
+      .select(adminOrderSelect, { count: "estimated" })
       .order("created_at", { ascending: false });
 
     if (listFilter.kind === "status") {
@@ -230,7 +232,7 @@ export async function GET(req: Request) {
 
     const adminQueryMeta: OrderQueryDebugMeta = {
       source: "admin-orders",
-      columns: ADMIN_ORDER_LIST_SELECT,
+      columns: adminOrderSelect,
       count: "estimated",
       page,
       limit,
@@ -269,7 +271,7 @@ export async function GET(req: Request) {
       );
     }
 
-    orders = (data ?? []) as Order[];
+    orders = (data ?? []) as unknown as Order[];
     count = queryCount;
   } else if (!admin) {
     const { orders: customerOrders, error: customerFetchError } = await fetchCustomerOrdersForUser(
@@ -296,7 +298,7 @@ export async function GET(req: Request) {
   } else {
     let query = db
       .from("orders")
-      .select(ADMIN_ORDER_LIST_SELECT, { count: "estimated" })
+      .select(adminOrderSelect, { count: "estimated" })
       .order("created_at", { ascending: false });
 
     if (listFilter.kind === "status") {
@@ -375,7 +377,7 @@ export async function GET(req: Request) {
 
     const listQueryMeta: OrderQueryDebugMeta = {
       source: "admin-returns-orders",
-      columns: ADMIN_ORDER_LIST_SELECT,
+      columns: adminOrderSelect,
       count: "estimated",
       page,
       limit,
@@ -412,7 +414,7 @@ export async function GET(req: Request) {
       );
     }
 
-    orders = (data ?? []) as Order[];
+    orders = (data ?? []) as unknown as Order[];
     count = queryCount;
   }
 

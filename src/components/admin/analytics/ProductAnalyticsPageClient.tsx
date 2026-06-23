@@ -9,11 +9,11 @@ export function ProductAnalyticsPageClient() {
   const { productAnalytics } = analytics;
   const hasData =
     products.length > 0 ||
-    productAnalytics.topSellingProducts.length > 0 ||
-    productAnalytics.activeProductsCount > 0;
+    productAnalytics.activeProductsCount > 0 ||
+    productAnalytics.neverSoldProducts.length > 0;
 
   return (
-    <AnalyticsPageShell title="Product Analytics">
+    <AnalyticsPageShell title="Product Analytics" requireFilteredOrders={false}>
       {hasData ? (
         <ProductAnalyticsSection />
       ) : (

@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import {
-  BarChart3,
-  Boxes,
   CircleDollarSign,
+  Lightbulb,
   Package,
-  ShoppingBag,
-  Star,
+  Target,
+  Users,
   type LucideIcon
 } from "lucide-react";
 
@@ -20,38 +19,38 @@ type NavCard = {
 
 const NAV_CARDS: NavCard[] = [
   {
-    href: "/admin/analytics/sales",
-    label: "Sales Analytics",
-    description: "Revenue, orders, and AOV",
+    href: "/admin/ai-growth/customers",
+    label: "Customer Intelligence",
+    description: "Customer behavior and retention signals",
+    icon: Users
+  },
+  {
+    href: "/admin/ai-growth/revenue",
+    label: "Revenue Intelligence",
+    description: "Revenue opportunities and trends",
     icon: CircleDollarSign
   },
   {
-    href: "/admin/analytics/orders",
-    label: "Order Analytics",
-    description: "Pipeline, status, and fulfillment flow",
-    icon: ShoppingBag
-  },
-  {
-    href: "/admin/analytics/products",
-    label: "Product Analytics",
-    description: "Active catalog and unsold products",
+    href: "/admin/ai-growth/products",
+    label: "Product Intelligence",
+    description: "Catalog performance and assortment gaps",
     icon: Package
   },
   {
-    href: "/admin/analytics/reviews",
-    label: "Review Analytics",
-    description: "Ratings and customer feedback",
-    icon: Star
+    href: "/admin/ai-growth/conversion",
+    label: "Conversion Intelligence",
+    description: "Funnel friction and checkout insights",
+    icon: Target
   },
   {
-    href: "/admin/analytics/inventory",
-    label: "Inventory Analytics",
-    description: "Stock health and restock priorities",
-    icon: Boxes
+    href: "/admin/ai-growth/suggestions",
+    label: "AI Suggestions",
+    description: "Prioritized actions for store growth",
+    icon: Lightbulb
   }
 ];
 
-export function AnalyticsNavCards() {
+export function AIGrowthNavCards() {
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
@@ -71,18 +70,6 @@ export function AnalyticsNavCards() {
             <p className="mt-1 text-xs text-foreground/55">{description}</p>
           </Link>
         ))}
-      </div>
-    </div>
-  );
-}
-
-export function AnalyticsOverviewHeader() {
-  return (
-    <div className="flex items-center gap-2">
-      <BarChart3 className="h-5 w-5 text-primary" aria-hidden />
-      <div>
-        <h2 className="font-display text-lg font-bold text-primary">Overview</h2>
-        <p className="text-xs text-foreground/55">Store performance at a glance</p>
       </div>
     </div>
   );

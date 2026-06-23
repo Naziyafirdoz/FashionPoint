@@ -15,7 +15,6 @@ import {
   ComparisonMetricCard,
   HighlightDayCard,
   PanelCard,
-  StatCard,
   formatCompactCurrency,
   formatCurrency,
   type TrendRange
@@ -39,14 +38,14 @@ export function SalesAnalyticsSection() {
     <div className="space-y-4">
       <div>
         <h2 className="font-display text-lg font-bold text-primary">Sales Analytics</h2>
-        <p className="text-xs text-foreground/55">Historical sales metrics from order data</p>
+        <p className="text-xs text-foreground/55">Revenue, orders, and AOV for the selected period</p>
       </div>
 
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-          Revenue Trends
+          Revenue
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <ComparisonMetricCard
             label="Revenue Today"
             value={formatCurrency(sales.revenueTrends.today.current)}
@@ -65,18 +64,12 @@ export function SalesAnalyticsSection() {
             comparison={sales.revenueTrends.last30Days}
             isCurrency
           />
-          <ComparisonMetricCard
-            label="Revenue This Year"
-            value={formatCurrency(sales.revenueTrends.thisYear.current)}
-            comparison={sales.revenueTrends.thisYear}
-            isCurrency
-          />
         </div>
       </div>
 
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-          Order Trends
+          Orders
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <ComparisonMetricCard
@@ -97,101 +90,40 @@ export function SalesAnalyticsSection() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-            Products Sold
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard label="Today" value={String(sales.productsSoldTrends.today)} />
-            <StatCard label="This Week" value={String(sales.productsSoldTrends.thisWeek)} />
-            <StatCard label="This Month" value={String(sales.productsSoldTrends.thisMonth)} />
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-            Average Order Value
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <ComparisonMetricCard
-              label="AOV Today"
-              value={formatCurrency(sales.aovTrends.today.current)}
-              comparison={sales.aovTrends.today}
-              isCurrency
-            />
-            <ComparisonMetricCard
-              label="AOV Last 7 Days"
-              value={formatCurrency(sales.aovTrends.last7Days.current)}
-              comparison={sales.aovTrends.last7Days}
-              isCurrency
-            />
-            <ComparisonMetricCard
-              label="AOV Last 30 Days"
-              value={formatCurrency(sales.aovTrends.last30Days.current)}
-              comparison={sales.aovTrends.last30Days}
-              isCurrency
-            />
-          </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
+          Average Order Value
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <ComparisonMetricCard
+            label="AOV Today"
+            value={formatCurrency(sales.aovTrends.today.current)}
+            comparison={sales.aovTrends.today}
+            isCurrency
+          />
+          <ComparisonMetricCard
+            label="AOV Last 7 Days"
+            value={formatCurrency(sales.aovTrends.last7Days.current)}
+            comparison={sales.aovTrends.last7Days}
+            isCurrency
+          />
+          <ComparisonMetricCard
+            label="AOV Last 30 Days"
+            value={formatCurrency(sales.aovTrends.last30Days.current)}
+            comparison={sales.aovTrends.last30Days}
+            isCurrency
+          />
         </div>
       </div>
 
-      {(sales.bestSalesDay || sales.worstSalesDay) && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {sales.bestSalesDay ? (
-            <HighlightDayCard
-              title="Best Sales Day"
-              label={sales.bestSalesDay.label}
-              revenue={sales.bestSalesDay.revenue}
-              orders={sales.bestSalesDay.orders}
-            />
-          ) : null}
-          {sales.worstSalesDay ? (
-            <HighlightDayCard
-              title="Worst Sales Day"
-              label={sales.worstSalesDay.label}
-              revenue={sales.worstSalesDay.revenue}
-              orders={sales.worstSalesDay.orders}
-            />
-          ) : null}
-        </div>
-      )}
-
-      {(sales.topRevenuePeriods.bestDay ||
-        sales.topRevenuePeriods.bestWeek ||
-        sales.topRevenuePeriods.bestMonth) && (
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-            Top Revenue Period
-          </p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {sales.topRevenuePeriods.bestDay ? (
-              <HighlightDayCard
-                title="Best Day"
-                label={sales.topRevenuePeriods.bestDay.label}
-                revenue={sales.topRevenuePeriods.bestDay.revenue}
-                orders={sales.topRevenuePeriods.bestDay.orders}
-              />
-            ) : null}
-            {sales.topRevenuePeriods.bestWeek ? (
-              <HighlightDayCard
-                title="Best Week"
-                label={sales.topRevenuePeriods.bestWeek.label}
-                revenue={sales.topRevenuePeriods.bestWeek.revenue}
-                orders={sales.topRevenuePeriods.bestWeek.orders}
-              />
-            ) : null}
-            {sales.topRevenuePeriods.bestMonth ? (
-              <HighlightDayCard
-                title="Best Month"
-                label={sales.topRevenuePeriods.bestMonth.label}
-                revenue={sales.topRevenuePeriods.bestMonth.revenue}
-                orders={sales.topRevenuePeriods.bestMonth.orders}
-              />
-            ) : null}
-          </div>
-        </div>
-      )}
+      {sales.bestSalesDay ? (
+        <HighlightDayCard
+          title="Best Sales Day"
+          label={sales.bestSalesDay.label}
+          revenue={sales.bestSalesDay.revenue}
+          orders={sales.bestSalesDay.orders}
+        />
+      ) : null}
 
       {hasTrendData ? (
         <PanelCard
