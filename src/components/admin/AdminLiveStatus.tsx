@@ -10,16 +10,21 @@ function formatLiveTime(date: Date) {
 
 export function AdminLiveStatus({
   lastUpdated,
-  live = false
+  isLive,
+  live
 }: {
   lastUpdated: Date | null;
+  isLive?: boolean;
+  /** @deprecated Use `isLive` instead */
   live?: boolean;
 }) {
+  const showLive = isLive ?? live ?? false;
+
   if (!lastUpdated) return null;
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-foreground/60" aria-live="polite">
-      {live ? (
+      {showLive ? (
         <>
           <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
           <span className="font-medium text-emerald-700">Live</span>

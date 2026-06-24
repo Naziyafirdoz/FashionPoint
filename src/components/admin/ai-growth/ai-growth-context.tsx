@@ -1,13 +1,29 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode
+} from "react";
 import type { AIGrowthDateFilter } from "@/components/admin/ai-growth/ai-growth-shared";
 import { useAdminNotifications } from "@/contexts/AdminNotificationsProvider";
 import type { OrderRealtimeEvent } from "@/lib/admin/notifications/types";
 import { fetchAllOrdersForAdmin } from "@/lib/admin/fetch-all-orders";
-import { useLiveTimestamp } from "@/lib/admin/use-live-timestamp";
+import { useLiveRefresh } from "@/lib/admin/use-live-refresh";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import type { Order } from "@/types";
+
+const extraLiveRefreshRef: { current: (() => void | Promise<void>) | null } = {
+  current: null
+};
+
+export function setAIGrowthLiveRefreshExtra(fn: (() => void | Promise<void>) | null) {
+  extraLiveRefreshRef.current = fn;
+}
 
 function patchGrowthOrders(prev: Order[], { event, order }: OrderRealtimeEvent): Order[] {
   const nextOrder = applyPaymentRulesToOrder(order);
@@ -36,6 +52,7 @@ type AIGrowthContextValue = {
   dateFilter: AIGrowthDateFilter;
   setDateFilter: (value: AIGrowthDateFilter) => void;
   lastUpdated: Date | null;
+  isLive: boolean;
   loading: boolean;
   error: string | null;
   orders: Order[];
@@ -48,25 +65,39 @@ export function AIGrowthProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { lastUpdated, touch } = useLiveTimestamp();
   const { subscribeToOrderChanges } = useAdminNotifications();
 
-  const loadOrders = useCallback(async () => {
+  const refreshOrders = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
       const orderData = await fetchAllOrdersForAdmin();
       setOrders(orderData.map((order) => applyPaymentRulesToOrder(order)));
-      touch();
       setError(null);
     } catch {
       setError("Unable to load growth intelligence data.");
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  }, [touch]);
+  }, []);
+
+  const runLiveRefresh = useCallback(async () => {
+    await refreshOrders(true);
+    await extraLiveRefreshRef.current?.();
+  }, [refreshOrders]);
+
+  const { lastUpdated, isLive, touch } = useLiveRefresh(runLiveRefresh);
 
   useEffect(() => {
-    void loadOrders();
-  }, [loadOrders]);
+    void (async () => {
+      await refreshOrders();
+      touch();
+    })();
+  }, [refreshOrders, touch]);
 
   useEffect(() => {
     return subscribeToOrderChanges((payload) => {
@@ -80,11 +111,12 @@ export function AIGrowthProvider({ children }: { children: ReactNode }) {
       dateFilter,
       setDateFilter,
       lastUpdated,
+      isLive,
       loading,
       error,
       orders
     }),
-    [dateFilter, lastUpdated, loading, error, orders]
+    [dateFilter, lastUpdated, isLive, loading, error, orders]
   );
 
   return <AIGrowthContext.Provider value={value}>{children}</AIGrowthContext.Provider>;

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
 import {
   isActiveFromStatus,
   parseProductStatus,
@@ -538,6 +539,7 @@ export async function syncProductStockQuantity(
     .eq("id", productId);
 
   if (error) return { error: error.message };
+  invalidateInventoryReportCache();
   return {};
 }
 

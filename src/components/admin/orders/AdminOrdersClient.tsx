@@ -34,7 +34,7 @@ import {
 } from "@/lib/orders/order-list-filter";
 import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import { applyOrderStatsDelta } from "@/lib/admin/notifications/stats-delta";
-import { useLiveTimestamp } from "@/lib/admin/use-live-timestamp";
+import { useLiveRefresh } from "@/lib/admin/use-live-refresh";
 import { orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
 
@@ -93,7 +93,6 @@ export function AdminOrdersClient() {
   const [refundTarget, setRefundTarget] = useState<RefundTarget>(null);
 
   const { subscribeToOrderChanges, seedKnownOrders, publishOrderSync } = useAdminNotifications();
-  const { lastUpdated, touch } = useLiveTimestamp();
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
 
@@ -111,14 +110,15 @@ export function AdminOrdersClient() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.stats) setStats(data.stats);
-      touch();
     } catch {
       // Stats load is non-blocking; cards update when available.
     }
-  }, [touch]);
+  }, []);
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
+  const loadOrders = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       const apiTab =
@@ -141,10 +141,17 @@ export function AdminOrdersClient() {
         seedKnownOrders(data.orders);
       }
     } finally {
-      setLoading(false);
-      touch();
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  }, [statusFilter, paymentFilter, search, page, seedKnownOrders, touch]);
+  }, [statusFilter, paymentFilter, search, page, seedKnownOrders]);
+
+  const refreshOrdersPage = useCallback(async () => {
+    await Promise.all([loadOrders(true), loadStats()]);
+  }, [loadOrders, loadStats]);
+
+  const { lastUpdated, isLive, touch } = useLiveRefresh(refreshOrdersPage);
 
   useEffect(() => {
     const viewOptions = { statusFilter, paymentFilter, search };
@@ -212,9 +219,12 @@ export function AdminOrdersClient() {
   }, [loadStats]);
 
   useEffect(() => {
-    const t = setTimeout(loadOrders, search ? 300 : 0);
+    const t = setTimeout(async () => {
+      await loadOrders();
+      touch();
+    }, search ? 300 : 0);
     return () => clearTimeout(t);
-  }, [loadOrders, search]);
+  }, [loadOrders, search, touch]);
 
   const normalizedOrders = useMemo(
     () => orders.map((o) => applyPaymentRulesToOrder(o)),
@@ -360,7 +370,7 @@ export function AdminOrdersClient() {
     <>
       <AdminHeader
         title="Orders"
-        action={<AdminLiveStatus lastUpdated={lastUpdated} live />}
+        action={<AdminLiveStatus lastUpdated={lastUpdated} isLive={isLive} />}
       />
       <div className="min-w-0 space-y-5 overflow-x-hidden p-4 sm:p-6">
         <OrderFulfillmentGuide />

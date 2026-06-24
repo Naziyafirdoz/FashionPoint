@@ -20,7 +20,7 @@ export const DEFAULT_SHIPPING_SETTINGS: ShippingSettings = {
   outstationShippingCharge: 200,
   storePickupAddress: STORE_ADDRESS,
   storePickupCity: siteConfig.city,
-  storePickupPincode: "520001",
+  storePickupPincode: siteConfig.pincode,
   storePickupPhone: siteConfig.phone1,
   defaultPackageWeightKg: 0.5,
   deliveryProvider:

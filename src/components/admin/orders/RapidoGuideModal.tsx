@@ -116,8 +116,8 @@ export function RapidoGuideModal({ open, onClose, orderId, order, onOrderUpdated
       content: (
         <ExampleBlock>
           <p className="font-semibold text-maroon">{siteConfig.storeName}</p>
-          <p className="mt-1">{siteConfig.city}</p>
-          <p className="mt-1">Phone: {siteConfig.phone2}</p>
+          <p className="mt-1">{siteConfig.address}</p>
+          <p className="mt-1">Phone: {siteConfig.phone1}</p>
         </ExampleBlock>
       )
     },

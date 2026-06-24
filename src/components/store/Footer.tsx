@@ -3,9 +3,7 @@ import {
   COPYRIGHT_NOTICE,
   STORE_ADDRESS,
   STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_PHONE_SECONDARY_DISPLAY,
   STORE_TEL_PRIMARY,
-  STORE_TEL_SECONDARY,
   STORE_WHATSAPP_URL,
   SUPPORT_EMAIL
 } from "@/lib/site-config";
@@ -46,8 +44,6 @@ export function Footer() {
             {STORE_ADDRESS}
             <br />
             <a href={STORE_TEL_PRIMARY}>{STORE_PHONE_PRIMARY_DISPLAY}</a>
-            <br />
-            <a href={STORE_TEL_SECONDARY}>{STORE_PHONE_SECONDARY_DISPLAY}</a>
             <br />
             <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
           </p>

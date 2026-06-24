@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
 import { cancelAdminApprovalReminders } from "@/lib/server/notifications/admin-approval-reminders";
@@ -90,6 +91,8 @@ export async function executeOrderApproval(
     confirmed_at: updated.confirmed_at ?? now,
     status: updated.status
   });
+
+  invalidateInventoryReportCache();
 
   await cancelAdminApprovalReminders(db, orderId);
   console.info("[approve] admin approval reminders cancelled", { orderId });

@@ -8,7 +8,7 @@ import {
   AIGrowthInsightRow,
   AIGrowthSectionHeader
 } from "@/components/admin/ai-growth/ai-growth-shared";
-import { useAIGrowthContext } from "@/components/admin/ai-growth/ai-growth-context";
+import { useAIGrowthContext, setAIGrowthLiveRefreshExtra } from "@/components/admin/ai-growth/ai-growth-context";
 import { useAdminNotifications } from "@/contexts/AdminNotificationsProvider";
 import type { OrderRealtimeEvent } from "@/lib/admin/notifications/types";
 import { PanelCard } from "@/components/admin/analytics/analytics-shared";
@@ -105,6 +105,11 @@ export function AISuggestionsClient() {
 
   useEffect(() => {
     void loadSupportingData();
+  }, [loadSupportingData]);
+
+  useEffect(() => {
+    setAIGrowthLiveRefreshExtra(loadSupportingData);
+    return () => setAIGrowthLiveRefreshExtra(null);
   }, [loadSupportingData]);
 
   useEffect(() => {

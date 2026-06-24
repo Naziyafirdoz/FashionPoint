@@ -11,6 +11,7 @@ import {
   notifyAdminOrderShipped,
   notifyCustomerOrderShipped
 } from "@/lib/server/notifications/new-order-alerts";
+import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -117,6 +118,8 @@ export async function POST(_req: Request, { params }: RouteContext) {
     orderNumber: normalized.order_number,
     status: normalized.status
   });
+
+  invalidateInventoryReportCache();
 
   try {
     const shippedMessage = customerShippedMessage(normalized);

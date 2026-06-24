@@ -14,7 +14,7 @@ type AIGrowthPageShellProps = {
 };
 
 export function AIGrowthPageShell({ title, children }: AIGrowthPageShellProps) {
-  const { loading, error, dateFilter, setDateFilter, lastUpdated } = useAIGrowthContext();
+  const { loading, error, dateFilter, setDateFilter, lastUpdated, isLive } = useAIGrowthContext();
 
   return (
     <>
@@ -22,7 +22,7 @@ export function AIGrowthPageShell({ title, children }: AIGrowthPageShellProps) {
         title={title}
         action={
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <AdminLiveStatus lastUpdated={lastUpdated} live={false} />
+            <AdminLiveStatus lastUpdated={lastUpdated} isLive={isLive} />
             <AIGrowthDateFilterSelect value={dateFilter} onChange={setDateFilter} />
           </div>
         }

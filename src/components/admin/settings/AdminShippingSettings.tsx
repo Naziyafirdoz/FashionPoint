@@ -1,5 +1,6 @@
 "use client";
 
+import { Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -52,7 +53,10 @@ export function AdminShippingSettings() {
 
   return (
     <section className="card-store max-w-2xl space-y-4">
-      <h2 className="font-semibold text-primary">Shipping &amp; Delivery</h2>
+      <h2 className="flex items-center gap-2 font-semibold text-primary">
+        <Truck className="h-4 w-4 shrink-0" aria-hidden />
+        Shipping &amp; Delivery
+      </h2>
       <p className="text-sm text-foreground/70">
         Shipping is calculated automatically from the customer&apos;s delivery address. Vijayawada
         orders use the local charge; all other cities use the outstation charge.

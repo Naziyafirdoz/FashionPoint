@@ -2,9 +2,7 @@ import {
   STORE_ADDRESS,
   SUPPORT_EMAIL,
   STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_PHONE_SECONDARY_DISPLAY,
   STORE_TEL_PRIMARY,
-  STORE_TEL_SECONDARY,
   STORE_WHATSAPP_URL
 } from "@/lib/site-config";
 
@@ -19,9 +17,8 @@ export default function ContactPage() {
         Phone: <a href={STORE_TEL_PRIMARY}>{STORE_PHONE_PRIMARY_DISPLAY}</a>
       </p>
       <p className="text-foreground/70">
-        Alternate: <a href={STORE_TEL_SECONDARY}>{STORE_PHONE_SECONDARY_DISPLAY}</a>
+        Email: <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       </p>
-      <p className="text-foreground/70">Email: {SUPPORT_EMAIL}</p>
       <a href={STORE_WHATSAPP_URL} className="btn-primary mt-6 inline-flex">
         WhatsApp Us
       </a>
