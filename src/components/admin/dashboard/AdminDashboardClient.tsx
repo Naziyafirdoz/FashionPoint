@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import type { DashboardData } from "@/lib/admin/dashboard";
@@ -17,8 +18,12 @@ import { PendingApprovalWidget } from "./PendingApprovalWidget";
 import { QuickActions } from "./QuickActions";
 import { RecentOrdersCard } from "./RecentOrdersCard";
 import { SalesByChannelCard } from "./SalesByChannelCard";
-import { SalesChartCard } from "./SalesChartCard";
 import { TopSellingCard } from "./TopSellingCard";
+
+const SalesChartCard = dynamic(
+  () => import("./SalesChartCard").then((mod) => mod.SalesChartCard),
+  { ssr: false, loading: () => <div className="h-72 animate-pulse rounded-xl bg-white/60" /> }
+);
 
 export function AdminDashboardClient({
   orderQueues,
@@ -34,11 +39,14 @@ export function AdminDashboardClient({
   const [error, setError] = useState<string | null>(null);
   const { subscribeToOrderChanges } = useAdminNotifications();
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false, forceRefresh = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const res = await fetch("/api/admin/dashboard");
+      const suffix = forceRefresh ? "?refresh=1" : "";
+      const res = await fetch(`/api/admin/dashboard${suffix}`, { cache: "no-store" });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error ?? "Failed to load dashboard");
@@ -51,12 +59,14 @@ export function AdminDashboardClient({
       setError("Unable to connect. Please try again.");
       setData(null);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [onDataLoaded]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
@@ -94,7 +104,7 @@ export function AdminDashboardClient({
           <p className="mt-1 text-sm text-red-600/80">
             Check your connection and ensure you have admin access.
           </p>
-          <button type="button" onClick={load} className="btn-primary mt-6 inline-flex gap-2">
+          <button type="button" onClick={() => void load()} className="btn-primary mt-6 inline-flex gap-2">
             <RefreshCw className="h-4 w-4" />
             Retry
           </button>

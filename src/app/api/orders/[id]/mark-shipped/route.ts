@@ -11,7 +11,7 @@ import {
   notifyAdminOrderShipped,
   notifyCustomerOrderShipped
 } from "@/lib/server/notifications/new-order-alerts";
-import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
+import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -119,7 +119,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
     status: normalized.status
   });
 
-  invalidateInventoryReportCache();
+  invalidateAdminDataCaches();
 
   try {
     const shippedMessage = customerShippedMessage(normalized);

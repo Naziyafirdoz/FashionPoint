@@ -6,8 +6,10 @@ export async function GET(req: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  const request = parseReportRequest(new URL(req.url).searchParams);
-  const result = await buildOrderReportResponse(auth.ctx.db, request);
+  const searchParams = new URL(req.url).searchParams;
+  const request = parseReportRequest(searchParams);
+  const forceRefresh = searchParams.get("refresh") === "1";
+  const result = await buildOrderReportResponse(auth.ctx.db, request, { forceRefresh });
 
   if (result.status !== 200) {
     return NextResponse.json({ error: result.error }, { status: result.status });

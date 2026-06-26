@@ -16,6 +16,7 @@ import { filterMockProducts, type ProductFilterParams } from "@/lib/product-filt
 import { normalizeSizeFilter } from "@/config/size-chart";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
+import { devLog } from "@/lib/dev-log";
 
 const PRODUCT_LIST_LIMIT = 20;
 const PRODUCT_LIST_SELECT =
@@ -38,7 +39,7 @@ function getFilters(url: URL): ProductFilterParams & { category?: string | null 
 export async function GET(req: Request) {
   productsApiRequestCount += 1;
   const start = performance.now();
-  console.log("API PRODUCTS CALLED", { count: productsApiRequestCount });
+  devLog("API PRODUCTS CALLED", { count: productsApiRequestCount });
   const url = new URL(req.url);
   const filters = getFilters(url);
   const db = createServiceClient();
@@ -70,7 +71,7 @@ export async function GET(req: Request) {
     if (filters.priceMax) query = query.lte("price", Number(filters.priceMax));
 
     const { data, error } = await query;
-    console.log("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
+    devLog("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
     if (!error && data) {
       let products = data.map((row) => normalizeDbProduct(row as DbRow));
       if (filters.color) {
@@ -93,7 +94,7 @@ export async function GET(req: Request) {
 
   products = filterMockProducts(products, filters);
 
-  console.log("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
+  devLog("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
   return NextResponse.json({ products, source: "mock" });
 }
 

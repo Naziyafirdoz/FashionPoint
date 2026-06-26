@@ -11,6 +11,11 @@ import {
   getInventoryReportCache,
   setInventoryReportCache
 } from "@/lib/admin/inventory-report-cache";
+import {
+  buildReportOrdersCacheKey,
+  getReportOrdersCache,
+  setReportOrdersCache
+} from "@/lib/admin/reports-orders-cache";
 import type { InventoryProductInput } from "@/lib/admin/inventory-analytics";
 import {
   DEFAULT_REPORT_PAGE_SIZE,
@@ -211,18 +216,40 @@ async function fetchInventoryOrdersInRange(
   return all;
 }
 
+async function fetchOrdersInRangeCached(
+  db: SupabaseClient,
+  start: Date,
+  end: Date,
+  forceRefresh = false
+): Promise<{ orders: Order[]; builtAt: number }> {
+  const cacheKey = buildReportOrdersCacheKey(start, end);
+
+  if (!forceRefresh) {
+    const cached = getReportOrdersCache(cacheKey);
+    if (cached) {
+      return { orders: cached.orders, builtAt: cached.builtAt };
+    }
+  }
+
+  const orders = await fetchOrdersInRange(db, start, end);
+  const builtAt = setReportOrdersCache(cacheKey, orders);
+  return { orders, builtAt };
+}
+
 export async function buildSalesReportResponse(
   db: SupabaseClient,
-  request: ParsedReportRequest
+  request: ParsedReportRequest,
+  options: { forceRefresh?: boolean } = {}
 ) {
   if (!request.dateRange) {
     return { error: "Invalid date range", status: 400 as const };
   }
 
-  const orders = await fetchOrdersInRange(
+  const { orders, builtAt } = await fetchOrdersInRangeCached(
     db,
     request.dateRange.start,
-    request.dateRange.end
+    request.dateRange.end,
+    options.forceRefresh
   );
   const report = computeSalesReport(orders, request.range, {
     start: request.from ?? "",
@@ -270,27 +297,30 @@ export async function buildSalesReportResponse(
       page: paged.page,
       limit: paged.limit,
       totalPages: paged.totalPages,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date(builtAt).toISOString()
     }
   };
 }
 
 export async function buildOrderReportResponse(
   db: SupabaseClient,
-  request: ParsedReportRequest
+  request: ParsedReportRequest,
+  options: { forceRefresh?: boolean } = {}
 ) {
   if (!request.dateRange) {
     return { error: "Invalid date range", status: 400 as const };
   }
 
-  const orders = await fetchOrdersInRange(
+  const { orders, builtAt } = await fetchOrdersInRangeCached(
     db,
     request.dateRange.start,
-    request.dateRange.end
+    request.dateRange.end,
+    options.forceRefresh
   );
   const report = computeOrderReport(orders, request.dateRange);
+  const orderById = new Map(orders.map((order) => [order.id, order]));
   const filteredRows = report.rows.filter((row) => {
-    const order = orders.find((item) => item.id === row.id);
+    const order = orderById.get(row.id);
     return order ? orderMatchesOrderReportSearch(order, request.search) : false;
   });
 
@@ -305,7 +335,7 @@ export async function buildOrderReportResponse(
       page: paged.page,
       limit: paged.limit,
       totalPages: paged.totalPages,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date(builtAt).toISOString()
     }
   };
 }
@@ -390,9 +420,7 @@ export async function buildInventoryReportBundle(
       snapshot = cached.snapshot;
       builtAt = cached.builtAt;
       fromCache = true;
-      console.log("[inventory-report] Cache hit for", cacheKey);
     } else {
-      console.log("[inventory-report] Cache miss — rebuilding snapshot for", cacheKey);
       snapshot = await buildInventoryReportSnapshot(db, dateRange);
       builtAt = setInventoryReportCache(cacheKey, snapshot);
     }

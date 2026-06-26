@@ -3,7 +3,7 @@ import { requireStaff } from "@/lib/admin/require-staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { processDeliveredNotification } from "@/lib/server/notifications/delivered-route-handler";
 import { assertTransition } from "@/lib/orders/workflow-validation";
-import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
+import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -51,7 +51,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
   console.info("[mark-delivered] success", { orderId: id });
-  invalidateInventoryReportCache();
+  invalidateAdminDataCaches();
 
   try {
     console.info("[delivered-email] sending", { orderId: id });

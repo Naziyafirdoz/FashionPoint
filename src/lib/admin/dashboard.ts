@@ -60,12 +60,25 @@ export type DashboardData = {
 
 const REVENUE_EXCLUDED_STATUSES = new Set(["cancelled", "returned"]);
 
-function customerName(order: Order): string {
+/** Lean projection — excludes heavy `items` jsonb from the main orders scan. */
+const DASHBOARD_ORDER_LEAN_SELECT =
+  "id, order_number, total, status, created_at, shipping_address, guest_email";
+
+const DASHBOARD_ORDER_ITEMS_SELECT = "items, status";
+
+type DashboardOrderLean = Pick<
+  Order,
+  "id" | "order_number" | "total" | "status" | "created_at" | "shipping_address" | "guest_email"
+> & {
+  source_channel?: string;
+};
+
+function customerName(order: DashboardOrderLean): string {
   const addr = order.shipping_address;
   return addr?.name ?? addr?.line ?? order.guest_email ?? "Guest";
 }
 
-function buildRevenueTrend(orders: Order[], days: number): DashboardRevenuePoint[] {
+function buildRevenueTrend(orders: DashboardOrderLean[], days: number): DashboardRevenuePoint[] {
   const now = new Date();
   const start = new Date(now);
   start.setDate(start.getDate() - (days - 1));
@@ -97,10 +110,12 @@ function buildRevenueTrend(orders: Order[], days: number): DashboardRevenuePoint
   }));
 }
 
-function computeTopSelling(orders: Order[]): DashboardTopProduct[] {
+function computeTopSelling(
+  orderItems: Array<Pick<Order, "items" | "status">>
+): DashboardTopProduct[] {
   const map = new Map<string, { name: string; quantitySold: number; revenue: number }>();
 
-  for (const order of orders) {
+  for (const order of orderItems) {
     if (REVENUE_EXCLUDED_STATUSES.has(order.status)) continue;
     for (const item of normalizeOrderItems(order.items)) {
       const key = item.productId || item.name;
@@ -147,15 +162,13 @@ function computeLowStock(
     .slice(0, 10);
 }
 
-function computeSalesByChannel(orders: Order[]): DashboardChannelSale[] | null {
-  const channelField = orders.some(
-    (o) => typeof (o as Order & { source_channel?: string }).source_channel === "string"
-  );
+function computeSalesByChannel(orders: DashboardOrderLean[]): DashboardChannelSale[] | null {
+  const channelField = orders.some((o) => typeof o.source_channel === "string");
   if (!channelField) return null;
 
   const map = new Map<string, { revenue: number; orders: number }>();
   for (const order of orders) {
-    const channel = (order as Order & { source_channel?: string }).source_channel;
+    const channel = order.source_channel;
     if (!channel || REVENUE_EXCLUDED_STATUSES.has(order.status)) continue;
     const entry = map.get(channel) ?? { revenue: 0, orders: 0 };
     entry.revenue += Number(order.total) || 0;
@@ -171,35 +184,35 @@ function computeSalesByChannel(orders: Order[]): DashboardChannelSale[] | null {
 }
 
 export async function getDashboardData(db: SupabaseClient): Promise<DashboardData> {
-  const [ordersResult, customersResult, productsResult, reviewsResult, inventoryVariants] =
+  const [ordersLeanResult, ordersItemsResult, customersResult, productsResult, reviewsResult, inventoryVariants] =
     await Promise.all([
       db
         .from("orders")
-        .select(
-          "id, order_number, total, status, created_at, items, shipping_address, guest_email"
-        )
+        .select(DASHBOARD_ORDER_LEAN_SELECT)
         .order("created_at", { ascending: false }),
+      db.from("orders").select(DASHBOARD_ORDER_ITEMS_SELECT),
       db.from("customers").select("*", { count: "exact", head: true }),
       db.from("products").select("*", { count: "exact", head: true }),
       db.from("reviews").select("*", { count: "exact", head: true }),
       listInventoryVariants(db)
     ]);
 
-  const orders = (ordersResult.data ?? []) as Order[];
+  const ordersLean = (ordersLeanResult.data ?? []) as DashboardOrderLean[];
+  const orderItems = (ordersItemsResult.data ?? []) as Array<Pick<Order, "items" | "status">>;
   const lowStock = computeLowStock(inventoryVariants);
 
   const kpis: DashboardKpis = {
-    totalRevenue: orders
+    totalRevenue: ordersLean
       .filter((o) => !REVENUE_EXCLUDED_STATUSES.has(o.status))
       .reduce((sum, o) => sum + (Number(o.total) || 0), 0),
-    totalOrders: ordersResult.error ? 0 : orders.length,
+    totalOrders: ordersLeanResult.error ? 0 : ordersLean.length,
     totalCustomers: customersResult.error ? 0 : (customersResult.count ?? 0),
     totalProducts: productsResult.error ? 0 : (productsResult.count ?? 0),
     lowStockProducts: lowStock.length,
     totalReviews: reviewsResult.error ? 0 : (reviewsResult.count ?? 0)
   };
 
-  const recentOrders: DashboardRecentOrder[] = orders.slice(0, 10).map((o) => ({
+  const recentOrders: DashboardRecentOrder[] = ordersLean.slice(0, 10).map((o) => ({
     id: o.id,
     orderNumber: o.order_number,
     customer: customerName(o),
@@ -212,12 +225,12 @@ export async function getDashboardData(db: SupabaseClient): Promise<DashboardDat
     kpis,
     recentOrders,
     lowStock,
-    topSelling: computeTopSelling(orders),
+    topSelling: computeTopSelling(orderItems),
     revenueTrend: {
-      "7": buildRevenueTrend(orders, 7),
-      "30": buildRevenueTrend(orders, 30),
-      "90": buildRevenueTrend(orders, 90)
+      "7": buildRevenueTrend(ordersLean, 7),
+      "30": buildRevenueTrend(ordersLean, 30),
+      "90": buildRevenueTrend(ordersLean, 90)
     },
-    salesByChannel: computeSalesByChannel(orders)
+    salesByChannel: computeSalesByChannel(ordersLean)
   };
 }

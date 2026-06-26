@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase";
 import { resolveProductStatus, STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
 import type { Product, ProductVariant } from "@/types";
@@ -49,7 +50,7 @@ export function normalizeDbProduct(row: DbRow): Product {
   };
 }
 
-export async function getProductBySlugFromDb(slug: string): Promise<Product | null> {
+export const getProductBySlugFromDb = cache(async (slug: string): Promise<Product | null> => {
   const db = createServiceClient();
   if (!db) return null;
 
@@ -68,4 +69,4 @@ export async function getProductBySlugFromDb(slug: string): Promise<Product | nu
 
   if (error || !data) return null;
   return normalizeDbProduct(data as DbRow);
-}
+});

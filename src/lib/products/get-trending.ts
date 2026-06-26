@@ -4,6 +4,8 @@ import type { Product } from "@/types";
 
 const TRENDING_LIMIT = 4;
 const PLACEHOLDER_IMAGE = "/images/product-placeholder.jpg";
+const TRENDING_SELECT =
+  "id,slug,name,short_description,detailed_description,price,compare_price,status,is_active,images,sizes,colors,fabric,neck_type,category_id,created_at,product_variants(stock_quantity)";
 
 function withPlaceholderImage(product: Product): Product {
   const images = (product.images ?? []).filter(Boolean);
@@ -19,7 +21,7 @@ export async function getTrendingProducts(): Promise<Product[]> {
 
   const { data, error } = await db
     .from("products")
-    .select("*")
+    .select(TRENDING_SELECT)
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(TRENDING_LIMIT);

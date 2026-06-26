@@ -1,7 +1,7 @@
+import { StylistChatbotLazy } from "@/components/ai/StylistChatbotLazy";
 import { AnnouncementBar } from "@/components/store/AnnouncementBar";
 import { Navbar } from "@/components/store/Navbar";
 import { Footer } from "@/components/store/Footer";
-import { StylistChatbot } from "@/components/ai/StylistChatbot";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +10,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <Navbar />
       {children}
       <Footer />
-      <StylistChatbot />
+      <StylistChatbotLazy />
     </>
   );
 }

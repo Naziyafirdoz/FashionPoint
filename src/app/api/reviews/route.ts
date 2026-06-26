@@ -13,13 +13,14 @@ import {
   listUserReviewsForProducts
 } from "@/lib/reviews/service";
 import type { CreateReviewInput } from "@/lib/reviews/types";
+import { devLog } from "@/lib/dev-log";
 
 let reviewsApiRequestCount = 0;
 
 export async function GET(req: Request) {
   reviewsApiRequestCount += 1;
   const start = performance.now();
-  console.log("API REVIEWS CALLED", { count: reviewsApiRequestCount });
+  devLog("API REVIEWS CALLED", { count: reviewsApiRequestCount });
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get("product_id")?.trim();
   const productIdsParam = searchParams.get("product_ids")?.trim();
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
       productIds.length > 0
         ? await listUserReviewsForProducts(auth.ctx.db, auth.ctx.userId, productIds)
         : await listUserReviews(auth.ctx.db, auth.ctx.userId);
-    console.log("[reviews] elapsed", performance.now() - start, {
+    devLog("[reviews] elapsed", performance.now() - start, {
       count: reviewsApiRequestCount,
       mine: true,
       productIds: productIds.length
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
       .filter(Boolean);
 
     const summaries = await getProductReviewSummariesBatch(db, productIds);
-    console.log("[reviews] elapsed", performance.now() - start, {
+    devLog("[reviews] elapsed", performance.now() - start, {
       count: reviewsApiRequestCount,
       productIds: productIds.length
     });
@@ -68,7 +69,7 @@ export async function GET(req: Request) {
   }
 
   if (!productId) {
-    console.log("[reviews] elapsed", performance.now() - start, { count: reviewsApiRequestCount, error: true });
+    devLog("[reviews] elapsed", performance.now() - start, { count: reviewsApiRequestCount, error: true });
     return NextResponse.json({ error: "product_id is required" }, { status: 400 });
   }
 
@@ -86,7 +87,7 @@ export async function GET(req: Request) {
     user_review = await getUserReviewForProduct(db, user.id, productId);
   }
 
-  console.log("[reviews] elapsed", performance.now() - start, { count: reviewsApiRequestCount, productId });
+  devLog("[reviews] elapsed", performance.now() - start, { count: reviewsApiRequestCount, productId });
   return NextResponse.json({ reviews, summary, breakdown, user_review });
 }
 

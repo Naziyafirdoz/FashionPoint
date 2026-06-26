@@ -12,12 +12,11 @@ import { normalizeCustomerOrderRow } from "@/lib/orders/normalize-order";
 import { fetchCustomerOrdersForUser } from "@/lib/orders/customer-order-retrieval";
 import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import { isRefundSchemaReady } from "@/lib/orders/refund-schema";
+import { devLog, devInfo, devTime, devTimeEnd } from "@/lib/dev-log";
 import type { Order } from "@/types";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
-
-let ordersApiRequestCount = 0;
 
 type OrderQueryDebugMeta = {
   source: string;
@@ -31,9 +30,10 @@ type OrderQueryDebugMeta = {
 };
 
 function logOrderQueryStart(meta: OrderQueryDebugMeta): string {
+  if (process.env.NODE_ENV !== "development") return "";
+  devInfo("[orders-debug] query start", meta);
   const timerLabel = `orders-${Date.now()}-${Math.random()}`;
-  console.info("[orders-debug] query start", meta);
-  console.time(timerLabel);
+  devTime(timerLabel);
   return timerLabel;
 }
 
@@ -42,8 +42,9 @@ function logOrderQueryEnd(
   meta: OrderQueryDebugMeta,
   extra?: Record<string, unknown>
 ) {
-  console.timeEnd(timerLabel);
-  console.info("[orders-debug] query end", { ...meta, ...extra });
+  if (process.env.NODE_ENV !== "development" || !timerLabel) return;
+  devTimeEnd(timerLabel);
+  devInfo("[orders-debug] query end", { ...meta, ...extra });
 }
 
 const FALLBACK_ADMIN_STATS: AdminOrderStatsV2 = {
@@ -64,16 +65,16 @@ const FALLBACK_ADMIN_STATS: AdminOrderStatsV2 = {
 };
 
 async function loadAdminStatsSafely(db: SupabaseClient): Promise<AdminOrderStatsV2> {
-  console.time("[orders] stats");
+  devTime("[orders] stats");
   try {
     const stats = await fetchAdminOrderStats(db);
-    console.info("[orders] stats rows", { total: stats.total });
+    devInfo("[orders] stats rows", { total: stats.total });
     return stats;
   } catch (error) {
     console.error("[orders] stats error:", error);
     return FALLBACK_ADMIN_STATS;
   } finally {
-    console.timeEnd("[orders] stats");
+    devTimeEnd("[orders] stats");
   }
 }
 
@@ -91,7 +92,7 @@ async function attachReviewCountsSafely(
     filters: { orderIds: orderIds.length },
     nestedJoins: false
   };
-  console.time("[orders] reviews");
+  devTime("[orders] reviews");
   const reviewsTimer = logOrderQueryStart(reviewsMeta);
   try {
     const { data: reviewRows, error } = await db
@@ -118,15 +119,14 @@ async function attachReviewCountsSafely(
     logOrderQueryEnd(reviewsTimer, reviewsMeta, { failed: true });
     return orders;
   } finally {
-    console.timeEnd("[orders] reviews");
+    devTimeEnd("[orders] reviews");
   }
 }
 
 export async function GET(req: Request) {
-  ordersApiRequestCount += 1;
   const ordersApiStarted = performance.now();
-  console.log("API ORDERS CALLED", { count: ordersApiRequestCount });
-  console.time("[orders] total");
+  devLog("API ORDERS CALLED");
+  devTime("[orders] total");
   try {
   const supabase = await createClient();
   const {
@@ -246,9 +246,9 @@ export async function GET(req: Request) {
     };
 
     const adminQueryTimer = logOrderQueryStart(adminQueryMeta);
-    console.time("[orders] rows");
+    devTime("[orders] rows");
     const { data, error, count: queryCount } = await query;
-    console.timeEnd("[orders] rows");
+    devTimeEnd("[orders] rows");
     logOrderQueryEnd(adminQueryTimer, adminQueryMeta, {
       rows: data?.length ?? 0,
       total: queryCount ?? null,
@@ -460,9 +460,7 @@ export async function GET(req: Request) {
       { status: 500 }
     );
   } finally {
-    console.log("[orders] elapsed", performance.now() - ordersApiStarted, {
-      count: ordersApiRequestCount
-    });
-    console.timeEnd("[orders] total");
+    devLog("[orders] elapsed", performance.now() - ordersApiStarted);
+    devTimeEnd("[orders] total");
   }
 }

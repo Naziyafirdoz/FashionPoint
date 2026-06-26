@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAdminNotificationsOptional } from "@/contexts/AdminNotificationsProvider";
+import { devLog } from "@/lib/dev-log";
 import { customerName } from "@/lib/orders/admin-orders";
 import type { Order } from "@/types";
 
@@ -74,7 +75,7 @@ function useAdminOrderQueues(): AdminOrderQueues {
 
   const refresh = useCallback(async () => {
     if (inFlightRef.current) {
-      console.log("[queues] skip refresh, request already in flight");
+      devLog("[queues] skip refresh, request already in flight");
       return;
     }
 

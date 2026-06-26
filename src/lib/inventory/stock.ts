@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CartItem } from "@/types";
-import { invalidateInventoryReportCache } from "@/lib/admin/inventory-report-cache";
+import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 
 export type StockValidationError = {
   productId: string;
@@ -36,7 +36,7 @@ export async function syncProductStock(
     .eq("id", productId);
 
   if (updateError) return { error: updateError.message };
-  invalidateInventoryReportCache();
+  invalidateAdminDataCaches();
   return { total };
 }
 

@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { devLog } from "@/lib/dev-log";
 
 export type ProductAlertInput = {
   email: string | null;
@@ -48,7 +49,7 @@ export async function saveProductAlert(input: ProductAlertInput): Promise<SaveRe
     notification_types: input.notificationTypes
   };
 
-  console.log("Saving alert:", payload);
+  devLog("Saving alert:", payload);
 
   const { error } = await resolved.client.from("product_alerts").insert(payload);
 
