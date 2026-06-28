@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { Product } from "@/types";
+import type { Product, SubCategory } from "@/types";
 import { ProductGrid } from "./ProductGrid";
 import { FilterSidebar } from "./FilterSidebar";
 import { AiFeaturesPanel } from "./AiFeaturesPanel";
@@ -13,12 +14,42 @@ type Props = {
   subtitle: string;
   categorySlug?: string;
   heroImage?: string;
+  subCategories?: SubCategory[];
+  hideHero?: boolean;
 };
 
-export function CategoryListing({ title, subtitle, categorySlug, heroImage }: Props) {
+function buildCategoryHref(
+  categorySlug: string,
+  searchParams: URLSearchParams,
+  subCategorySlug?: string | null
+): string {
+  const params = new URLSearchParams(searchParams.toString());
+  if (subCategorySlug) {
+    params.set("sub_category", subCategorySlug);
+  } else {
+    params.delete("sub_category");
+  }
+  const qs = params.toString();
+  return `/category/${categorySlug}${qs ? `?${qs}` : ""}`;
+}
+
+export function CategoryListing({
+  title,
+  subtitle,
+  categorySlug,
+  heroImage,
+  subCategories = [],
+  hideHero = false
+}: Props) {
   const searchParams = useSearchParams();
+  const activeSubCategory = searchParams.get("sub_category");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const chipBase =
+    "rounded-full border px-3 py-1 text-xs font-medium transition sm:text-sm";
+  const chipActive = "border-primary bg-primary text-white";
+  const chipInactive = "border-accent/30 bg-white text-foreground/70 hover:border-primary/40 hover:text-primary";
 
   useEffect(() => {
     let cancelled = false;
@@ -47,19 +78,45 @@ export function CategoryListing({ title, subtitle, categorySlug, heroImage }: Pr
 
   return (
     <>
-      <section className="relative overflow-hidden bg-gradient-to-r from-blush to-white py-12">
-        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-2">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-primary md:text-4xl">{title}</h1>
-            <p className="mt-2 text-foreground/70">{subtitle}</p>
-          </div>
-          {heroImage && (
-            <div className="relative hidden h-48 md:block">
-              <Image src={heroImage} alt="" fill className="object-contain object-right" />
+      {!hideHero && (
+        <section className="relative overflow-hidden bg-gradient-to-r from-blush to-white py-12">
+          <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 md:grid-cols-2">
+            <div>
+              <h1 className="font-display text-3xl font-bold text-primary md:text-4xl">{title}</h1>
+              <p className="mt-2 text-foreground/70">{subtitle}</p>
             </div>
-          )}
-        </div>
-      </section>
+            {heroImage && (
+              <div className="relative hidden h-48 md:block">
+                <Image src={heroImage} alt="" fill className="object-contain object-right" />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {subCategories.length > 0 && categorySlug && (
+        <section className="border-b border-accent/15 bg-white py-4">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4">
+            <Link
+              href={buildCategoryHref(categorySlug, searchParams)}
+              className={`${chipBase} ${!activeSubCategory ? chipActive : chipInactive}`}
+            >
+              All
+            </Link>
+            {subCategories.map((sub) => (
+              <Link
+                key={sub.id}
+                href={buildCategoryHref(categorySlug, searchParams, sub.slug)}
+                className={`${chipBase} ${
+                  activeSubCategory === sub.slug ? chipActive : chipInactive
+                }`}
+              >
+                {sub.name}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[240px_1fr_220px]">
         <FilterSidebar />

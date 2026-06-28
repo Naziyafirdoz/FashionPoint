@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { Category } from "@/types";
+import { normalizeClientCategories } from "@/lib/categories/normalize-client-categories";
 
 type CategorySelectProps = {
   value: string;
@@ -11,14 +12,6 @@ type CategorySelectProps = {
   autoSelectFirst?: boolean;
   className?: string;
 };
-
-function normalizeCategories(raw: unknown): Category[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((c): c is Category => c != null && typeof c === "object")
-    .filter((c) => typeof c.id === "string" && typeof c.name === "string")
-    .filter((c) => c.slug !== "soon");
-}
 
 export function CategorySelect({
   value,
@@ -45,7 +38,7 @@ export function CategorySelect({
         if (cancelled) return;
 
         const payload = data as { categories?: unknown } | null;
-        const list = normalizeCategories(payload?.categories);
+        const list = normalizeClientCategories(payload?.categories);
 
         setCategories(list);
 

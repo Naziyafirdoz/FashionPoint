@@ -11,14 +11,24 @@ import {
   type AdminVariantMatrixRow
 } from "@/lib/admin/products";
 import { slugify } from "@/lib/product-filters";
-import { OCCASION_OPTIONS } from "@/lib/products/constants";
 import { PRODUCT_STATUS_OPTIONS, type ProductStatus } from "@/lib/products/status";
 import { CategoryField } from "./components/CategoryField";
+import { SubCategoryField } from "@/components/admin/SubCategoryField";
+import { ProductAttributesSection } from "@/components/admin/products/ProductAttributesSection";
 import { ColorPicker } from "./components/ColorPicker";
 import { MediaUploader } from "./components/MediaUploader";
 import { SizePicker } from "./components/SizePicker";
 
 const VIDEO_TAG_PREFIX = "__video__:";
+
+const sectionCardClass =
+  "min-w-0 w-full rounded-xl border border-accent/30 bg-white p-5 shadow-card sm:p-6";
+
+const leftColumnWrapperClass =
+  "contents xl:col-start-1 xl:flex xl:min-w-0 xl:w-full xl:flex-col xl:gap-6";
+
+const rightColumnWrapperClass =
+  "contents xl:col-start-2 xl:flex xl:min-w-0 xl:w-full xl:flex-col xl:gap-6";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -33,9 +43,11 @@ export default function NewProductPage() {
     price: "",
     compare_price: "",
     category_id: "",
+    sub_category_id: "",
     fabric: "Silk",
     neck_type: "Round",
     sleeve_type: "Half",
+    closure_type: "",
     colors: [] as string[],
     sizes: [] as string[],
     occasion: [] as string[],
@@ -82,11 +94,13 @@ export default function NewProductPage() {
         short_description: form.short_description.trim(),
         detailed_description: form.detailed_description.trim() || form.short_description.trim(),
         category_id: form.category_id,
+        sub_category_id: form.sub_category_id || null,
         price: Number(form.price),
         compare_price: form.compare_price ? Number(form.compare_price) : null,
         fabric: form.fabric,
         neck_type: form.neck_type,
         sleeve_type: form.sleeve_type,
+        closure_type: form.closure_type.trim() || null,
         colors: form.colors,
         sizes: form.sizes,
         occasion: form.occasion,
@@ -131,11 +145,14 @@ export default function NewProductPage() {
   };
 
   return (
-    <>
+    <div className="w-full max-w-none">
       <AdminHeader title="Add Product" />
-      <form onSubmit={handleSave} className="grid gap-8 p-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="card-store space-y-4">
+      <form
+        onSubmit={handleSave}
+        className="flex w-full max-w-none flex-col gap-6 p-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start xl:gap-6"
+      >
+        <div className={leftColumnWrapperClass}>
+          <section className={`${sectionCardClass} max-xl:order-1 space-y-4`}>
             <h2 className="font-semibold text-primary">Media</h2>
             <MediaUploader
               images={images}
@@ -145,7 +162,7 @@ export default function NewProductPage() {
             />
           </section>
 
-          <section className="card-store space-y-4">
+          <section className={`${sectionCardClass} max-xl:order-2 space-y-4`}>
             <h2 className="font-semibold text-primary">Product details</h2>
             <input
               required
@@ -171,7 +188,7 @@ export default function NewProductPage() {
             />
           </section>
 
-          <section className="card-store space-y-4">
+          <section className={`${sectionCardClass} max-xl:order-3 space-y-4`}>
             <h2 className="font-semibold text-primary">Default pricing</h2>
             <p className="text-xs text-foreground/50">
               Base price and compare price — applied to new matrix rows. Override per variant below.
@@ -210,9 +227,7 @@ export default function NewProductPage() {
               <select
                 className="w-full rounded-lg border px-3 py-2 text-sm"
                 value={form.status}
-                onChange={(e) =>
-                  setForm({ ...form, status: e.target.value as ProductStatus })
-                }
+                onChange={(e) => setForm({ ...form, status: e.target.value as ProductStatus })}
               >
                 {PRODUCT_STATUS_OPTIONS.map(({ value, label }) => (
                   <option key={value} value={value}>
@@ -232,87 +247,29 @@ export default function NewProductPage() {
             </label>
           </section>
 
-          <section className="card-store space-y-3">
-            <h2 className="font-semibold text-primary">Category *</h2>
-            <CategoryField
-              value={form.category_id}
-              onChange={(category_id) => setForm((f) => ({ ...f, category_id }))}
-            />
-          </section>
-
-          <section className="card-store space-y-4">
-            <h2 className="font-semibold text-primary">Attributes</h2>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-foreground/60">Occasion</label>
-              <select
-                multiple
-                className="w-full rounded-lg border px-3 py-2 text-sm"
-                value={form.occasion}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    occasion: Array.from(e.target.selectedOptions, (o) => o.value)
-                  })
+          <section className={`${sectionCardClass} max-xl:order-4 space-y-4`}>
+            <h2 className="font-semibold text-primary">Category Information</h2>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Category *</p>
+              <CategoryField
+                value={form.category_id}
+                onChange={(category_id) =>
+                  setForm((f) => ({ ...f, category_id, sub_category_id: "" }))
                 }
-              >
-                {OCCASION_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <input
-                placeholder="Fabric"
-                className="rounded-lg border px-3 py-2 text-sm"
-                value={form.fabric}
-                onChange={(e) => setForm({ ...form, fabric: e.target.value })}
-              />
-              <input
-                placeholder="Neck Type"
-                className="rounded-lg border px-3 py-2 text-sm"
-                value={form.neck_type}
-                onChange={(e) => setForm({ ...form, neck_type: e.target.value })}
-              />
-              <input
-                placeholder="Sleeve Type"
-                className="rounded-lg border px-3 py-2 text-sm"
-                value={form.sleeve_type}
-                onChange={(e) => setForm({ ...form, sleeve_type: e.target.value })}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Sub Category *</p>
+              <SubCategoryField
+                categoryId={form.category_id}
+                value={form.sub_category_id}
+                onChange={(sub_category_id) => setForm((f) => ({ ...f, sub_category_id }))}
               />
             </div>
           </section>
 
-          <section className="card-store space-y-3">
-            <h2 className="font-semibold text-primary">Colors *</h2>
-            <ColorPicker
-              selected={form.colors}
-              onChange={(colors) => setForm((f) => ({ ...f, colors }))}
-            />
-          </section>
-
-          <section className="card-store space-y-3">
-            <h2 className="font-semibold text-primary">Sizes *</h2>
-            <SizePicker
-              selected={form.sizes}
-              onChange={(sizes) => setForm((f) => ({ ...f, sizes }))}
-            />
-          </section>
-
-          <section className="card-store space-y-4">
-            <h2 className="font-semibold text-primary">Inventory matrix</h2>
-            <ProductVariantMatrix variants={variants} onChange={setVariants} />
-          </section>
-
-          <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-60">
-            {saving ? "Saving…" : "Save Product"}
-          </button>
-        </div>
-
-        <aside className="space-y-6">
-          <div className="card-store space-y-3">
-            <p className="font-semibold text-primary">AI store features</p>
+          <section className={`${sectionCardClass} max-xl:order-9 space-y-3`}>
+            <h2 className="font-semibold text-primary">AI store features</h2>
             <p className="text-xs text-foreground/50">
               Enable AI tools for customers on this product page.
             </p>
@@ -327,18 +284,58 @@ export default function NewProductPage() {
                 <span className="capitalize">{key.replace(/_/g, " ")}</span>
               </label>
             ))}
-          </div>
+          </section>
 
-          <div className="card-store text-sm text-foreground/60">
-            <p className="font-medium text-foreground">Tips</p>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
+          <section className={`${sectionCardClass} max-xl:order-10 space-y-3 text-sm text-foreground/60`}>
+            <h2 className="font-semibold text-primary">Tips</h2>
+            <ul className="list-inside list-disc space-y-1 text-xs">
               <li>Add up to 8 product images for the gallery</li>
               <li>Videos are optional (max 2)</li>
               <li>Set different prices per size in the matrix</li>
             </ul>
+          </section>
+        </div>
+
+        <div className={rightColumnWrapperClass}>
+          <div className="min-w-0 w-full max-xl:order-5">
+            <ProductAttributesSection
+              occasion={form.occasion}
+              fabric={form.fabric}
+              neck_type={form.neck_type}
+              sleeve_type={form.sleeve_type}
+              closure_type={form.closure_type}
+              onOccasionChange={(occasion) => setForm((f) => ({ ...f, occasion }))}
+              onFieldChange={(field, value) => setForm((f) => ({ ...f, [field]: value }))}
+            />
           </div>
-        </aside>
+
+          <section className={`${sectionCardClass} max-xl:order-6 space-y-3`}>
+            <h2 className="font-semibold text-primary">Colors</h2>
+            <ColorPicker
+              selected={form.colors}
+              onChange={(colors) => setForm((f) => ({ ...f, colors }))}
+            />
+          </section>
+
+          <section className={`${sectionCardClass} max-xl:order-7 space-y-3`}>
+            <h2 className="font-semibold text-primary">Sizes</h2>
+            <SizePicker selected={form.sizes} onChange={(sizes) => setForm((f) => ({ ...f, sizes }))} />
+          </section>
+
+          <section className={`${sectionCardClass} max-xl:order-8 space-y-4`}>
+            <h2 className="font-semibold text-primary">Inventory</h2>
+            <ProductVariantMatrix variants={variants} onChange={setVariants} />
+          </section>
+
+          <div
+            className={`${sectionCardClass} max-xl:order-11 w-full !border-0 !bg-transparent !p-0 !shadow-none`}
+          >
+            <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-60">
+              {saving ? "Saving…" : "Save Product"}
+            </button>
+          </div>
+        </div>
       </form>
-    </>
+    </div>
   );
 }

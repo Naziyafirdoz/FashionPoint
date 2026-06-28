@@ -3,6 +3,7 @@ import { normalizeSizeFilter } from "@/config/size-chart";
 
 export type ProductFilterParams = {
   category?: string | null;
+  sub_category?: string | null;
   size?: string | null;
   color?: string | null;
   fabric?: string | null;
@@ -14,6 +15,7 @@ export type ProductFilterParams = {
 export function parseFilterParams(searchParams: URLSearchParams): ProductFilterParams {
   return {
     category: searchParams.get("category"),
+    sub_category: searchParams.get("sub_category"),
     size: searchParams.get("size"),
     color: searchParams.get("color"),
     fabric: searchParams.get("fabric"),
@@ -28,6 +30,7 @@ export function buildProductsQueryString(
 ): string {
   const params = new URLSearchParams();
   if (filters.category) params.set("category", filters.category);
+  if (filters.sub_category) params.set("sub_category", filters.sub_category);
   if (filters.size) params.set("size", filters.size);
   if (filters.color) params.set("color", filters.color);
   if (filters.fabric) params.set("fabric", filters.fabric);

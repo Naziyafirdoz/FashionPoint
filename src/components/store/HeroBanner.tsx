@@ -70,7 +70,7 @@ export function HeroBanner() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
-          className="relative z-10 order-2 text-center lg:order-1 lg:text-left"
+          className="relative z-10 order-2 text-center lg:order-1 lg:mr-7 lg:justify-self-start lg:text-left"
         >
           <div className="flex items-center justify-center gap-3 lg:justify-start">
             <span className="hidden h-px w-8 bg-secondary/70 sm:block" aria-hidden="true" />
@@ -223,7 +223,7 @@ export function HeroBanner() {
         </div>
 
         {/* Right — AI assistant card */}
-        <div className="hero-card-fade relative z-10 order-3 lg:justify-self-end lg:translate-x-5">
+        <div className="hero-card-fade relative z-10 order-3 lg:ml-7 lg:justify-self-end lg:translate-x-5">
           <div className="rounded-[1.75rem] border border-accent/10 bg-white p-5 shadow-[0_12px_40px_rgba(123,13,43,0.08)] sm:p-6 lg:max-w-sm">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/20 to-accent/10">

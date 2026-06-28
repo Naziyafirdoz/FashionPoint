@@ -22,6 +22,8 @@ export type AdminProductRow = {
   updated_at: string | null;
   category_id: string | null;
   category_name: string | null;
+  sub_category_id: string | null;
+  sub_category_name: string | null;
   total_stock: number;
 };
 
@@ -44,6 +46,8 @@ type DbProduct = {
   updated_at: string | null;
   category_id: string | null;
   categories: { name: string } | { name: string }[] | null;
+  sub_category_id: string | null;
+  sub_categories: { name: string } | { name: string }[] | null;
   product_variants: { stock_quantity: number | null }[] | null;
 };
 
@@ -63,7 +67,9 @@ export async function listAdminProducts(db: SupabaseClient): Promise<AdminProduc
       created_at,
       updated_at,
       category_id,
+      sub_category_id,
       categories(name),
+      sub_categories(name),
       product_variants(stock_quantity)
     `
     )
@@ -77,6 +83,10 @@ export async function listAdminProducts(db: SupabaseClient): Promise<AdminProduc
       const categoryName = Array.isArray(category)
         ? category[0]?.name
         : category?.name ?? null;
+      const subCategory = row.sub_categories;
+      const subCategoryName = Array.isArray(subCategory)
+        ? subCategory[0]?.name
+        : subCategory?.name ?? null;
 
       const totalStock = (row.product_variants ?? []).reduce(
         (sum, v) => sum + Number(v.stock_quantity ?? 0),
@@ -101,6 +111,8 @@ export async function listAdminProducts(db: SupabaseClient): Promise<AdminProduc
         updated_at: row.updated_at ?? null,
         category_id: row.category_id,
         category_name: categoryName,
+        sub_category_id: row.sub_category_id,
+        sub_category_name: subCategoryName,
         total_stock: totalStock
       };
     })
@@ -184,6 +196,7 @@ export type AdminProductDetail = {
   short_description: string | null;
   detailed_description: string | null;
   category_id: string | null;
+  sub_category_id: string | null;
   price: number;
   compare_price: number | null;
   fabric: string | null;
@@ -205,6 +218,7 @@ export type AdminProductUpdateInput = {
   short_description: string | null;
   detailed_description: string | null;
   category_id: string;
+  sub_category_id: string | null;
   price: number;
   compare_price: number | null;
   fabric: string | null;
@@ -283,6 +297,7 @@ type DbProductDetail = {
   short_description: string | null;
   detailed_description: string | null;
   category_id: string | null;
+  sub_category_id: string | null;
   price: number | string;
   compare_price: number | string | null;
   fabric: string | null;
@@ -321,6 +336,7 @@ export async function getAdminProductDetail(
       short_description,
       detailed_description,
       category_id,
+      sub_category_id,
       price,
       compare_price,
       fabric,
@@ -351,6 +367,7 @@ export async function getAdminProductDetail(
     short_description: row.short_description,
     detailed_description: row.detailed_description,
     category_id: row.category_id,
+    sub_category_id: row.sub_category_id,
     price: Number(row.price),
     compare_price: row.compare_price != null ? Number(row.compare_price) : null,
     fabric: row.fabric,
@@ -388,6 +405,10 @@ export function normalizeProductUpdateInput(
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const slug = typeof body.slug === "string" ? body.slug.trim() : "";
   const category_id = typeof body.category_id === "string" ? body.category_id.trim() : "";
+  const sub_category_id =
+    typeof body.sub_category_id === "string" && body.sub_category_id.trim()
+      ? body.sub_category_id.trim()
+      : null;
   const price = body.price != null && body.price !== "" ? Number(body.price) : NaN;
 
   if (!name || !slug || !category_id || Number.isNaN(price)) return null;
@@ -461,6 +482,7 @@ export function normalizeProductUpdateInput(
           ? body.detailed_description.trim() || null
           : null,
       category_id,
+      sub_category_id,
       price,
       compare_price: compare_price != null && !Number.isNaN(compare_price) ? compare_price : null,
       fabric: typeof body.fabric === "string" ? body.fabric.trim() || null : null,
@@ -580,6 +602,7 @@ export async function updateAdminProductDetail(
       short_description: product.short_description,
       detailed_description: product.detailed_description,
       category_id: product.category_id,
+      sub_category_id: product.sub_category_id,
       price: product.price,
       compare_price: product.compare_price,
       fabric: product.fabric,

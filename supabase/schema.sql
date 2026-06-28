@@ -11,8 +11,26 @@ CREATE TABLE IF NOT EXISTS categories (
   image_url text,
   sort_order integer DEFAULT 0,
   is_active boolean DEFAULT true,
+  show_in_navbar boolean DEFAULT false,
+  navbar_position integer,
   created_at timestamptz DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS sub_categories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  category_id uuid NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  slug text NOT NULL,
+  description text,
+  image_url text,
+  sort_order integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE (category_id, slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sub_categories_category_id ON sub_categories(category_id);
+CREATE INDEX IF NOT EXISTS idx_sub_categories_slug ON sub_categories(slug);
 
 CREATE TABLE IF NOT EXISTS products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,6 +39,7 @@ CREATE TABLE IF NOT EXISTS products (
   short_description text,
   detailed_description text,
   category_id uuid REFERENCES categories(id),
+  sub_category_id uuid REFERENCES sub_categories(id) ON DELETE SET NULL,
   price numeric NOT NULL,
   compare_price numeric,
   sku text UNIQUE,

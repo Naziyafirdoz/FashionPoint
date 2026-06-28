@@ -7,6 +7,10 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CategorySelect } from "@/components/admin/CategorySelect";
+import { SubCategoryField } from "@/components/admin/SubCategoryField";
+import { ProductAttributesSection } from "@/components/admin/products/ProductAttributesSection";
+import { ColorPicker } from "@/app/(admin)/admin/products/new/components/ColorPicker";
+import { SizePicker } from "@/app/(admin)/admin/products/new/components/SizePicker";
 import { slugify } from "@/lib/product-filters";
 import {
   buildAdminVariantMatrixRows,
@@ -16,11 +20,7 @@ import {
   type AdminVariantMatrixRow
 } from "@/lib/admin/products";
 import { ProductVariantMatrix } from "@/components/admin/products/ProductVariantMatrix";
-import { OCCASION_OPTIONS } from "@/lib/products/constants";
 import { PRODUCT_STATUS_OPTIONS, type ProductStatus } from "@/lib/products/status";
-
-const SIZE_OPTIONS = ["XS(32)", "S(34)", "M(36)", "L(38)", "XL(40)", "XXL(42)"];
-const COLOR_OPTIONS = ["Pink", "Maroon", "Red", "Gold", "Green", "Blue", "Black", "White"];
 
 type AdminEditProductClientProps = {
   productId: string;
@@ -42,6 +42,7 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
     price: "",
     compare_price: "",
     category_id: "",
+    sub_category_id: "",
     fabric: "",
     neck_type: "",
     sleeve_type: "",
@@ -74,6 +75,7 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
         price: String(product.price),
         compare_price: product.compare_price != null ? String(product.compare_price) : "",
         category_id: product.category_id ?? "",
+        sub_category_id: product.sub_category_id ?? "",
         fabric: product.fabric ?? "",
         neck_type: product.neck_type ?? "",
         sleeve_type: product.sleeve_type ?? "",
@@ -105,14 +107,6 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
   useEffect(() => {
     loadProduct();
   }, [loadProduct]);
-
-  const toggleArray = (key: "colors" | "sizes", value: string) => {
-    setForm((f) => {
-      const arr = f[key];
-      const next = arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
-      return { ...f, [key]: next };
-    });
-  };
 
   useEffect(() => {
     const basePrice = Number(form.price) || 0;
@@ -176,6 +170,7 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
         short_description: form.short_description.trim(),
         detailed_description: form.detailed_description.trim(),
         category_id: form.category_id,
+        sub_category_id: form.sub_category_id || null,
         price: Number(form.price),
         compare_price: form.compare_price ? Number(form.compare_price) : null,
         fabric: form.fabric.trim() || null,
@@ -375,98 +370,57 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
             Featured Product
           </label>
 
-          <div>
-            <p className="mb-2 text-sm font-semibold">Category *</p>
-            <CategorySelect
-              value={form.category_id}
-              onChange={(category_id) => setForm((f) => ({ ...f, category_id }))}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <input
-              placeholder="Fabric"
-              className="rounded-lg border px-3 py-2"
-              value={form.fabric}
-              onChange={(e) => setForm({ ...form, fabric: e.target.value })}
-            />
-            <input
-              placeholder="Neck Type"
-              className="rounded-lg border px-3 py-2"
-              value={form.neck_type}
-              onChange={(e) => setForm({ ...form, neck_type: e.target.value })}
-            />
-            <input
-              placeholder="Sleeve Type"
-              className="rounded-lg border px-3 py-2"
-              value={form.sleeve_type}
-              onChange={(e) => setForm({ ...form, sleeve_type: e.target.value })}
-            />
-            <input
-              placeholder="Closure Type"
-              className="rounded-lg border px-3 py-2"
-              value={form.closure_type}
-              onChange={(e) => setForm({ ...form, closure_type: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-semibold">Occasion</p>
-            <select
-              multiple
-              className="w-full rounded-lg border px-3 py-2"
-              value={form.occasion}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  occasion: Array.from(e.target.selectedOptions, (o) => o.value)
-                })
-              }
-            >
-              {OCCASION_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-semibold">Colors *</p>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_OPTIONS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => toggleArray("colors", c)}
-                  className={`rounded-full px-3 py-1 text-xs ${form.colors.includes(c) ? "bg-primary text-white" : "border"}`}
-                >
-                  {c}
-                </button>
-              ))}
+          <section className="card-store space-y-4">
+            <h2 className="font-semibold text-primary">Category Information</h2>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Category *</p>
+              <CategorySelect
+                value={form.category_id}
+                onChange={(category_id) =>
+                  setForm((f) => ({ ...f, category_id, sub_category_id: "" }))
+                }
+              />
             </div>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-semibold">Sizes *</p>
-            <div className="flex flex-wrap gap-2">
-              {SIZE_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => toggleArray("sizes", s)}
-                  className={`rounded-full px-3 py-1 text-xs ${form.sizes.includes(s) ? "bg-primary text-white" : "border"}`}
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Sub Category *</p>
+              <SubCategoryField
+                categoryId={form.category_id}
+                value={form.sub_category_id}
+                onChange={(sub_category_id) => setForm((f) => ({ ...f, sub_category_id }))}
+              />
             </div>
-          </div>
+          </section>
 
-          <div className="card-store space-y-4">
-            <p className="font-semibold">Inventory matrix</p>
+          <ProductAttributesSection
+            occasion={form.occasion}
+            fabric={form.fabric}
+            neck_type={form.neck_type}
+            sleeve_type={form.sleeve_type}
+            closure_type={form.closure_type}
+            onOccasionChange={(occasion) => setForm((f) => ({ ...f, occasion }))}
+            onFieldChange={(field, value) => setForm((f) => ({ ...f, [field]: value }))}
+          />
+
+          <section className="card-store space-y-3">
+            <h2 className="font-semibold text-primary">Colors</h2>
+            <ColorPicker
+              selected={form.colors}
+              onChange={(colors) => setForm((f) => ({ ...f, colors }))}
+            />
+          </section>
+
+          <section className="card-store space-y-3">
+            <h2 className="font-semibold text-primary">Sizes</h2>
+            <SizePicker
+              selected={form.sizes}
+              onChange={(sizes) => setForm((f) => ({ ...f, sizes }))}
+            />
+          </section>
+
+          <section className="card-store space-y-4">
+            <h2 className="font-semibold text-primary">Inventory</h2>
             <ProductVariantMatrix variants={variants} onChange={setVariants} />
-          </div>
+          </section>
 
           <button type="submit" disabled={saving} className="btn-primary w-full disabled:opacity-60">
             {saving ? "Saving…" : "SAVE CHANGES"}

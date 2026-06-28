@@ -27,6 +27,7 @@ let productsApiRequestCount = 0;
 function getFilters(url: URL): ProductFilterParams & { category?: string | null } {
   return {
     category: url.searchParams.get("category"),
+    sub_category: url.searchParams.get("sub_category"),
     size: url.searchParams.get("size"),
     color: url.searchParams.get("color"),
     fabric: url.searchParams.get("fabric"),
@@ -59,6 +60,26 @@ export async function GET(req: Request) {
         .eq("slug", filters.category)
         .maybeSingle();
       if (cat) query = query.eq("category_id", cat.id);
+    }
+
+    if (filters.sub_category) {
+      let subCategoryQuery = db
+        .from("sub_categories")
+        .select("id")
+        .eq("slug", filters.sub_category)
+        .eq("is_active", true);
+
+      if (filters.category) {
+        const { data: cat } = await db
+          .from("categories")
+          .select("id")
+          .eq("slug", filters.category)
+          .maybeSingle();
+        if (cat) subCategoryQuery = subCategoryQuery.eq("category_id", cat.id);
+      }
+
+      const { data: subCat } = await subCategoryQuery.maybeSingle();
+      if (subCat) query = query.eq("sub_category_id", subCat.id);
     }
 
     if (filters.size) {

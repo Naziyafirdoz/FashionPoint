@@ -11,7 +11,9 @@ export const CATEGORIES: Category[] = [
     description: "Comfortable styles for everyday elegance.",
     image_url: img("photo-1595777455318-2b71b2a3b6b5"),
     sort_order: 1,
-    is_active: true
+    is_active: true,
+    show_in_navbar: false,
+    navbar_position: null
   },
   {
     id: "cat-designer",
@@ -20,7 +22,9 @@ export const CATEGORIES: Category[] = [
     description: "Exquisite designs for every celebration.",
     image_url: img("photo-1610030469983-98e550b8b4b4"),
     sort_order: 2,
-    is_active: true
+    is_active: true,
+    show_in_navbar: false,
+    navbar_position: null
   },
   {
     id: "cat-party",
@@ -29,7 +33,9 @@ export const CATEGORIES: Category[] = [
     description: "Stand out in styles that sparkle.",
     image_url: img("photo-1583394838336-acd9777362f0"),
     sort_order: 3,
-    is_active: true
+    is_active: true,
+    show_in_navbar: false,
+    navbar_position: null
   },
   {
     id: "cat-soon",
@@ -38,7 +44,9 @@ export const CATEGORIES: Category[] = [
     description: "Something exclusive is coming soon!",
     image_url: img("photo-1572804013309-59a6b509c0f0"),
     sort_order: 4,
-    is_active: true
+    is_active: true,
+    show_in_navbar: false,
+    navbar_position: null
   }
 ];
 

@@ -26,6 +26,8 @@ import {
   categoryDescriptionPreview,
   filterAdminCategories,
   getCategoryDescriptionValidationError,
+  getHomepageFieldsValidationError,
+  getNavbarPositionValidationError,
   type AdminCategoriesSummary,
   type AdminCategoryRow
 } from "@/lib/admin/categories";
@@ -74,6 +76,10 @@ export function AdminCategoriesClient() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const [togglingNavbarId, setTogglingNavbarId] = useState<string | null>(null);
+
+  const [updatingNavbarPositionId, setUpdatingNavbarPositionId] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,9 +90,9 @@ export function AdminCategoriesClient() {
 
 
 
-  const loadCategories = useCallback(async () => {
+  const loadCategories = useCallback(async (silent = false) => {
 
-    setLoading(true);
+    if (!silent) setLoading(true);
 
     try {
 
@@ -120,7 +126,7 @@ export function AdminCategoriesClient() {
 
     } finally {
 
-      setLoading(false);
+      if (!silent) setLoading(false);
 
     }
 
@@ -235,6 +241,18 @@ export function AdminCategoriesClient() {
       return;
     }
 
+    const homepageError = getHomepageFieldsValidationError({
+      show_on_homepage: values.show_on_homepage,
+      homepage_description: values.homepage_description,
+      homepage_display_order: values.homepage_display_order,
+      homepage_theme: values.homepage_theme,
+      homepage_button_text: values.homepage_button_text
+    });
+    if (homepageError) {
+      toast.error(homepageError);
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -251,7 +269,19 @@ export function AdminCategoriesClient() {
 
         sort_order: Number(values.sort_order) || 0,
 
-        is_active: values.is_active
+        is_active: values.is_active,
+
+        show_on_homepage: values.show_on_homepage,
+
+        homepage_description: values.homepage_description.trim() || null,
+
+        homepage_display_order: Number(values.homepage_display_order) || 0,
+
+        homepage_theme: values.homepage_theme.trim() || "blush",
+
+        homepage_button_text: values.homepage_button_text.trim() || "Explore Collection",
+
+        homepage_banner_image_url: values.homepage_banner_image_url.trim() || null
 
       };
 
@@ -359,6 +389,186 @@ export function AdminCategoriesClient() {
 
 
 
+  const patchCategory = async (
+    category: AdminCategoryRow,
+    patch: Partial<Pick<AdminCategoryRow, "show_in_navbar" | "navbar_position">>
+  ) => {
+    const res = await fetch(`/api/admin/categories/${category.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image_url: category.image_url,
+        sort_order: category.sort_order,
+        is_active: category.is_active,
+        show_in_navbar: patch.show_in_navbar ?? category.show_in_navbar,
+        navbar_position:
+          patch.navbar_position !== undefined ? patch.navbar_position : category.navbar_position,
+        show_on_homepage: category.show_on_homepage,
+        homepage_description: category.homepage_description,
+        homepage_display_order: category.homepage_display_order,
+        homepage_theme: category.homepage_theme,
+        homepage_button_text: category.homepage_button_text,
+        homepage_banner_image_url: category.homepage_banner_image_url
+      })
+    });
+
+    const data = await res.json();
+    return { ok: res.ok, data };
+  };
+
+
+
+  const handleToggleShowInNavbar = async (category: AdminCategoryRow) => {
+
+    const nextValue = !category.show_in_navbar;
+
+    setTogglingNavbarId(category.id);
+
+    setCategories((prev) =>
+
+      prev.map((row) =>
+
+        row.id === category.id
+
+          ? { ...row, show_in_navbar: nextValue, navbar_position: nextValue ? row.navbar_position : null }
+
+          : row
+
+      )
+
+    );
+
+
+
+    try {
+
+      const { ok, data } = await patchCategory(category, {
+
+        show_in_navbar: nextValue,
+
+        navbar_position: nextValue ? category.navbar_position : null
+
+      });
+
+
+
+      if (!ok) {
+
+        setCategories((prev) =>
+
+          prev.map((row) =>
+
+            row.id === category.id
+
+              ? { ...row, show_in_navbar: category.show_in_navbar, navbar_position: category.navbar_position }
+
+              : row
+
+          )
+
+        );
+
+        toast.error(data.error ?? "Failed to update navbar visibility");
+
+        return;
+
+      }
+
+
+
+      toast.success(nextValue ? "Category added to navbar" : "Category removed from navbar");
+
+      await loadCategories(true);
+
+    } catch {
+
+      setCategories((prev) =>
+
+        prev.map((row) =>
+
+          row.id === category.id
+
+            ? { ...row, show_in_navbar: category.show_in_navbar, navbar_position: category.navbar_position }
+
+            : row
+
+        )
+
+      );
+
+      toast.error("Failed to update navbar visibility");
+
+    } finally {
+
+      setTogglingNavbarId(null);
+
+    }
+
+  };
+
+
+
+  const handleNavbarPositionChange = async (category: AdminCategoryRow, rawValue: string) => {
+
+    if (!category.show_in_navbar) return;
+
+    const trimmed = rawValue.trim();
+
+    if (trimmed === "") return;
+
+    const validationError = getNavbarPositionValidationError(trimmed);
+
+    if (validationError) {
+
+      toast.error(validationError);
+
+      return;
+
+    }
+
+    const navbar_position = Number(trimmed);
+
+    if (category.navbar_position === navbar_position) return;
+
+    setUpdatingNavbarPositionId(category.id);
+
+    try {
+
+      const { ok, data } = await patchCategory(category, { navbar_position });
+
+
+
+      if (!ok) {
+
+        toast.error(data.error ?? "Failed to update navbar position");
+
+        return;
+
+      }
+
+
+
+      toast.success("Navbar position updated");
+
+      await loadCategories(true);
+
+    } catch {
+
+      toast.error("Failed to update navbar position");
+
+    } finally {
+
+      setUpdatingNavbarPositionId(null);
+
+    }
+
+  };
+
+
+
   return (
 
     <>
@@ -445,7 +655,7 @@ export function AdminCategoriesClient() {
 
         <div className="mt-6 overflow-x-auto rounded-xl border bg-white">
 
-          <table className="w-full min-w-[800px] text-sm">
+          <table className="w-full min-w-[1020px] text-sm">
 
             <thead>
 
@@ -458,6 +668,10 @@ export function AdminCategoriesClient() {
                 <th className="p-3 pr-4">Product Count</th>
 
                 <th className="p-3 pr-4">Status</th>
+
+                <th className="p-3 pr-4">Show in Navbar</th>
+
+                <th className="p-3 pr-4">Navbar Position</th>
 
                 <th className="p-3 pr-4">Sort Order</th>
 
@@ -473,7 +687,7 @@ export function AdminCategoriesClient() {
 
                 <tr>
 
-                  <td colSpan={6} className="py-8 text-center text-foreground/60">
+                  <td colSpan={8} className="py-8 text-center text-foreground/60">
 
                     Loading categories…
 
@@ -485,7 +699,7 @@ export function AdminCategoriesClient() {
 
                 <tr>
 
-                  <td colSpan={6} className="py-8 text-center text-foreground/60">
+                  <td colSpan={8} className="py-8 text-center text-foreground/60">
 
                     {categories.length === 0
 
@@ -564,6 +778,64 @@ export function AdminCategoriesClient() {
                         {c.is_active ? "Active" : "Inactive"}
 
                       </span>
+
+                    </td>
+
+                    <td className="p-3 pr-4">
+
+                      <label className="inline-flex items-center gap-2 text-xs text-foreground/80">
+
+                        <input
+
+                          type="checkbox"
+
+                          checked={c.show_in_navbar}
+
+                          disabled={togglingNavbarId === c.id}
+
+                          onChange={() => handleToggleShowInNavbar(c)}
+
+                        />
+
+                        Show in Navbar
+
+                      </label>
+
+                    </td>
+
+                    <td className="p-3 pr-4">
+
+                      <input
+
+                        key={`${c.id}-${c.navbar_position ?? "empty"}`}
+
+                        type="number"
+
+                        min={1}
+
+                        step={1}
+
+                        defaultValue={c.show_in_navbar && c.navbar_position != null ? c.navbar_position : ""}
+
+                        disabled={!c.show_in_navbar || updatingNavbarPositionId === c.id}
+
+                        placeholder="—"
+
+                        className="w-20 rounded-lg border px-2 py-1 text-sm disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-foreground/40"
+
+                        onBlur={(e) => handleNavbarPositionChange(c, e.target.value)}
+
+                        onKeyDown={(e) => {
+
+                          if (e.key === "Enter") {
+
+                            e.currentTarget.blur();
+
+                          }
+
+                        }}
+
+                      />
 
                     </td>
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getAdminCategoriesSummary,
   getCategoryDescriptionValidationError,
+  getHomepageFieldsValidationError,
   listAdminCategories,
   normalizeCategoryInput
 } from "@/lib/admin/categories";import { requireAdmin } from "@/lib/admin/require-admin";
@@ -27,6 +28,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: descriptionError }, { status: 400 });
   }
 
+  const homepageError = getHomepageFieldsValidationError(body);
+  if (homepageError) {
+    return NextResponse.json({ error: homepageError }, { status: 400 });
+  }
+
   const input = normalizeCategoryInput(body);
   if (!input) {
     return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
@@ -39,7 +45,14 @@ export async function POST(req: Request) {
       description: input.description ?? null,
       image_url: input.image_url ?? null,
       sort_order: input.sort_order ?? 0,
-      is_active: input.is_active ?? true
+      is_active: input.is_active ?? true,
+      show_in_navbar: input.show_in_navbar ?? false,
+      show_on_homepage: input.show_on_homepage ?? false,
+      homepage_description: input.homepage_description ?? null,
+      homepage_display_order: input.homepage_display_order ?? 0,
+      homepage_theme: input.homepage_theme ?? "blush",
+      homepage_button_text: input.homepage_button_text ?? "Explore Collection",
+      homepage_banner_image_url: input.homepage_banner_image_url ?? null
     })
     .select()
     .single();

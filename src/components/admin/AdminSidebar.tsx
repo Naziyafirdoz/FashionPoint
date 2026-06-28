@@ -167,6 +167,12 @@ const PRODUCT_CHILDREN: ProductChild[] = [
     isActive: (path) => path.startsWith("/admin/categories")
   },
   {
+    href: "/admin/sub-categories",
+    label: "Sub Categories",
+    icon: FolderTree,
+    isActive: (path) => path.startsWith("/admin/sub-categories")
+  },
+  {
     href: "/admin/inventory",
     label: "Inventory",
     icon: Warehouse,
@@ -189,6 +195,7 @@ const PRODUCT_CHILDREN: ProductChild[] = [
 const PRODUCT_SECTION_PATHS = [
   "/admin/products",
   "/admin/categories",
+  "/admin/sub-categories",
   "/admin/inventory",
   "/admin/reviews"
 ];

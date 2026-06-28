@@ -42,6 +42,9 @@ export function normalizeDbProduct(row: DbRow): Product {
           slug: String(categories.slug),
           sort_order: Number(categories.sort_order ?? 0),
           is_active: Boolean(categories.is_active ?? true),
+          show_in_navbar: Boolean(categories.show_in_navbar ?? false),
+          navbar_position:
+            categories.navbar_position != null ? Number(categories.navbar_position) : null,
           description:
             categories.description != null ? String(categories.description) : undefined,
           image_url: categories.image_url != null ? String(categories.image_url) : undefined

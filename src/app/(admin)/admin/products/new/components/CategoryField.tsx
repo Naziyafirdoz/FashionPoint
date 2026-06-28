@@ -5,19 +5,13 @@ import { Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Category } from "@/types";
 import { slugify } from "@/lib/product-filters";
+import { normalizeClientCategories } from "@/lib/categories/normalize-client-categories";
+import { dedupeSelectOptions, sortBySortOrderThenName } from "@/lib/admin/select-options";
 
 type CategoryFieldProps = {
   value: string;
   onChange: (categoryId: string) => void;
 };
-
-function normalizeCategories(raw: unknown): Category[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((c): c is Category => c != null && typeof c === "object")
-    .filter((c) => typeof c.id === "string" && typeof c.name === "string")
-    .filter((c) => c.slug !== "soon");
-}
 
 export function CategoryField({ value, onChange }: CategoryFieldProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -26,7 +20,9 @@ export function CategoryField({ value, onChange }: CategoryFieldProps) {
   const [customName, setCustomName] = useState("");
   const [creating, setCreating] = useState(false);
   const onChangeRef = useRef(onChange);
+  const valueRef = useRef(value);
   onChangeRef.current = onChange;
+  valueRef.current = value;
 
   useEffect(() => {
     let cancelled = false;
@@ -39,9 +35,9 @@ export function CategoryField({ value, onChange }: CategoryFieldProps) {
         const data: unknown = await res.json();
         if (cancelled) return;
         const payload = data as { categories?: unknown } | null;
-        const list = normalizeCategories(payload?.categories);
+        const list = normalizeClientCategories(payload?.categories);
         setCategories(list);
-        if (list.length > 0) {
+        if (list.length > 0 && !list.some((c) => c.id === valueRef.current)) {
           onChangeRef.current(list[0].id);
         }
       } catch {
@@ -78,7 +74,9 @@ export function CategoryField({ value, onChange }: CategoryFieldProps) {
       }
 
       const created = data.category as Category;
-      setCategories((prev) => [...prev, created]);
+      setCategories((prev) =>
+        sortBySortOrderThenName(dedupeSelectOptions([...prev, created]))
+      );
       onChange(created.id);
       setCustomName("");
       setMode("select");

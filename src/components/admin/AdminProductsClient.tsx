@@ -171,6 +171,7 @@ function AdminProductsContent() {
               <tr className="border-b bg-blush/50 text-left text-foreground/70">
                 <th className="p-3 pr-4">Product</th>
                 <th className="p-3 pr-4">Category</th>
+                <th className="p-3 pr-4">Sub Category</th>
                 <th className="p-3 pr-4">Price</th>
                 <th className="p-3 pr-4">Stock</th>
                 <th className="p-3 pr-4">Status</th>
@@ -181,13 +182,13 @@ function AdminProductsContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-foreground/60">
+                  <td colSpan={8} className="py-8 text-center text-foreground/60">
                     Loading products…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-foreground/60">
+                  <td colSpan={8} className="py-8 text-center text-foreground/60">
                     {scopedProducts.length === 0
                       ? featuredOnly
                         ? "No featured products yet. Mark products as featured when editing."
@@ -207,6 +208,7 @@ function AdminProductsContent() {
                         </div>
                       </td>
                       <td className="p-3 pr-4">{p.category_name ?? "—"}</td>
+                      <td className="p-3 pr-4">{p.sub_category_name ?? "—"}</td>
                       <td className="p-3 pr-4">{formatPrice(p.price)}</td>
                       <td className="p-3 pr-4">{p.total_stock}</td>
                       <td className="p-3 pr-4">

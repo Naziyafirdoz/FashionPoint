@@ -1,41 +1,23 @@
-import Link from "next/link";
-import Image from "next/image";
-import { CATEGORIES } from "@/lib/mock-data";
+import { CategoryCardsClient, type HomeCategory } from "@/components/store/CategoryCardsClient";
+import { getHomepageCategories } from "@/lib/categories/get-categories";
 
-const TONES: Record<string, string> = {
-  "daily-wear": "from-pink-100 to-pink-50",
-  "designer-wear": "from-amber-50 to-green-50",
-  "party-wear": "from-purple-100 to-purple-50",
-  soon: "from-teal-100 to-teal-50"
-};
+export async function CategoryCards() {
+  const homepageCategories = await getHomepageCategories();
+  if (homepageCategories.length === 0) {
+    return null;
+  }
 
-export function CategoryCards() {
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-12">
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {CATEGORIES.map((cat) => (
-          <div
-            key={cat.id}
-            className={`card-store relative overflow-hidden bg-gradient-to-br ${TONES[cat.slug] ?? "from-blush to-white"}`}
-          >
-            <div className="relative z-10 pr-24">
-              <h3 className="font-display text-lg font-bold text-primary">{cat.name}</h3>
-              <p className="mt-2 text-sm text-foreground/70">{cat.description}</p>
-              <Link
-                href={cat.slug === "soon" ? "/soon" : `/${cat.slug}`}
-                className="btn-outline mt-4 inline-flex text-xs"
-              >
-                {cat.slug === "soon" ? "STAY TUNED" : "EXPLORE NOW"}
-              </Link>
-            </div>
-            {cat.image_url && (
-              <div className="absolute bottom-0 right-0 h-28 w-28">
-                <Image src={cat.image_url} alt={cat.name} fill className="object-cover rounded-tl-2xl" />
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  const categories: HomeCategory[] = homepageCategories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    sort_order: category.homepage_display_order,
+    description: category.description,
+    image_url: category.image_url,
+    homepage_banner_image_url: category.homepage_banner_image_url,
+    theme: category.theme,
+    button_text: category.button_text
+  }));
+
+  return <CategoryCardsClient categories={categories} />;
 }

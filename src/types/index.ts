@@ -53,6 +53,21 @@ export type Category = {
   image_url?: string;
   sort_order: number;
   is_active: boolean;
+  show_in_navbar: boolean;
+  navbar_position: number | null;
+};
+
+export type SubCategory = {
+  id: string;
+  category_id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  image_url?: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string;
+  category_name?: string | null;
 };
 
 export type ProductStatus = "draft" | "active" | "out_of_stock" | "archived";
@@ -75,6 +90,7 @@ export type Product = {
   short_description?: string;
   detailed_description?: string;
   category_id?: string;
+  sub_category_id?: string | null;
   category?: Category;
   price: number;
   compare_price?: number;
