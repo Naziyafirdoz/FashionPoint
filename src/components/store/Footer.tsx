@@ -22,20 +22,22 @@ export function Footer() {
         <div>
           <h4 className="font-semibold text-primary">Shop</h4>
           <ul className="mt-2 space-y-1 text-sm text-foreground/70">
+            <li><Link href="/products">All Products</Link></li>
             <li><Link href="/daily-wear">Daily Wear</Link></li>
             <li><Link href="/designer-wear">Designer Wear</Link></li>
             <li><Link href="/party-wear">Party Wear</Link></li>
-            <li><Link href="/ai-features">AI Features</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="font-semibold text-primary">Policies</h4>
           <ul className="mt-2 space-y-1 text-sm text-foreground/70">
             <li><Link href="/privacy-policy">Privacy Policy</Link></li>
-            <li><Link href="/terms-and-conditions">Terms</Link></li>
-            <li><Link href="/refund-policy">Refund Policy</Link></li>
-            <li><Link href="/shipping-policy">Shipping</Link></li>
+            <li><Link href="/terms-and-conditions">Terms &amp; Conditions</Link></li>
+            <li><Link href="/shipping-policy">Shipping Policy</Link></li>
             <li><Link href="/size-guide">Size Guide</Link></li>
+            <li><Link href="/return-policy">No Return</Link></li>
+            <li><Link href="/return-policy">No Exchange</Link></li>
+            <li><Link href="/return-policy">No Refund</Link></li>
           </ul>
         </div>
         <div>

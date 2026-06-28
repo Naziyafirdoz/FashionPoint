@@ -50,6 +50,11 @@ const AI_FEATURES = [
 
 const AVATAR_COLORS = ["#f5c4d4", "#e8b4c8", "#d4a5b9", "#c995aa", "#f0d0dc"];
 
+function scrollToExploreCollections(event: React.MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  document.getElementById("explore-collections")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function HeroBanner() {
   return (
     <section className="hero-premium relative overflow-visible" aria-label="Premium ready-made Indian blouses">
@@ -109,7 +114,8 @@ export function HeroBanner() {
           </div>
 
           <Link
-            href="/daily-wear"
+            href="#explore-collections"
+            onClick={scrollToExploreCollections}
             className="group hero-cta-lift mt-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-primary via-[#8f1230] to-primary px-6 py-3.5 text-xs font-semibold tracking-wide text-white shadow-[0_10px_28px_rgba(123,13,43,0.22)] hover:from-[#8f1230] hover:via-primary hover:to-[#9a1535] hover:shadow-[0_14px_34px_rgba(184,134,11,0.22)] sm:px-7 sm:text-sm"
           >
             SHOP READY-MADE BLOUSES
