@@ -13,6 +13,7 @@ import {
 import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
 import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
+import { STORE_TIMEZONE } from "@/lib/site-config";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
 import type { Order } from "@/types";
@@ -577,5 +578,42 @@ export function buildPushPayload(order: Order, event: OrderNotificationEvent) {
     title: eventTitle(event, order),
     body: buildInAppMessage(order, event),
     url: `/admin/orders/${order.id}`
+  };
+}
+
+export function buildNotificationTestEmail(sentAt: Date = new Date()): {
+  subject: string;
+  html: string;
+} {
+  const sentAtLabel = new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: STORE_TIMEZONE
+  }).format(sentAt);
+
+  const body = `
+    ${sectionHeading("Test Notification")}
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};">Hello,</p>
+    ${messageBlockHtml([
+      "This is a test email from your Fashion Point notification system.",
+      "If you received this email, your notification settings are configured correctly.",
+      "No action is required."
+    ])}
+    ${cardOpen()}
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;letter-spacing:0.5px;">Sent at</p>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:${TEXT};">${escapeHtml(sentAtLabel)}</p>
+        </td>
+      </tr>
+    ${cardClose()}
+  `;
+
+  return {
+    subject: "Fashion Point • Test Notification",
+    html: emailShell("Test Notification", body, {
+      preheader: "This is a test email from your Fashion Point notification system.",
+      footer: "minimal"
+    })
   };
 }

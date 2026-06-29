@@ -4,55 +4,74 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
+  ArrowRight,
   Award,
-  RotateCcw,
+  Ban,
   Ruler,
   ShieldCheck,
   Shirt,
-  Wind,
   type LucideIcon
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-const CATEGORY_HERO_BACKGROUND = "/assets/hero/category-hero.png";
-const CATEGORY_HERO_MODEL = "/assets/hero/category-model.png";
+const CATEGORY_HERO_BACKGROUND = "/assets/hero/category-bg.png";
 
-const HERO_FEATURES: { label: string; icon: LucideIcon }[] = [
-  { label: "Premium Quality", icon: Award },
-  { label: "Ready Made", icon: Shirt },
-  { label: "Perfect Fit", icon: Ruler },
-  { label: "Soft Fabric", icon: Wind },
-  { label: "Easy Returns", icon: RotateCcw },
-  { label: "Secure Payment", icon: ShieldCheck }
+type HeroFeature = {
+  lines: string[];
+  icon: LucideIcon;
+};
+
+const HERO_FEATURES: HeroFeature[] = [
+  { lines: ["Premium", "Quality"], icon: Award },
+  { lines: ["Ready", "Made"], icon: Shirt },
+  { lines: ["Perfect", "Fit"], icon: Ruler },
+  { lines: ["No Exchange", "No Return", "No Refund"], icon: Ban },
+  { lines: ["Secure", "Payment"], icon: ShieldCheck }
 ];
 
 type CategoryHeroSectionProps = {
   title: string;
   description: string;
   cta?: ReactNode;
+  plainBackground?: boolean;
 };
 
 function HeroFeatureRow() {
   return (
-    <div className="grid max-w-[520px] grid-cols-3 gap-x-2 gap-y-5 sm:flex sm:max-w-none sm:items-start sm:gap-0 lg:max-w-[580px]">
+    <div className="flex w-full max-w-[450px] flex-wrap items-center gap-x-2 gap-y-3 sm:flex-nowrap sm:gap-x-0 sm:gap-y-0">
       {HERO_FEATURES.map((feature, index) => {
         const Icon = feature.icon;
+        const isReturnPolicy = feature.lines.length === 3;
+
         return (
-          <div key={feature.label} className="flex min-w-0 flex-1 items-stretch">
+          <div
+            key={feature.lines.join(" ")}
+            className={`flex min-w-[4.5rem] items-center sm:min-w-0 ${
+              isReturnPolicy ? "flex-[1.15] basis-[30%] sm:basis-0" : "flex-1 basis-[17%] sm:basis-0"
+            }`}
+          >
             {index > 0 ? (
               <div
-                className="mr-2 hidden w-px shrink-0 self-center bg-primary/20 sm:mr-3 sm:block sm:h-10 lg:mr-4"
+                className="mr-1.5 hidden h-[36px] w-px shrink-0 bg-primary/10 sm:block sm:mr-2"
                 aria-hidden="true"
               />
             ) : null}
-            <div className="flex min-w-0 flex-1 flex-col items-center gap-2 px-1 text-center sm:px-2">
+            <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 text-center sm:gap-2">
               <Icon
-                className="h-6 w-6 shrink-0 text-primary sm:h-7 sm:w-7"
+                className="h-[18px] w-[18px] shrink-0 text-primary"
                 strokeWidth={1.5}
                 aria-hidden="true"
               />
-              <span className="text-[10px] leading-tight text-[#444] sm:text-[11px] lg:text-xs">
-                {feature.label}
+              <span
+                className={`flex flex-col items-center justify-center text-[13px] font-medium leading-[1.25] text-[#333] sm:text-sm ${
+                  isReturnPolicy ? "min-h-[2.75rem]" : "min-h-[2.5rem]"
+                }`}
+              >
+                {feature.lines.map((line) => (
+                  <span key={line} className="block">
+                    {line}
+                  </span>
+                ))}
               </span>
             </div>
           </div>
@@ -62,73 +81,84 @@ function HeroFeatureRow() {
   );
 }
 
-export function CategoryHeroSection({ title, description, cta }: CategoryHeroSectionProps) {
+function DefaultHeroCta() {
+  function scrollToListing(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    const hero = event.currentTarget.closest("section");
+    hero?.nextElementSibling?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <section className="w-full bg-[#FFF4F4]" aria-label={`${title} hero`}>
-      <div className="mx-auto w-full max-w-[1350px] px-4 sm:px-6 lg:px-8">
-        <div className="relative min-h-[520px] overflow-hidden rounded-3xl shadow-[0_12px_40px_rgba(123,13,43,0.08)] sm:min-h-[560px] lg:h-[360px] lg:min-h-[360px]">
+    <Link
+      href="#"
+      onClick={scrollToListing}
+      className="group mt-5 inline-flex h-11 w-fit items-center gap-1.5 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)] sm:px-7"
+    >
+      Explore Collection
+      <ArrowRight
+        className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+        aria-hidden="true"
+      />
+    </Link>
+  );
+}
+
+export function CategoryHeroSection({
+  title,
+  description,
+  cta,
+  plainBackground = false
+}: CategoryHeroSectionProps) {
+  return (
+    <section
+      className="relative w-full overflow-x-clip"
+      aria-label={`${title} hero`}
+    >
+      {!plainBackground ? (
+        <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
           <Image
             src={CATEGORY_HERO_BACKGROUND}
             alt=""
             fill
             priority
-            sizes="(max-width: 1350px) 100vw, 1350px"
-            className="object-cover object-[left_center]"
-            aria-hidden="true"
+            sizes="100vw"
+            className="object-cover object-right"
           />
-
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[58%] bg-gradient-to-r from-white/10 via-white/[0.07] to-transparent"
-            aria-hidden="true"
-          />
-
-          <div className="relative z-10 flex h-full min-h-[520px] flex-col lg:min-h-[360px] lg:flex-row">
-            <div className="flex w-full flex-col justify-center py-10 pl-2 pr-4 sm:pl-4 sm:pr-6 lg:w-[45%] lg:py-[55px] lg:pl-[70px] lg:pr-6">
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, ease: "easeOut" }}
-                className="relative w-full"
-              >
-                <nav
-                  aria-label="Breadcrumb"
-                  className="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-foreground/55 sm:text-sm"
-                >
-                  <Link href="/" className="transition hover:text-primary">
-                    Home
-                  </Link>
-                  <span className="text-foreground/40" aria-hidden="true">
-                    &gt;
-                  </span>
-                  <span className="font-medium text-foreground/65">{title}</span>
-                </nav>
-
-                <h1 className="font-display text-3xl font-bold leading-[1.05] text-primary sm:text-4xl lg:text-[58px]">
-                  {title}
-                </h1>
-
-                <p className="mt-4 max-w-[480px] text-base font-normal leading-snug text-[#444] sm:text-lg lg:text-2xl">
-                  {description}
-                </p>
-
-                <div className="mt-8">{cta ?? <HeroFeatureRow />}</div>
-              </motion.div>
-            </div>
-
-            <div className="relative mt-2 flex h-[260px] w-full shrink-0 items-end justify-end px-4 pb-3 sm:h-[280px] sm:px-6 lg:absolute lg:bottom-0 lg:right-0 lg:mt-0 lg:h-full lg:w-[34%] lg:px-4 lg:pb-0">
-              <div className="relative h-full w-full max-w-[320px] lg:max-w-none">
-                <Image
-                  src={CATEGORY_HERO_MODEL}
-                  alt={`${title} model`}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 320px, 460px"
-                  className="object-contain object-bottom object-right"
-                />
-              </div>
-            </div>
-          </div>
         </div>
+      ) : null}
+
+      <div className="relative z-10 mx-auto flex min-h-[330px] w-full max-w-7xl items-center px-5 sm:px-6 md:min-h-[340px] lg:min-h-[350px] lg:pl-8 lg:pr-12 xl:pl-10 xl:pr-16">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="flex w-fit max-w-[520px] -translate-x-6 flex-col sm:-translate-x-8 lg:-translate-x-[50px]"
+        >
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-2 flex flex-wrap items-center gap-1 text-[13px] text-foreground/55 sm:text-sm"
+          >
+            <Link href="/" className="transition hover:text-primary">
+              Home
+            </Link>
+            <span className="text-foreground/40" aria-hidden="true">
+              &gt;
+            </span>
+            <span className="font-medium text-foreground/65">{title}</span>
+          </nav>
+
+          <h1 className="mb-2 font-display text-[3.25rem] font-bold leading-[1.1] text-primary sm:text-[3.375rem]">
+            {title}
+          </h1>
+
+          <p className="mb-4 max-w-md text-lg font-medium leading-snug text-[#444]">
+            {description}
+          </p>
+
+          <HeroFeatureRow />
+
+          {cta ?? <DefaultHeroCta />}
+        </motion.div>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   CreditCard,
+  Bell,
   PlugZap,
   Settings,
   Store,
@@ -12,11 +13,18 @@ import {
 import type { IntegrationStatusItem, PaymentsSettingsStatus } from "@/lib/settings/integration-status";
 import { AdminGeneralSettings } from "./AdminGeneralSettings";
 import { AdminIntegrationsSettings } from "./AdminIntegrationsSettings";
+import { AdminNotificationSettings } from "./AdminNotificationSettings";
 import { AdminPaymentsSettings } from "./AdminPaymentsSettings";
 import { AdminShippingSettings } from "./AdminShippingSettings";
 import { AdminStoreInformation } from "./AdminStoreInformation";
 
-type SettingsSectionId = "general" | "store" | "shipping" | "payments" | "integrations";
+type SettingsSectionId =
+  | "general"
+  | "store"
+  | "shipping"
+  | "payments"
+  | "integrations"
+  | "notifications";
 
 type ActiveSection = {
   id: SettingsSectionId;
@@ -29,7 +37,8 @@ const ACTIVE_SECTIONS: ActiveSection[] = [
   { id: "store", label: "Store Information", icon: Store },
   { id: "shipping", label: "Shipping", icon: Truck },
   { id: "payments", label: "Payments", icon: CreditCard },
-  { id: "integrations", label: "Integrations", icon: PlugZap }
+  { id: "integrations", label: "Integrations", icon: PlugZap },
+  { id: "notifications", label: "Notifications", icon: Bell }
 ];
 
 const FUTURE_SECTIONS = [
@@ -91,6 +100,7 @@ export function AdminSettingsClient({ integrations, payments }: AdminSettingsCli
         {activeSection === "integrations" && (
           <AdminIntegrationsSettings integrations={integrations} />
         )}
+        {activeSection === "notifications" && <AdminNotificationSettings />}
       </div>
     </div>
   );

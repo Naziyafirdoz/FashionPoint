@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CategoryHeroSection } from "@/components/store/CategoryHeroSection";
 import { CategoryListing } from "@/components/store/CategoryListing";
 import { getCategoryBySlug } from "@/lib/categories/get-category-by-slug";
 import { getActiveSubCategoriesByCategorySlug } from "@/lib/sub-categories/get-sub-categories";
@@ -23,14 +24,14 @@ export default async function CategoryPage({ params }: Props) {
   const subCategories = await getActiveSubCategoriesByCategorySlug(slug);
 
   return (
-    <Suspense fallback={<p className="p-8 text-center">Loading…</p>}>
-      <CategoryListing
-        categorySlug={slug}
+    <>
+      <CategoryHeroSection
         title={category.name}
-        subtitle={category.description ?? `Browse our ${category.name} collection.`}
-        heroImage={category.image_url}
-        subCategories={subCategories}
+        description={category.description ?? `Browse our ${category.name} collection.`}
       />
-    </Suspense>
+      <Suspense fallback={<p className="p-8 text-center">Loading…</p>}>
+        <CategoryListing categorySlug={slug} subCategories={subCategories} />
+      </Suspense>
+    </>
   );
 }

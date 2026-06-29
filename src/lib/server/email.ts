@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { getAdminEmail } from "@/lib/admin/admin-contacts";
+import { resolveNotificationRecipientEmails } from "@/lib/admin/notification-recipient-resolver";
 import {
   buildCustomerOrderConfirmedEmail,
   buildCustomerOrderConfirmedEmailSimple,
@@ -108,11 +108,11 @@ export async function sendOrderConfirmation(params: {
 }
 
 export async function sendLowStockAlert(productName: string) {
-  const admin = getAdminEmail();
-  if (!resend || !admin) return;
+  const recipients = await resolveNotificationRecipientEmails("low_stock");
+  if (!resend || !recipients.length) return;
   await resend.emails.send({
     from: RESEND_FROM_ALERTS_STORE,
-    to: admin,
+    to: recipients,
     subject: `Low Stock Alert — ${productName}`,
     html: `<p>Product <strong>${productName}</strong> is out of stock.</p>`
   });

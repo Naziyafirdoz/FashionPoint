@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAdminEmail, getStaffOrderAlertEmails, getWorkerEmails } from "@/lib/admin/admin-contacts";
+import { resolveNotificationRecipientEmails } from "@/lib/admin/notification-recipient-resolver";
 import {
   inAppTypeFromEvent,
   type DbNotification,
@@ -178,24 +178,20 @@ async function sendEmailChannel(
     orderNumber: order.order_number,
     event: eventKey
   });
-  console.info("ADMIN_EMAIL value", process.env.ADMIN_EMAIL ?? "(not set)");
-  console.info("WORKER_EMAILS value", process.env.WORKER_EMAILS ?? "(not set)");
 
-  const recipients = getStaffOrderAlertEmails();
+  const recipients = await resolveNotificationRecipientEmails("new_order", db);
   console.info("Recipients array", recipients);
 
   if (!recipients.length) {
     console.error("[admin-email] no recipients configured", {
-      orderId: order.id,
-      adminEmail: getAdminEmail(),
-      workerEmails: getWorkerEmails()
+      orderId: order.id
     });
     await logNotificationDelivery(db, {
       orderId: order.id,
       channel: "email",
       event: eventKey,
       success: false,
-      errorMessage: "ADMIN_EMAIL / WORKER_EMAILS not configured"
+      errorMessage: "No notification recipients configured"
     });
     return;
   }

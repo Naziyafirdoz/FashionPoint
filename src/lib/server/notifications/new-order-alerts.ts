@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getAdminEmail, getStaffOrderAlertEmails, getWorkerEmails } from "@/lib/admin/admin-contacts";
+import { resolveNotificationRecipientEmails } from "@/lib/admin/notification-recipient-resolver";
 
 import { sendOrderReceived } from "@/lib/server/email";
 
@@ -40,9 +40,7 @@ export async function sendNewOrderAlerts(
     console.info("[new-order] admin alert dispatch finished", {
       orderId: order.id,
       orderNumber: order.order_number,
-      recipients: getStaffOrderAlertEmails(),
-      adminEmail: getAdminEmail(),
-      workerEmails: getWorkerEmails()
+      recipients: await resolveNotificationRecipientEmails("new_order", db)
     });
   } catch (error) {
     console.error("[new-order] admin alert dispatch failed", {

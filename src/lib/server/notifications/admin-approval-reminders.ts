@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getStaffOrderAlertEmails } from "@/lib/admin/admin-contacts";
+import { resolveNotificationRecipientEmails } from "@/lib/admin/notification-recipient-resolver";
 import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
 import { buildPendingOrderReminderEmail } from "@/lib/server/notifications/email-templates";
 import {
@@ -103,7 +103,7 @@ export async function sendAdminPendingOrderReminderEmail(
   db: SupabaseClient,
   order: Order
 ): Promise<void> {
-  const recipients = getStaffOrderAlertEmails();
+  const recipients = await resolveNotificationRecipientEmails("new_order", db);
   const eventKey = "pending_order_reminder";
 
   if (!recipients.length) {
@@ -112,7 +112,7 @@ export async function sendAdminPendingOrderReminderEmail(
       channel: "email",
       event: eventKey,
       success: false,
-      error_message: "ADMIN_EMAIL / WORKER_EMAILS not configured"
+      error_message: "No notification recipients configured"
     });
     return;
   }
