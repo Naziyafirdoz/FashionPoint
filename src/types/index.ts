@@ -167,6 +167,8 @@ export type Order = {
   status: OrderStatus;
   payment_method?: string;
   payment_status: PaymentStatus;
+  razorpay_order_id?: string;
+  razorpay_payment_id?: string;
   shipping_address?: Record<string, string>;
   tracking_id?: string;
   tracking_number?: string;
@@ -205,6 +207,8 @@ export type Order = {
   packed_at?: string;
   tax_amount?: number;
   confirmed_at?: string;
+  approved_at?: string;
+  approved_by?: string;
   assigned_worker_id?: string;
   assigned_at?: string;
   created_at: string;

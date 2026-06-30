@@ -1,0 +1,2047 @@
+[
+  {
+    "created_at": "2026-06-18T09:47:08.244476+00:00",
+    "id": "229e6f73-980a-42a6-b5fd-c333586f7d1f",
+    "is_read": false,
+    "message": "FP-2026-48FNOP · Naziya Firdoz · ₹2,898",
+    "order_id": "f3822730-ffa7-4433-ac13-a0ffa88a5243",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-48FNOP"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T09:50:36.251473+00:00",
+    "id": "41a13fca-9550-4b49-b880-3989ab9a75b6",
+    "is_read": false,
+    "message": "FP-2026-2ARQ8K · Naziya Firdoz · ₹598",
+    "order_id": "8a969002-97c0-43bb-8e1d-f90471eaa762",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-2ARQ8K"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T10:00:06.462855+00:00",
+    "id": "8914f1f8-a823-4bd8-96b9-098e7d52d75d",
+    "is_read": false,
+    "message": "FP-2026-BWTEZ2 · Naziya Firdoz · ₹2,699",
+    "order_id": "99c59ea0-ad14-4b74-b63a-e36897c991f2",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-BWTEZ2"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T10:29:40.049768+00:00",
+    "id": "3a7d9d48-fad1-4b49-af9f-b0693f571614",
+    "is_read": false,
+    "message": "FP-2026-0P6Q1V · Naziya Firdoz · ₹2,699",
+    "order_id": "23db8e93-207d-476a-af03-3a0f82fb2b8c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-0P6Q1V"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T11:11:54.599303+00:00",
+    "id": "2c3ca7c4-e061-4fed-b53c-a92b4f725592",
+    "is_read": false,
+    "message": "FP-2026-AB6LZP · Naziya Firdoz · ₹3,099",
+    "order_id": "f9e714e8-00b5-4185-9b90-b4d2156c08a0",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-AB6LZP"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T11:43:49.004495+00:00",
+    "id": "ba643608-9113-4100-b0f5-52f658f496e5",
+    "is_read": false,
+    "message": "FP-2026-FKR4SB · Naziya Firdoz · ₹3,099",
+    "order_id": "a6d92a6d-15b2-4df2-9dbf-2e24980c4a8a",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-FKR4SB"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T11:45:47.101282+00:00",
+    "id": "7d970b10-de3d-442c-a7f5-10371d7d9e7c",
+    "is_read": false,
+    "message": "FP-2026-BPS0D2 · Naziya Firdoz · ₹2,898",
+    "order_id": "ec8c6c80-9d76-4326-a230-28df05a5175e",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-BPS0D2"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T12:04:35.701331+00:00",
+    "id": "f8c6c6b5-f539-469e-8874-34d5dd3f1d69",
+    "is_read": false,
+    "message": "FP-2026-IE8ERI · Naziya Firdoz · ₹2,699",
+    "order_id": "4fd2d37d-e570-4878-b6a8-f113a749563a",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-IE8ERI"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T12:28:23.288434+00:00",
+    "id": "30bed801-ddd7-4f75-9b4b-be85e8b7e28c",
+    "is_read": false,
+    "message": "FP-2026-FJ52TK · Naziya Firdoz · ₹2,699",
+    "order_id": "1acc579f-34c9-4677-aa97-787ba2040de5",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-FJ52TK"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T12:55:48.93693+00:00",
+    "id": "2c237981-c2e0-4092-ba16-330a7ad4fc01",
+    "is_read": false,
+    "message": "FP-2026-HS4SDL · Naziya Firdoz · ₹3,099",
+    "order_id": "26d24e52-17f0-4ee3-9d3d-fdbba42d5201",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-HS4SDL"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T13:16:30.422762+00:00",
+    "id": "f7d5cb51-45aa-4ee8-ae99-bcede6854ad7",
+    "is_read": false,
+    "message": "FP-2026-F0B0RB · Naziya Firdoz · ₹2,699",
+    "order_id": "be2a129a-b2fa-4123-aeee-2d5aea6bd3b3",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-F0B0RB"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T13:30:54.566941+00:00",
+    "id": "ba0665be-17b9-4014-a868-28ae926c9291",
+    "is_read": false,
+    "message": "FP-2026-KC15N2 · Naziya Firdoz · ₹2,699",
+    "order_id": "580d69d5-dbf4-4c86-a16c-ca6f16204701",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-KC15N2"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T13:56:44.115197+00:00",
+    "id": "6de38498-93e2-47f3-9104-dfeb44ec654d",
+    "is_read": false,
+    "message": "FP-2026-BZ2CO8 · Naziya Firdoz · ₹3,099",
+    "order_id": "d4be4ed8-013c-4983-b4dd-a411663d7093",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-BZ2CO8"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T14:12:42.119868+00:00",
+    "id": "8fb6f952-a9fa-4ec5-9867-d4a115d51389",
+    "is_read": false,
+    "message": "FP-2026-RWP4Z5 · Naziya Firdoz · ₹2,999",
+    "order_id": "3fb20bf6-e7a3-415b-88be-08fee0458cd8",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-RWP4Z5"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T16:30:42.727712+00:00",
+    "id": "fc189a78-6d86-495a-9ccd-71b060f9e2e2",
+    "is_read": false,
+    "message": "FP-2026-IPVWOO · Naziya Firdoz · ₹2,699",
+    "order_id": "22655b98-6716-4e17-a8b4-723e24e8f603",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-IPVWOO"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-18T18:03:55.518047+00:00",
+    "id": "762c0ecb-8b45-416d-bffa-5775e9fcb57d",
+    "is_read": false,
+    "message": "FP-2026-W4V5X9 · Naziya Firdoz · ₹2,699",
+    "order_id": "38107bd7-155f-41b1-98b3-9bce191d15d6",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-W4V5X9"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T07:29:41.225358+00:00",
+    "id": "084a94f9-3deb-42dc-9064-49f1bf114a0c",
+    "is_read": false,
+    "message": "FP-2026-5GDES3 · Naziya Firdoz · ₹3,099",
+    "order_id": "430b68b5-c1fd-4f45-a6df-5ffd853953ac",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-5GDES3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T08:03:52.571303+00:00",
+    "id": "6e04449c-9e7d-46f0-9f98-5412db384c16",
+    "is_read": false,
+    "message": "FP-2026-INJIUV · Naziya Firdoz · ₹2,699",
+    "order_id": "4611e01e-67cb-4e0a-a135-a3d282b15bf6",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-INJIUV"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T08:16:50.920139+00:00",
+    "id": "4c035027-93c1-42c2-9ab9-a8ba3b247de1",
+    "is_read": false,
+    "message": "FP-2026-NO88SG · Naziya Firdoz · ₹2,699",
+    "order_id": "9e9761d2-d233-49bc-9c4d-153234fefecb",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-NO88SG"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T08:20:51.596484+00:00",
+    "id": "6f1b6b69-9218-44b3-8bd7-82e368244153",
+    "is_read": false,
+    "message": "FP-2026-H6RGJZ · Naziya Firdoz · ₹2,799",
+    "order_id": "e464e940-dcf6-4d3c-9daa-46e7d50d338e",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-H6RGJZ"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T08:44:51.775312+00:00",
+    "id": "8c12d820-601e-4e1b-a18c-e82b869e3741",
+    "is_read": false,
+    "message": "FP-2026-60EUE3 · Naziya Firdoz · ₹2,999",
+    "order_id": "0b59596a-608a-4ebb-a91e-42da6a6ec634",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-60EUE3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T09:01:10.37012+00:00",
+    "id": "f64f9317-cea1-49e8-a3f9-a47bc63b94b0",
+    "is_read": false,
+    "message": "FP-2026-OEJQ1A · Naziya Firdoz · ₹2,799",
+    "order_id": "3eea9b00-09c8-4284-8e93-62aaa8337a67",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-OEJQ1A"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T09:06:39.721434+00:00",
+    "id": "c1a6482f-b000-46b5-9ec3-15281df902db",
+    "is_read": false,
+    "message": "FP-2026-LJ6U14 · Naziya Firdoz · ₹2,799",
+    "order_id": "80e0f296-5ecc-4046-8a3c-96e994dd4878",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-LJ6U14"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T09:17:42.376832+00:00",
+    "id": "e7c5a2e0-2761-4987-b038-bd46b02ce774",
+    "is_read": false,
+    "message": "FP-2026-MZRRR2 · Naziya Firdoz · ₹2,799",
+    "order_id": "e93d294a-30fa-4d86-a32e-ffaec68b3527",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-MZRRR2"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T11:44:32.486343+00:00",
+    "id": "8fa7bb9d-5580-401b-9b27-331321a4a388",
+    "is_read": false,
+    "message": "FP-2026-ZQR82F · Naziya Firdoz · ₹2,799",
+    "order_id": "e56361eb-7ac3-46b3-a0b5-8fd525c2994b",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-ZQR82F"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T12:12:13.86861+00:00",
+    "id": "bbb24b38-e2e7-475c-b67e-f1c13c9eb378",
+    "is_read": false,
+    "message": "FP-2026-ITRIF4 · Naziya Firdoz · ₹2,799",
+    "order_id": "94535bb7-bc50-4fed-851e-33f16e640e88",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-ITRIF4"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T12:30:48.098663+00:00",
+    "id": "c61f7947-82dc-4ced-b926-f27021ed8a7c",
+    "is_read": true,
+    "message": "FP-2026-63O84G · Naziya Firdoz · ₹2,999",
+    "order_id": "830ca56a-3753-4963-96e6-d75e0038fd29",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-63O84G"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T12:36:46.412242+00:00",
+    "id": "f2bebce3-0fe0-4ecc-aa93-5da8827bf187",
+    "is_read": true,
+    "message": "FP-2026-XCW200 · Naziya Firdoz · ₹2,999",
+    "order_id": "a29f4b87-c11a-4399-9e69-60f27c9e2712",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-XCW200"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T12:42:30.86015+00:00",
+    "id": "5ef6b99e-a547-4ec2-9b98-17a2e64d9570",
+    "is_read": true,
+    "message": "FP-2026-2I18U7 · Naziya Firdoz · ₹2,999",
+    "order_id": "711a1387-1464-4d11-8e10-d8c89ef035f9",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-2I18U7"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T13:29:57.371885+00:00",
+    "id": "889245d9-b3e8-4e10-b6c2-7d3bff586a0b",
+    "is_read": true,
+    "message": "FP-2026-QURJPE · Naziya Firdoz · ₹2,999",
+    "order_id": "7a3edded-3859-49a0-813f-27713eae9e23",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-QURJPE"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T13:53:01.895878+00:00",
+    "id": "b9091047-0532-4946-a86d-66cf20118f52",
+    "is_read": true,
+    "message": "FP-2026-MLBLC0 · Naziya Firdoz · ₹2,999",
+    "order_id": "bbb99a1d-a5db-444e-a6f9-f747db241709",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-MLBLC0"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T16:33:31.280985+00:00",
+    "id": "f6d3dd21-7e7b-42ad-ad2f-4688321ece85",
+    "is_read": true,
+    "message": "FP-2026-1V2AI3 · Naziya Firdoz · ₹2,999",
+    "order_id": "c99fa4a8-4f55-449d-8ddb-5ab937339919",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-1V2AI3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T16:57:22.836924+00:00",
+    "id": "32f8c6cc-f97c-4fcc-b00e-3030207fd9e2",
+    "is_read": true,
+    "message": "FP-2026-MQ3WXM · Naziya Firdoz · ₹2,999",
+    "order_id": "e01f520b-5603-42af-a90d-b2fe23de9d3e",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-MQ3WXM"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-19T17:42:09.198273+00:00",
+    "id": "bde20fc9-0db4-440f-999e-63b2bf00b52a",
+    "is_read": true,
+    "message": "FP-2026-3LX1DK · Naziya Firdoz · ₹2,799",
+    "order_id": "3b8e038d-dbc6-4bc2-aaf3-d990d8db2344",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-3LX1DK"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T06:35:59.181273+00:00",
+    "id": "3e57bea8-5db0-4552-b1cb-7ae645b20bdc",
+    "is_read": true,
+    "message": "FP-2026-6L3WOG · Naziya Firdoz · ₹2,799",
+    "order_id": "cd9f8295-89bc-4d8f-be1c-ed32013b61fb",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-6L3WOG"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T07:14:17.928145+00:00",
+    "id": "efa63523-037f-492f-88df-b90aa7cfe574",
+    "is_read": true,
+    "message": "FP-2026-ZPJ3SY · Naziya Firdoz · ₹2,999",
+    "order_id": "ce2d93ce-05db-40f7-afcf-b9a381e2a233",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-ZPJ3SY"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T07:54:47.5551+00:00",
+    "id": "ef87b4d6-2cd9-44fb-bef2-ef95d2676f32",
+    "is_read": true,
+    "message": "FP-2026-R326I3 · Naziya Firdoz · ₹2,999",
+    "order_id": "2356646b-dcd8-4d86-a797-eb9d7efe0c43",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-R326I3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T08:14:17.010443+00:00",
+    "id": "7c0a78ba-8183-4ac2-81eb-3d01c6ed4616",
+    "is_read": true,
+    "message": "FP-2026-QNIWKO · Naziya Firdoz · ₹2,799",
+    "order_id": "b8084491-f02f-4a22-b6d3-0973a71e96c4",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-QNIWKO"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T09:06:10.780321+00:00",
+    "id": "7a1dfa11-fd45-4006-8ca8-d740d774eb7e",
+    "is_read": true,
+    "message": "FP-2026-CMBRE9 · Naziya Firdoz · ₹2,999",
+    "order_id": "59ebffb2-290b-435c-b1ad-2063d9b2004c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-CMBRE9"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T09:21:33.523232+00:00",
+    "id": "0ea49107-d4a0-4764-9a43-03ba27e4f924",
+    "is_read": true,
+    "message": "FP-2026-U4YQPE · Naziya Firdoz · ₹2,999",
+    "order_id": "e543fdb8-70db-401c-90a4-2349fba151ce",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-U4YQPE"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T09:34:30.975971+00:00",
+    "id": "6b26164d-acbc-482f-a52f-489a9a8bc773",
+    "is_read": true,
+    "message": "FP-2026-J9A0HB · Naziya Firdoz · ₹2,999",
+    "order_id": "26c2c9f4-c550-48c5-b153-35a1261145aa",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-J9A0HB"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T09:53:56.82847+00:00",
+    "id": "0085ee5b-d81f-42e6-b3ca-9a6af3fa1dd4",
+    "is_read": true,
+    "message": "FP-2026-DI1PPD · Naziya Firdoz · ₹2,799",
+    "order_id": "cb3005fc-4d53-4975-8a72-1ba4096a8dbf",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-DI1PPD"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T13:41:04.749321+00:00",
+    "id": "36b11734-6c17-4d72-85e7-ca1ed1923826",
+    "is_read": true,
+    "message": "FP-2026-FDS7R3 · Naziya Firdoz · ₹2,799",
+    "order_id": "801fd491-258f-4492-99c2-021a5e131641",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-FDS7R3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T13:55:08.586748+00:00",
+    "id": "cee5b6a5-a0bf-4738-9fb3-f2143c39aab8",
+    "is_read": true,
+    "message": "FP-2026-92KTEH · Naziya Firdoz · ₹2,799",
+    "order_id": "6b058faf-69f2-46e0-bd8a-61602e63c2b4",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-92KTEH"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T13:56:43.233809+00:00",
+    "id": "4e75ba75-f378-4bf2-902a-193c77faa96d",
+    "is_read": false,
+    "message": "Order FP-2026-92KTEH is ready for dispatch.",
+    "order_id": "6b058faf-69f2-46e0-bd8a-61602e63c2b4",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-92KTEH"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T16:11:33.802736+00:00",
+    "id": "d3e5d933-5ddd-4c48-852d-d87e38a4c770",
+    "is_read": true,
+    "message": "FP-2026-H9CT3E · Naziya Firdoz · ₹2,799",
+    "order_id": "c17c40e8-9068-4693-891e-e9f027dc332c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-H9CT3E"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T16:13:42.793767+00:00",
+    "id": "ad6e9e5e-4173-4790-96db-4788ee555b05",
+    "is_read": false,
+    "message": "Order FP-2026-H9CT3E is ready for dispatch.",
+    "order_id": "c17c40e8-9068-4693-891e-e9f027dc332c",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-H9CT3E"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T16:31:00.34426+00:00",
+    "id": "701047e5-d80c-41fc-975b-ae563a41b4d3",
+    "is_read": true,
+    "message": "FP-2026-HW1EQH · Naziya Firdoz · ₹2,799",
+    "order_id": "4915fb38-02a4-45d0-802a-5639634c21a8",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-HW1EQH"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T16:36:01.240006+00:00",
+    "id": "b7f7838b-8f00-4313-8746-eb7c264f0ea5",
+    "is_read": false,
+    "message": "Order FP-2026-HW1EQH is ready for dispatch.",
+    "order_id": "4915fb38-02a4-45d0-802a-5639634c21a8",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-HW1EQH"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T16:48:58.650588+00:00",
+    "id": "54ed29ba-74a7-4c5a-9cad-abff16829e29",
+    "is_read": true,
+    "message": "FP-2026-4OI5GG · Naziya Firdoz · ₹2,999",
+    "order_id": "b3f4c009-db84-4883-9bc4-ed8e7aca09ef",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-4OI5GG"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T17:15:13.575543+00:00",
+    "id": "dd9e3dfb-4d87-4391-b810-dc33ddbf8ccb",
+    "is_read": true,
+    "message": "FP-2026-EQES37 · Naziya Firdoz · ₹2,799",
+    "order_id": "da159187-d4cf-496e-928f-f6a9c0c0c037",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-EQES37"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T17:22:11.432247+00:00",
+    "id": "b3c144c2-eee5-4537-9d41-86cdcad7e0d1",
+    "is_read": false,
+    "message": "Order FP-2026-EQES37 is ready for dispatch.",
+    "order_id": "da159187-d4cf-496e-928f-f6a9c0c0c037",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-EQES37"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T17:24:50.407249+00:00",
+    "id": "b26d31d0-b039-4343-b3be-677bcb1a6d8d",
+    "is_read": false,
+    "message": "Order FP-2026-EQES37 has been shipped.",
+    "order_id": "da159187-d4cf-496e-928f-f6a9c0c0c037",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-EQES37"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-20T17:45:14.946617+00:00",
+    "id": "dbbd765c-fddd-4fe5-9e97-fe40b0cbba02",
+    "is_read": true,
+    "message": "FP-2026-EBWVYU · Naziya Firdoz · ₹2,799",
+    "order_id": "bbd1e0e7-62fc-468a-980a-29821de0379c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-EBWVYU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T17:49:39.582375+00:00",
+    "id": "3768c22d-ab36-4178-93c6-45796f401e79",
+    "is_read": false,
+    "message": "Order FP-2026-EBWVYU is ready for dispatch.",
+    "order_id": "bbd1e0e7-62fc-468a-980a-29821de0379c",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-EBWVYU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T17:52:02.971333+00:00",
+    "id": "f83392bd-9f08-459b-857d-03b0d9417df3",
+    "is_read": false,
+    "message": "Order FP-2026-EBWVYU has been shipped.",
+    "order_id": "bbd1e0e7-62fc-468a-980a-29821de0379c",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-EBWVYU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-20T18:21:10.862875+00:00",
+    "id": "c94d6f1b-4c0d-41fe-9857-7b6b00c2064d",
+    "is_read": true,
+    "message": "FP-2026-WS1944 · Naziya Firdoz · ₹2,698",
+    "order_id": "2a13ea1a-81bb-424a-8b38-921233f8d673",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-WS1944"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T18:28:59.819308+00:00",
+    "id": "0e9d1b56-c807-4ea0-931c-a2b544bbda84",
+    "is_read": false,
+    "message": "Order FP-2026-WS1944 is ready for dispatch.",
+    "order_id": "2a13ea1a-81bb-424a-8b38-921233f8d673",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-WS1944"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T18:30:32.239315+00:00",
+    "id": "15affae2-63ed-4fe5-b7a4-865414bf209a",
+    "is_read": false,
+    "message": "Order FP-2026-WS1944 has been shipped.",
+    "order_id": "2a13ea1a-81bb-424a-8b38-921233f8d673",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-WS1944"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-20T18:47:26.561063+00:00",
+    "id": "b4221cbb-b472-4559-8384-25368546f67d",
+    "is_read": true,
+    "message": "FP-2026-RRZ21U · Naziya Firdoz · ₹2,898",
+    "order_id": "51c5c7bc-921b-431c-bd35-afd1e7d714f4",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-RRZ21U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T18:49:07.381547+00:00",
+    "id": "20c611fe-90d4-48f7-82e1-e38c29bc74f7",
+    "is_read": false,
+    "message": "Order FP-2026-RRZ21U is ready for dispatch.",
+    "order_id": "51c5c7bc-921b-431c-bd35-afd1e7d714f4",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-RRZ21U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T18:50:19.561951+00:00",
+    "id": "4ba962e9-d480-470c-a6d9-207198333d21",
+    "is_read": false,
+    "message": "Order FP-2026-RRZ21U has been shipped.",
+    "order_id": "51c5c7bc-921b-431c-bd35-afd1e7d714f4",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-RRZ21U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-20T19:00:18.708702+00:00",
+    "id": "4705af47-f40f-473a-8995-6b5ad93c8b46",
+    "is_read": true,
+    "message": "FP-2026-YJN3IX · Naziya Firdoz · ₹2,698",
+    "order_id": "0188c177-605c-4c21-a90b-da4ea8fe50f7",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-YJN3IX"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T19:01:37.880103+00:00",
+    "id": "4276b40b-421a-418d-a955-4af2cca9d46d",
+    "is_read": false,
+    "message": "Order FP-2026-YJN3IX is ready for dispatch.",
+    "order_id": "0188c177-605c-4c21-a90b-da4ea8fe50f7",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-YJN3IX"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T19:03:22.852666+00:00",
+    "id": "dbaf41bd-7745-4096-b62d-524d5d525a7e",
+    "is_read": false,
+    "message": "Order FP-2026-YJN3IX has been shipped.",
+    "order_id": "0188c177-605c-4c21-a90b-da4ea8fe50f7",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-YJN3IX"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-20T19:15:32.286839+00:00",
+    "id": "04ee2c42-03f9-4fd7-adf5-d8871d3e6c45",
+    "is_read": true,
+    "message": "FP-2026-ZGTDG3 · Naziya Firdoz · ₹2,698",
+    "order_id": "e35f681f-2448-43a7-b589-c4d1ea86ecdb",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-ZGTDG3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-20T19:17:14.544512+00:00",
+    "id": "cc191642-28cf-48c4-a4ec-82b24ec288c8",
+    "is_read": false,
+    "message": "Order FP-2026-ZGTDG3 is ready for dispatch.",
+    "order_id": "e35f681f-2448-43a7-b589-c4d1ea86ecdb",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-ZGTDG3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-20T19:18:31.223231+00:00",
+    "id": "a2de5061-9e4e-4d14-8c0e-4b11561d79e5",
+    "is_read": false,
+    "message": "Order FP-2026-ZGTDG3 has been shipped.",
+    "order_id": "e35f681f-2448-43a7-b589-c4d1ea86ecdb",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-ZGTDG3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T05:23:21.88891+00:00",
+    "id": "5e860649-e6e9-4734-8db3-f0fd1d3a9c20",
+    "is_read": true,
+    "message": "FP-2026-FGDZ9U · Naziya Firdoz · ₹2,898",
+    "order_id": "446631b6-9c27-4789-9bd3-4f4a499034b4",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-FGDZ9U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T05:27:07.427197+00:00",
+    "id": "54a64b5a-5af2-4781-a7c5-901e6baa053c",
+    "is_read": false,
+    "message": "Order FP-2026-FGDZ9U is ready for dispatch.",
+    "order_id": "446631b6-9c27-4789-9bd3-4f4a499034b4",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-FGDZ9U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T05:29:22.565541+00:00",
+    "id": "d9cbb620-e03b-4110-9ad2-068ba7c07345",
+    "is_read": false,
+    "message": "Order FP-2026-FGDZ9U has been shipped.",
+    "order_id": "446631b6-9c27-4789-9bd3-4f4a499034b4",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-FGDZ9U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T06:13:43.051555+00:00",
+    "id": "fb970da3-6fc7-496e-b10d-e902240ce4f0",
+    "is_read": true,
+    "message": "FP-2026-XCDD62 · Naziya Firdoz · ₹2,698",
+    "order_id": "f39fddd9-c810-4521-9438-c42418ea411f",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-XCDD62"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T06:16:38.170597+00:00",
+    "id": "7c7814b9-23f9-47aa-a116-f5aea8d65311",
+    "is_read": false,
+    "message": "Order FP-2026-XCDD62 is ready for dispatch.",
+    "order_id": "f39fddd9-c810-4521-9438-c42418ea411f",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-XCDD62"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T06:18:38.791852+00:00",
+    "id": "574d7488-b59a-4918-bdd4-b123953f2c4a",
+    "is_read": false,
+    "message": "Order FP-2026-XCDD62 has been shipped.",
+    "order_id": "f39fddd9-c810-4521-9438-c42418ea411f",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-XCDD62"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T06:33:55.816049+00:00",
+    "id": "286bf524-1d90-45c4-afd7-bb102230b286",
+    "is_read": true,
+    "message": "FP-2026-3MF01G · Naziya Firdoz · ₹2,898",
+    "order_id": "cb365144-b114-4624-b9be-1efc81a882f0",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-3MF01G"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T06:36:13.282524+00:00",
+    "id": "1c4737b6-7c92-4887-a5ad-d93ffa6c0265",
+    "is_read": false,
+    "message": "Order FP-2026-3MF01G is ready for dispatch.",
+    "order_id": "cb365144-b114-4624-b9be-1efc81a882f0",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-3MF01G"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T06:38:12.342734+00:00",
+    "id": "0daa86cc-394a-4b9b-aae3-6dc6543f5b84",
+    "is_read": false,
+    "message": "Order FP-2026-3MF01G has been shipped.",
+    "order_id": "cb365144-b114-4624-b9be-1efc81a882f0",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-3MF01G"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T06:50:50.456924+00:00",
+    "id": "2cf723df-ca14-4077-9181-d3e008551c4b",
+    "is_read": true,
+    "message": "FP-2026-SCBZRK · Naziya Firdoz · ₹2,698",
+    "order_id": "2f65ecac-e44e-4800-86e7-4d170e006168",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-SCBZRK"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T06:52:57.521002+00:00",
+    "id": "47645c43-0802-4494-ba3d-d6b6571e3707",
+    "is_read": false,
+    "message": "Order FP-2026-SCBZRK is ready for dispatch.",
+    "order_id": "2f65ecac-e44e-4800-86e7-4d170e006168",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-SCBZRK"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T06:54:24.383856+00:00",
+    "id": "76361d05-c6b5-4973-a72f-4fd3ffb07eb8",
+    "is_read": false,
+    "message": "Order FP-2026-SCBZRK has been shipped.",
+    "order_id": "2f65ecac-e44e-4800-86e7-4d170e006168",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-SCBZRK"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T07:03:05.855232+00:00",
+    "id": "948216fd-211f-43c4-ab13-094f69ae7569",
+    "is_read": true,
+    "message": "FP-2026-KO1Z97 · Naziya Firdoz · ₹2,698",
+    "order_id": "46e372f7-6efc-4621-91c7-0ab192c64575",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-KO1Z97"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T07:05:05.971632+00:00",
+    "id": "fa803425-0d65-4c87-95e6-3c0660a3a59d",
+    "is_read": false,
+    "message": "Order FP-2026-KO1Z97 is ready for dispatch.",
+    "order_id": "46e372f7-6efc-4621-91c7-0ab192c64575",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-KO1Z97"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T07:06:14.727587+00:00",
+    "id": "01c2f6cc-25f7-4f0d-a88e-117ce3156d90",
+    "is_read": false,
+    "message": "Order FP-2026-KO1Z97 has been shipped.",
+    "order_id": "46e372f7-6efc-4621-91c7-0ab192c64575",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-KO1Z97"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T07:28:14.623668+00:00",
+    "id": "5aa18857-cb26-4d1d-a0be-1d90805cb86d",
+    "is_read": true,
+    "message": "FP-2026-N1GPSZ · Naziya Firdoz · ₹2,698",
+    "order_id": "453217dc-dcbf-4098-a5ce-bd75c925616a",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-N1GPSZ"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T07:30:02.422948+00:00",
+    "id": "42eeae2b-5e95-4671-b24e-b2ab4b7a7a7d",
+    "is_read": false,
+    "message": "Order FP-2026-N1GPSZ is ready for dispatch.",
+    "order_id": "453217dc-dcbf-4098-a5ce-bd75c925616a",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-N1GPSZ"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T07:31:04.394707+00:00",
+    "id": "3ca1ac12-1cdc-4c31-b6ff-257f255b8e10",
+    "is_read": false,
+    "message": "Order FP-2026-N1GPSZ has been shipped.",
+    "order_id": "453217dc-dcbf-4098-a5ce-bd75c925616a",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-N1GPSZ"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T07:57:33.733076+00:00",
+    "id": "9cff2d59-f3c8-498f-ab94-bdf4dcf3397f",
+    "is_read": true,
+    "message": "FP-2026-8ZRIOU · Naziya Firdoz · ₹2,898",
+    "order_id": "45b17ccf-3fab-402f-8d03-c61551c4a094",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-8ZRIOU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T07:59:11.287247+00:00",
+    "id": "88f3f597-e862-447d-ba1a-1a332b4390fa",
+    "is_read": false,
+    "message": "Order FP-2026-8ZRIOU is ready for dispatch.",
+    "order_id": "45b17ccf-3fab-402f-8d03-c61551c4a094",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-8ZRIOU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T08:00:14.589202+00:00",
+    "id": "fced9c35-be25-4911-921b-b14d7f4ed689",
+    "is_read": false,
+    "message": "Order FP-2026-8ZRIOU has been shipped.",
+    "order_id": "45b17ccf-3fab-402f-8d03-c61551c4a094",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-8ZRIOU"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T08:23:54.043994+00:00",
+    "id": "0b61158a-fca0-4b24-97af-bc572d47d9ba",
+    "is_read": true,
+    "message": "FP-2026-FSEOOC · Naziya Firdoz · ₹2,898",
+    "order_id": "49e9c08f-00c7-47b3-aca3-8d5fe342f67f",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-FSEOOC"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T08:30:46.092085+00:00",
+    "id": "64b6c4f7-79b2-445e-9661-4843b99cd011",
+    "is_read": false,
+    "message": "Order FP-2026-FSEOOC is ready for dispatch.",
+    "order_id": "49e9c08f-00c7-47b3-aca3-8d5fe342f67f",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-FSEOOC"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T08:32:11.390801+00:00",
+    "id": "fec09315-3193-4173-bb9c-5dc2163e0ec6",
+    "is_read": false,
+    "message": "Order FP-2026-FSEOOC has been shipped.",
+    "order_id": "49e9c08f-00c7-47b3-aca3-8d5fe342f67f",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-FSEOOC"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T08:52:25.698765+00:00",
+    "id": "ac0df286-8a76-4024-8b8e-4f8922100fd0",
+    "is_read": true,
+    "message": "FP-2026-V41XZ4 · Naziya Firdoz · ₹2,698",
+    "order_id": "5b08e01b-07b6-4714-8692-886fa39a1dfc",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-V41XZ4"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T08:54:11.007191+00:00",
+    "id": "abaf1014-74ad-4e49-ac46-a73fc6ceb30e",
+    "is_read": false,
+    "message": "Order FP-2026-V41XZ4 is ready for dispatch.",
+    "order_id": "5b08e01b-07b6-4714-8692-886fa39a1dfc",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-V41XZ4"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T08:55:27.206346+00:00",
+    "id": "0dfe2c6f-4e8f-4f3a-8850-170cc3a1b398",
+    "is_read": false,
+    "message": "Order FP-2026-V41XZ4 has been shipped.",
+    "order_id": "5b08e01b-07b6-4714-8692-886fa39a1dfc",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-V41XZ4"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T09:48:49.400766+00:00",
+    "id": "935ee91b-ee8b-4f23-9096-f34a87d94cd2",
+    "is_read": false,
+    "message": "FP-2026-SJJ36D · Naziya Firdoz · ₹2,999",
+    "order_id": "ab090bcb-8ef8-4644-b2bd-a0c2c108f7b5",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-SJJ36D"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T10:23:49.578507+00:00",
+    "id": "4953f20a-ed07-43dc-9aaf-0dd752cc5521",
+    "is_read": false,
+    "message": "FP-2026-I9W4I3 · Naziya Firdoz · ₹2,898",
+    "order_id": "2f838e21-89a6-4f43-8b46-a12cdf7e733b",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-I9W4I3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T10:50:05.944014+00:00",
+    "id": "d1c18aa6-6e1c-4163-96a3-5f0fde324648",
+    "is_read": false,
+    "message": "FP-2026-0EVNPV · Naziya Firdoz · ₹2,799",
+    "order_id": "27544fbe-878c-4324-b9c7-3c8e383017e3",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-0EVNPV"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T11:09:48.050016+00:00",
+    "id": "1a7fe0b2-c5a0-46d4-ab88-f195fe8e207c",
+    "is_read": false,
+    "message": "FP-2026-HWU2JT · Naziya Firdoz · ₹2,999",
+    "order_id": "20f71f6d-539a-4edc-af38-5cfbda5be955",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-HWU2JT"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T12:03:43.739855+00:00",
+    "id": "76d96b70-ed8f-47a3-8c38-82c8aabac996",
+    "is_read": true,
+    "message": "FP-2026-OA5RQ1 · Naziya Firdoz · ₹2,898",
+    "order_id": "457e2b1b-0cd8-41a9-84d1-746a67f3843c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-OA5RQ1"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T12:19:15.07459+00:00",
+    "id": "6fd11f26-c6ec-4d4d-9ae8-923a0e6f57db",
+    "is_read": false,
+    "message": "FP-2026-SWL64U · Naziya Firdoz · ₹2,898",
+    "order_id": "325010bc-36ba-4b4b-afe6-f93d39dbe09a",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-SWL64U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T12:35:14.66125+00:00",
+    "id": "dcfa6525-df60-4c64-915a-477924a6f539",
+    "is_read": false,
+    "message": "FP-2026-CRPHC1 · Naziya Firdoz · ₹2,698",
+    "order_id": "a202ab18-08d7-4c34-9819-f0c1f235bf89",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-CRPHC1"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T12:51:03.944751+00:00",
+    "id": "2f276568-86af-4208-a950-5cdea139e898",
+    "is_read": false,
+    "message": "FP-2026-R19V48 · Naziya Firdoz · ₹2,799",
+    "order_id": "d5242d85-0180-40ec-bfda-2b612a58873c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-R19V48"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T14:33:16.263068+00:00",
+    "id": "946ba61c-c45e-4d2e-99ac-117a33701b22",
+    "is_read": false,
+    "message": "FP-2026-ETEG1U · Naziya Firdoz · ₹2,799",
+    "order_id": "723df2a3-0bac-4dde-9929-962cc72a66f9",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-ETEG1U"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T14:43:23.874851+00:00",
+    "id": "b45f81ea-cb2a-438c-8f02-c9bd7b9a2976",
+    "is_read": true,
+    "message": "FP-2026-AU064O · Naziya Firdoz · ₹2,799",
+    "order_id": "7c21d625-6a25-481c-aeb8-32bb3172eac8",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-AU064O"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T14:46:27.835721+00:00",
+    "id": "b9145bb7-920c-44f6-86e8-e9b1fde389cf",
+    "is_read": false,
+    "message": "Order FP-2026-AU064O is ready for dispatch.",
+    "order_id": "7c21d625-6a25-481c-aeb8-32bb3172eac8",
+    "payload": {
+      "event": "ready_for_shipping",
+      "order_number": "FP-2026-AU064O"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Ready For Shipping",
+    "type": "ready_for_shipping"
+  },
+  {
+    "created_at": "2026-06-21T14:47:25.762099+00:00",
+    "id": "8e35ab77-1ffb-42d8-aa55-249479e5d1db",
+    "is_read": false,
+    "message": "Order FP-2026-AU064O has been shipped.",
+    "order_id": "7c21d625-6a25-481c-aeb8-32bb3172eac8",
+    "payload": {
+      "event": "shipped",
+      "order_number": "FP-2026-AU064O"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "Shipped",
+    "type": "shipped"
+  },
+  {
+    "created_at": "2026-06-21T16:11:30.972873+00:00",
+    "id": "9815c4bb-d313-4f15-9c5c-6b6d2d7bb5aa",
+    "is_read": true,
+    "message": "FP-2026-TKRGZ1 · Naziya Firdoz · ₹2,698",
+    "order_id": "80fb48b7-6b4c-4368-ba92-896cdf208f03",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-TKRGZ1"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "completed",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T16:32:50.291763+00:00",
+    "id": "94844b9c-941e-4e64-b776-0941123e44ff",
+    "is_read": false,
+    "message": "FP-2026-PWVZOX · Naziya Firdoz · ₹2,698",
+    "order_id": "cf58ff27-ce0e-4d0f-9cf3-b920748443f3",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-PWVZOX"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T16:42:15.86178+00:00",
+    "id": "d2122125-1594-4e85-85c2-aed4b766ec83",
+    "is_read": false,
+    "message": "FP-2026-W01TDG · Naziya Firdoz · ₹2,698",
+    "order_id": "f4526891-d5d4-4719-8303-9d9d114aa497",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-W01TDG"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-21T17:36:55.246024+00:00",
+    "id": "73e114b6-4a45-4e42-a987-98dbabdc2aa2",
+    "is_read": false,
+    "message": "Order FP-2026-SJ36D ₹2999",
+    "order_id": null,
+    "payload": null,
+    "recipient": null,
+    "remind_after": null,
+    "status": "pending",
+    "title": "New Order Received",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T07:44:47.661298+00:00",
+    "id": "8c8ac9a3-bd87-44f6-a202-80a8e4e775fd",
+    "is_read": false,
+    "message": "FP-2026-T0TCUJ · Naziya Firdoz · ₹598",
+    "order_id": "69675603-df9e-4709-babe-9f58bd1a0490",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-T0TCUJ"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T08:40:09.878348+00:00",
+    "id": "963c4ff1-b8e0-422c-b3ac-d73d01f4d770",
+    "is_read": false,
+    "message": "FP-2026-RWPRZ1 · Naziya Firdoz · ₹598",
+    "order_id": "098c3005-b626-442e-a1a7-792812632531",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-RWPRZ1"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:29:42.937868+00:00",
+    "id": "7ecd8247-2c27-48f4-870f-64ced3c520e3",
+    "is_read": false,
+    "message": "FP-2026-VIQ9HX · Naziya Firdoz · ₹2,898",
+    "order_id": "6e1b486f-d33b-4a27-9a03-24b66afbcf6b",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-VIQ9HX"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:32:50.908172+00:00",
+    "id": "b7ec55a6-3176-4a05-ab52-8b131cd3a98b",
+    "is_read": false,
+    "message": "FP-2026-XTEAF8 · Naziya Firdoz · ₹2,898",
+    "order_id": "d1664969-479c-429d-92bf-8de209893e06",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-XTEAF8"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:34:17.975743+00:00",
+    "id": "3d3b6cb1-773b-4926-b1f8-8972fbb039c2",
+    "is_read": false,
+    "message": "FP-2026-KZW38Q · Naziya Firdoz · ₹2,898",
+    "order_id": "68d8854c-4afd-4cca-bb18-dd4ab8e3252e",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-KZW38Q"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:35:14.180294+00:00",
+    "id": "c4292be5-eef3-4a3c-8875-e4d08d4a662a",
+    "is_read": false,
+    "message": "FP-2026-IJA0J3 · Naziya Firdoz · ₹2,999",
+    "order_id": "4b646e94-991b-491b-abf5-5e2e723b971f",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-IJA0J3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:36:25.504429+00:00",
+    "id": "d650de70-a103-4abd-b169-ef8f149b251e",
+    "is_read": false,
+    "message": "FP-2026-TTM4K3 · Naziya Firdoz · ₹699",
+    "order_id": "b200a8c5-c735-4d68-bccd-d68009ffa77c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-TTM4K3"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:37:12.067131+00:00",
+    "id": "417ec390-9ac7-4ee7-83e3-34d1f4f47605",
+    "is_read": false,
+    "message": "FP-2026-6OC32G · Naziya Firdoz · ₹2,999",
+    "order_id": "1f80d823-be4e-4365-ac21-041de76df343",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-6OC32G"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:38:21.088995+00:00",
+    "id": "042abdc4-46c4-483a-a023-2d936ca43d5a",
+    "is_read": false,
+    "message": "FP-2026-IHCXED · Naziya Firdoz · ₹699",
+    "order_id": "f6d9b598-277d-47e6-b03f-c5eefe84d440",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-IHCXED"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:42:16.144928+00:00",
+    "id": "bd55aa27-fe6b-45cc-9b67-a7bd914ed5bd",
+    "is_read": false,
+    "message": "FP-2026-1LJQ0T · Naziya Firdoz · ₹2,598",
+    "order_id": "9ccc9516-adc2-40d6-ae12-69a0e888df96",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-1LJQ0T"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T09:50:37.323889+00:00",
+    "id": "578e7602-4a77-4595-afe0-ed943bccd70f",
+    "is_read": false,
+    "message": "FP-2026-49B07S · Naziya Firdoz · ₹2,699",
+    "order_id": "3932fe3c-089a-4c56-9dad-09adbf8b4706",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-49B07S"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T13:48:42.308786+00:00",
+    "id": "bb75cca9-eb74-4434-bbf6-a67d4040c2b4",
+    "is_read": false,
+    "message": "FP-2026-875Y0B · Naziya Firdoz · ₹2,598",
+    "order_id": "ab3115db-b019-4c61-b956-aaea5f98e84c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-875Y0B"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T13:50:22.615991+00:00",
+    "id": "b8402b6c-ad34-4a1d-bad6-d58ec35172ce",
+    "is_read": false,
+    "message": "FP-2026-OT9TSN · Naziya Firdoz · ₹2,698",
+    "order_id": "834e80f9-8df5-4385-a2d4-46ae8979dc36",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-OT9TSN"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-22T14:17:53.587771+00:00",
+    "id": "7f630cac-914e-46c5-b9f4-dc69691adffa",
+    "is_read": false,
+    "message": "FP-2026-IUSB11 · Naziya Firdoz · ₹2,698",
+    "order_id": "52375081-618d-4a79-97ce-7536af2e56d9",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-IUSB11"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-30T15:06:02.033222+00:00",
+    "id": "bd9ced4b-c0f3-4206-a566-acdb5e2dc0fe",
+    "is_read": false,
+    "message": "FP-2026-P65EGD · Naziya Firdoz · ₹1,499",
+    "order_id": "8481e4a2-9f7a-490c-a33a-fa4aacf83f2c",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-P65EGD"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-30T15:08:09.632952+00:00",
+    "id": "d161154b-00ab-4ee2-87a9-e625ba13a011",
+    "is_read": false,
+    "message": "FP-2026-Y7O30W · Naziya Firdoz · ₹1,499",
+    "order_id": "7c238681-bff9-4cb5-9548-d00f78fe1407",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-Y7O30W"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  },
+  {
+    "created_at": "2026-06-30T15:16:29.913326+00:00",
+    "id": "86ce8d3e-8278-4920-894a-bcfadbcc0478",
+    "is_read": false,
+    "message": "FP-2026-DANFZ8 · Naziya Firdoz · ₹2,999",
+    "order_id": "65fd46da-4941-4ca6-9229-f6466c86a72f",
+    "payload": {
+      "event": "new_order",
+      "order_number": "FP-2026-DANFZ8"
+    },
+    "recipient": "admin",
+    "remind_after": null,
+    "status": "active",
+    "title": "New Order",
+    "type": "new_order"
+  }
+]

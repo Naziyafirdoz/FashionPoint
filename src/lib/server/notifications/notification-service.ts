@@ -20,6 +20,7 @@ import {
 } from "@/lib/server/notifications/send-fcm-push";
 import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
 import { sendWhatsAppNotification } from "@/lib/server/whatsapp";
+import { logWorkflow } from "@/lib/orders/workflow-logger";
 import type { Order } from "@/types";
 
 const DEDUP_EVENT_ALIASES: Record<string, string> = {
@@ -131,7 +132,18 @@ export async function createInAppNotification(
     .maybeSingle();
 
   if (error) {
-    const { data: inserted } = await db
+    logWorkflow(
+      "dashboard_notification_failed",
+      {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        event: dedupEventKey(event),
+        error: error.message
+      },
+      "error"
+    );
+
+    const { data: inserted, error: insertError } = await db
       .from("notifications")
       .insert({
         order_id: order.id,
@@ -145,7 +157,43 @@ export async function createInAppNotification(
       })
       .select("*")
       .maybeSingle();
+
+    if (insertError) {
+      logWorkflow(
+        "dashboard_notification_failed",
+        {
+          orderId: order.id,
+          orderNumber: order.order_number,
+          event: dedupEventKey(event),
+          error: insertError.message,
+          phase: "insert_fallback"
+        },
+        "error"
+      );
+      return null;
+    }
+
+    if (inserted) {
+      logWorkflow("dashboard_notification_created", {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        notificationId: inserted.id,
+        type,
+        event: dedupEventKey(event)
+      });
+    }
+
     return (inserted as DbNotification) ?? null;
+  }
+
+  if (data) {
+    logWorkflow("dashboard_notification_created", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      notificationId: data.id,
+      type,
+      event: dedupEventKey(event)
+    });
   }
 
   return (data as DbNotification) ?? null;
@@ -183,9 +231,18 @@ async function sendEmailChannel(
   console.info("Recipients array", recipients);
 
   if (!recipients.length) {
-    console.error("[admin-email] no recipients configured", {
-      orderId: order.id
-    });
+    logWorkflow(
+      "admin_email_failed",
+      {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        event: eventKey,
+        reason: "no_recipients_configured",
+        adminEmailEnv: process.env.ADMIN_EMAIL ? "(set)" : "(not set)",
+        workerEmailsEnv: process.env.WORKER_EMAILS ? "(set)" : "(not set)"
+      },
+      "error"
+    );
     await logNotificationDelivery(db, {
       orderId: order.id,
       channel: "email",
@@ -197,9 +254,11 @@ async function sendEmailChannel(
   }
 
   if (!force && (await wasChannelSent(db, order.id, "email", eventKey))) {
-    console.info("[admin-email] skipped — already sent for this order/event", {
+    logWorkflow("admin_email_skipped", {
       orderId: order.id,
-      event: eventKey
+      orderNumber: order.order_number,
+      event: eventKey,
+      reason: "already_sent"
     });
     return;
   }
@@ -254,18 +313,29 @@ async function sendEmailChannel(
       success: true
     });
 
+    logWorkflow("admin_email_sent", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      event: eventKey,
+      recipientCount: recipients.length
+    });
+
     const fcmEvent = resolveFcmPushEvent(eventKey);
     if (fcmEvent) {
       await sendOrderFcmPush(order, fcmEvent);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Email send failed";
-    console.error("[admin-email] send failed", {
-      orderId: order.id,
-      orderNumber: order.order_number,
-      event: eventKey,
-      error: err
-    });
+    logWorkflow(
+      "admin_email_failed",
+      {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        event: eventKey,
+        error: message
+      },
+      "error"
+    );
     await logNotificationDelivery(db, {
       orderId: order.id,
       channel: "email",

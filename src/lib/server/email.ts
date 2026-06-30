@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/notifications/customer-email-dedup";
 import { createServiceClient } from "@/lib/supabase";
 import { RESEND_FROM_ALERTS_STORE, RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { logWorkflow } from "@/lib/orders/workflow-logger";
 import type { Order } from "@/types";
 
 const resend = process.env.RESEND_API_KEY
@@ -20,10 +21,28 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 export async function sendOrderReceived(params: { to: string; order: Order }) {
-  if (!resend) return;
+  if (!resend) {
+    logWorkflow(
+      "customer_email_failed",
+      {
+        orderId: params.order.id,
+        orderNumber: params.order.order_number,
+        event: "order_placed",
+        reason: "RESEND_API_KEY not configured"
+      },
+      "error"
+    );
+    return;
+  }
 
   const db = createServiceClient();
   if (db && (await wasCustomerEmailSent(db, params.order.id, CUSTOMER_ORDER_PLACED_EVENT))) {
+    logWorkflow("customer_email_skipped", {
+      orderId: params.order.id,
+      orderNumber: params.order.order_number,
+      event: "order_placed",
+      reason: "already_sent"
+    });
     return;
   }
 
@@ -63,7 +82,19 @@ export async function sendOrderConfirmation(params: {
   total: number;
   order?: Order;
 }) {
-  if (!resend) return;
+  if (!resend) {
+    logWorkflow(
+      "customer_email_failed",
+      {
+        orderId: params.order?.id ?? null,
+        orderNumber: params.orderNumber,
+        event: "order_confirmed",
+        reason: "RESEND_API_KEY not configured"
+      },
+      "error"
+    );
+    return;
+  }
 
   const orderId = params.order?.id;
   const db = createServiceClient();

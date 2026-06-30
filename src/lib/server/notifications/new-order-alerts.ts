@@ -15,6 +15,7 @@ import { dispatchOrderNotification } from "@/lib/server/notifications/notificati
 
 import { RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
 import { createServiceClient } from "@/lib/supabase";
+import { logWorkflow } from "@/lib/orders/workflow-logger";
 
 import type { Order } from "@/types";
 
@@ -24,59 +25,89 @@ export async function sendNewOrderAlerts(
   order: Order,
   options?: { force?: boolean }
 ): Promise<void> {
-  try {
-    console.info("[new-order] starting admin alert dispatch", {
-      orderId: order.id,
-      orderNumber: order.order_number,
-      path: "sendNewOrderAlerts → dispatchOrderNotification → sendEmailChannel"
-    });
-    console.info("[new-order] note: email alerts use dispatchOrderNotification (not notifyAdminNewOrder)");
+  logWorkflow("admin_email_start", {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    event: "new_order"
+  });
 
+  const recipients = await resolveNotificationRecipientEmails("new_order", db);
+  logWorkflow("admin_email_start", {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    recipientCount: recipients.length,
+    recipientsConfigured: recipients.length > 0,
+    adminEmailEnv: process.env.ADMIN_EMAIL ? "(set)" : "(not set)",
+    workerEmailsEnv: process.env.WORKER_EMAILS ? "(set)" : "(not set)"
+  });
+
+  try {
     await dispatchOrderNotification(db, order, "new_order", {
       force: options?.force,
       skipChannels: ["whatsapp", "push"]
     });
 
-    console.info("[new-order] admin alert dispatch finished", {
+    logWorkflow("admin_email_sent", {
       orderId: order.id,
       orderNumber: order.order_number,
-      recipients: await resolveNotificationRecipientEmails("new_order", db)
+      event: "new_order",
+      recipientCount: recipients.length
     });
   } catch (error) {
-    console.error("[new-order] admin alert dispatch failed", {
-      orderId: order.id,
-      orderNumber: order.order_number,
-      adminEmail: process.env.ADMIN_EMAIL ?? "(not set)",
-      workerEmails: process.env.WORKER_EMAILS ?? "(not set)",
-      error
-    });
+    logWorkflow(
+      "admin_email_failed",
+      {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        event: "new_order",
+        adminEmail: process.env.ADMIN_EMAIL ?? "(not set)",
+        workerEmails: process.env.WORKER_EMAILS ?? "(not set)",
+        error: error instanceof Error ? error.message : String(error)
+      },
+      "error"
+    );
+    throw error;
   }
 }
 
-/** Customer acknowledgement when an order is placed (before admin approval). */
+/** Customer acknowledgement when payment is received (order awaiting admin approval). */
 export async function notifyCustomerOrderReceived(order: Order): Promise<void> {
   const email = order.shipping_address?.email ?? order.guest_email;
-  if (!email) return;
-
-  const db = createServiceClient();
-  if (db && (await wasCustomerEmailSent(db, order.id, CUSTOMER_ORDER_PLACED_EVENT))) {
-    console.info("[new-order] customer order placed email skipped — already sent", {
-      orderId: order.id
+  if (!email) {
+    logWorkflow("customer_email_skipped", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      event: "order_placed",
+      reason: "no_customer_email"
     });
     return;
   }
 
-  console.info("[new-order] sending customer order received", {
+  const db = createServiceClient();
+  if (db && (await wasCustomerEmailSent(db, order.id, CUSTOMER_ORDER_PLACED_EVENT))) {
+    logWorkflow("customer_email_skipped", {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      event: "order_placed",
+      reason: "already_sent"
+    });
+    return;
+  }
+
+  logWorkflow("customer_email_start", {
     orderId: order.id,
     orderNumber: order.order_number,
+    event: "order_placed",
     to: email
   });
 
   await sendOrderReceived({ to: email, order });
 
-  console.info("[new-order] customer order received sent", {
+  logWorkflow("customer_email_sent", {
     orderId: order.id,
-    orderNumber: order.order_number
+    orderNumber: order.order_number,
+    event: "order_placed",
+    to: email
   });
 }
 

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
+import { logWorkflow } from "@/lib/orders/workflow-logger";
 import { cancelAdminApprovalReminders } from "@/lib/server/notifications/admin-approval-reminders";
 import { sendOrderConfirmation } from "@/lib/server/email";
 import {
@@ -45,60 +46,134 @@ export async function executeOrderApproval(
 ): Promise<ApproveOrderResult> {
   const now = new Date().toISOString();
 
-  console.info("[approve] updating order to confirmed", { orderId });
+  logWorkflow("order_approval_start", {
+    orderId,
+    performedBy: context.performedBy ?? null
+  });
+
+  const approvalPayload: Record<string, string | null> = {
+    status: "confirmed",
+    confirmed_at: now,
+    approved_at: now,
+    approved_by: context.performedBy ?? null,
+    updated_at: now
+  };
 
   const { data: updated, error } = await db
     .from("orders")
-    .update({ status: "confirmed", confirmed_at: now, updated_at: now })
+    .update(approvalPayload)
     .eq("id", orderId)
     .in("status", ["pending", "processing"])
     .select("*")
     .maybeSingle();
 
   if (error) {
-    console.error("[approve] order update failed", { orderId, message: error.message });
+    if (error.message.includes("approved_at") || error.message.includes("approved_by")) {
+      const { data: fallbackUpdated, error: fallbackError } = await db
+        .from("orders")
+        .update({ status: "confirmed", confirmed_at: now, updated_at: now })
+        .eq("id", orderId)
+        .in("status", ["pending", "processing"])
+        .select("*")
+        .maybeSingle();
+
+      if (fallbackError) {
+        logWorkflow(
+          "order_approval_failed",
+          { orderId, error: fallbackError.message },
+          "error"
+        );
+        return { ok: false, status: "error", message: fallbackError.message };
+      }
+
+      if (!fallbackUpdated) {
+        return handleApprovalConflict(db, orderId, context);
+      }
+
+      return completeApproval(db, fallbackUpdated as Order, orderId, context);
+    }
+
+    logWorkflow("order_approval_failed", { orderId, error: error.message }, "error");
     return { ok: false, status: "error", message: error.message };
   }
 
   if (!updated) {
-    const current = await loadOrder(db, orderId);
-    if (!current) {
-      console.warn("[approve] order not found", { orderId });
-      return { ok: false, status: "not_found" };
-    }
-
-    await markOrderNotificationsHandled(db, orderId);
-
-    const normalized = await normalizeOrderRecord(db, current, { persist: false });
-    const status = current.status as string;
-
-    console.info("[approve] atomic update matched no row", { orderId, status });
-
-    if (status === "confirmed") {
-      await logAlreadyApprovedAttempt(db, orderId, context);
-      return { ok: true, status: "already_approved", order: normalized };
-    }
-
-    if (!isAwaitingOrderApproval(status)) {
-      return { ok: false, status: "not_awaiting" };
-    }
-
-    return { ok: false, status: "conflict" };
+    return handleApprovalConflict(db, orderId, context);
   }
 
-  console.info("[approve] order confirmed", {
+  return completeApproval(db, updated as Order, orderId, context);
+}
+
+async function handleApprovalConflict(
+  db: SupabaseClient,
+  orderId: string,
+  context: {
+    performedBy?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }
+): Promise<ApproveOrderResult> {
+  const current = await loadOrder(db, orderId);
+  if (!current) {
+    logWorkflow("order_approval_failed", { orderId, reason: "not_found" }, "warn");
+    return { ok: false, status: "not_found" };
+  }
+
+  await markOrderNotificationsHandled(db, orderId);
+
+  const normalized = await normalizeOrderRecord(db, current, { persist: false });
+  const status = current.status as string;
+
+  logWorkflow("order_approval_failed", {
     orderId,
-    confirmed_at: updated.confirmed_at ?? now,
-    status: updated.status
+    reason: "atomic_update_missed",
+    currentStatus: status
+  }, "warn");
+
+  if (status === "confirmed") {
+    await logAlreadyApprovedAttempt(db, orderId, context);
+    return { ok: true, status: "already_approved", order: normalized };
+  }
+
+  if (!isAwaitingOrderApproval(status)) {
+    return { ok: false, status: "not_awaiting" };
+  }
+
+  return { ok: false, status: "conflict" };
+}
+
+async function completeApproval(
+  db: SupabaseClient,
+  updated: Order,
+  orderId: string,
+  context: {
+    performedBy?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }
+): Promise<ApproveOrderResult> {
+  const now = updated.confirmed_at ?? new Date().toISOString();
+
+  logWorkflow("order_status_transition", {
+    orderId,
+    orderNumber: updated.order_number,
+    toStatus: "confirmed",
+    approvedAt: updated.approved_at ?? now,
+    approvedBy: updated.approved_by ?? context.performedBy ?? null
+  });
+
+  logWorkflow("order_approval_success", {
+    orderId,
+    orderNumber: updated.order_number,
+    confirmedAt: updated.confirmed_at ?? now,
+    approvedBy: updated.approved_by ?? context.performedBy ?? null
   });
 
   invalidateAdminDataCaches();
 
   await cancelAdminApprovalReminders(db, orderId);
-  console.info("[approve] admin approval reminders cancelled", { orderId });
 
   await markOrderNotificationsHandled(db, orderId);
-  console.info("[approve] order notifications marked handled", { orderId });
 
   if (!(await hasApprovedAuditLog(db, orderId))) {
     await logOrderAction(db, {
@@ -109,9 +184,8 @@ export async function executeOrderApproval(
       userAgent: context.userAgent
     });
   }
-  console.info("[approve] audit log recorded", { orderId });
 
-  const normalized = await normalizeOrderRecord(db, updated as Order, {
+  const normalized = await normalizeOrderRecord(db, updated, {
     persist: false
   });
 
@@ -120,18 +194,43 @@ export async function executeOrderApproval(
 
   if (customerEmail) {
     try {
+      logWorkflow("customer_email_start", {
+        orderId,
+        orderNumber: normalized.order_number,
+        event: "order_confirmed",
+        to: customerEmail
+      });
       await sendOrderConfirmation({
         to: customerEmail,
         orderNumber: normalized.order_number,
         total: Number(normalized.total),
         order: normalized
       });
-      console.info("[approve] customer confirmation email sent", { orderId });
+      logWorkflow("customer_email_sent", {
+        orderId,
+        orderNumber: normalized.order_number,
+        event: "order_confirmed",
+        to: customerEmail
+      });
     } catch (err) {
-      console.error("[approve] sendOrderConfirmation failed", { orderId, error: err });
+      logWorkflow(
+        "customer_email_failed",
+        {
+          orderId,
+          orderNumber: normalized.order_number,
+          event: "order_confirmed",
+          error: err instanceof Error ? err.message : String(err)
+        },
+        "error"
+      );
     }
   } else {
-    console.info("[approve] no customer email — skipped confirmation", { orderId });
+    logWorkflow("customer_email_skipped", {
+      orderId,
+      orderNumber: normalized.order_number,
+      event: "order_confirmed",
+      reason: "no_customer_email"
+    });
   }
 
   return { ok: true, status: "approved", order: normalized };

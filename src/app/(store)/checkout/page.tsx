@@ -1,24 +1,10 @@
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { CheckoutForm, type CheckoutAddress } from "@/components/store/CheckoutForm";
+import { CheckoutForm } from "@/components/store/CheckoutForm";
+import { addressToCheckoutAddress } from "@/lib/checkout/saved-addresses";
 import type { Address } from "@/types";
 
 export const metadata = { title: "Checkout" };
-
-function toCheckoutAddress(address: Address, email: string): CheckoutAddress {
-  const line = [address.line1, address.line2].filter(Boolean).join(", ");
-  return {
-    name: address.name ?? "",
-    phone: address.phone ?? "",
-    secondary_phone: "",
-    email,
-    house_flat: "",
-    street: line,
-    landmark: "",
-    city: address.city ?? "",
-    state: address.state ?? "",
-    pincode: address.pincode ?? ""
-  };
-}
 
 type PageProps = {
   searchParams: Promise<{ mode?: string }>;
@@ -32,18 +18,23 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     data: { user }
   } = await supabase.auth.getUser();
 
-  let initialAddress: CheckoutAddress | undefined;
+  let initialAddress;
+  let savedAddresses: Address[] = [];
 
   if (user) {
-    const { data: defaultAddress } = await supabase
+    const { data: addresses } = await supabase
       .from("addresses")
       .select("*")
       .eq("customer_id", user.id)
-      .eq("is_default", true)
-      .maybeSingle();
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    savedAddresses = (addresses ?? []) as Address[];
+
+    const defaultAddress = savedAddresses.find((address) => address.is_default) ?? savedAddresses[0];
 
     if (defaultAddress) {
-      initialAddress = toCheckoutAddress(defaultAddress as Address, user.email ?? "");
+      initialAddress = addressToCheckoutAddress(defaultAddress, user.email ?? "");
     } else {
       const { data: customer } = await supabase
         .from("customers")
@@ -68,5 +59,11 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     }
   }
 
-  return <CheckoutForm initialAddress={initialAddress} checkoutMode={checkoutMode} />;
+  return (
+    <CheckoutForm
+      initialAddress={initialAddress}
+      savedAddresses={savedAddresses}
+      checkoutMode={checkoutMode}
+    />
+  );
 }

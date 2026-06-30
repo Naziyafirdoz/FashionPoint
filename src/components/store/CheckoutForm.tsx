@@ -22,6 +22,9 @@ import {
 import { validateAddressLocation } from "@/lib/shipping/address-validation";
 import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { buildOrderAddressPayload, composeAddressLine } from "@/lib/delivery/location";
+import { addressToCheckoutAddress } from "@/lib/checkout/saved-addresses";
+import { saveCheckoutAddressAction } from "@/app/(store)/checkout/actions";
+import type { Address } from "@/types";
 
 export type CheckoutAddress = {
   name: string;
@@ -38,12 +41,16 @@ export type CheckoutAddress = {
 
 type CheckoutFormProps = {
   initialAddress?: Partial<CheckoutAddress> & { line?: string };
+  savedAddresses?: Address[];
   checkoutMode?: "cart" | "buy_now";
 };
 
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void;
+      on: (event: string, handler: (response: Record<string, unknown>) => void) => void;
+    };
   }
 }
 
@@ -129,13 +136,22 @@ function Step1ErrorSummary({
   );
 }
 
-export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: CheckoutFormProps) {
+export function CheckoutForm({
+  initialAddress,
+  savedAddresses = [],
+  checkoutMode = "cart"
+}: CheckoutFormProps) {
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState<CheckoutAddress>(() => emptyAddress(initialAddress));
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "new">(
+    savedAddresses[0]?.id ?? "new"
+  );
+  const [saveAddress, setSaveAddress] = useState(false);
   const [payment, setPayment] = useState<PaymentMethodId>("upi");
   const [pincodeValidated, setPincodeValidated] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [continuing, setContinuing] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
   const [showStep1Errors, setShowStep1Errors] = useState(false);
   const fieldRefs = useRef<Partial<Record<CheckoutStep1Field, HTMLElement | null>>>({});
   const [validationModal, setValidationModal] = useState<{
@@ -294,6 +310,23 @@ export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: Checkout
     }
   };
 
+  const handleSelectSavedAddress = (addressId: string) => {
+    setSelectedAddressId(addressId);
+    const saved = savedAddresses.find((item) => item.id === addressId);
+    if (!saved) return;
+    setAddress(addressToCheckoutAddress(saved, address.email || initialAddress?.email || ""));
+    setShowStep1Errors(false);
+  };
+
+  const handleUseNewAddress = () => {
+    setSelectedAddressId("new");
+    setAddress((prev) => ({
+      ...emptyAddress(initialAddress),
+      email: prev.email || initialAddress?.email || ""
+    }));
+    setShowStep1Errors(false);
+  };
+
   const placeOrder = async () => {
     if (items.length === 0) {
       toast.error("Your cart is empty");
@@ -308,110 +341,140 @@ export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: Checkout
       return;
     }
 
-    const { subtotal, shippingAmount, total } = totals;
-    const amountPaise = Math.round(total * 100);
+    setPlacingOrder(true);
 
-    const createRes = await fetch("/api/orders/create", {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items,
-        address: orderAddress,
-        payment,
-        subtotal,
-        discount,
-        shipping_amount: shippingAmount,
-        total
-      })
-    });
-
-    const data = await createRes.json();
-
-    if (createRes.status === 401) {
-      toast.error("Please sign in to place an order");
-      window.location.href = `/login?redirect=${encodeURIComponent(isBuyNow ? "/checkout?mode=buy_now" : "/checkout")}`;
-      return;
-    }
-
-    if (!createRes.ok) {
-      toast.error(data.error ?? "Could not start checkout");
-      return;
-    }
-
-    const finishCheckout = () => {
-      if (isBuyNow) {
-        endCheckoutSession();
-      } else {
-        cart.clearCart();
+    try {
+      if (saveAddress && selectedAddressId === "new") {
+        const saveResult = await saveCheckoutAddressAction({
+          name: address.name,
+          phone: address.phone,
+          house_flat: address.house_flat,
+          street: address.street,
+          landmark: address.landmark,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode
+        });
+        if (saveResult?.error) {
+          toast.error(saveResult.error);
+          return;
+        }
       }
-    };
 
-    const completeOrder = async (verifyBody: Record<string, unknown>) => {
-      const verifyRes = await fetch("/api/payment/verify", {
+      const { subtotal, shippingAmount, total } = totals;
+
+      const createRes = await fetch("/api/orders/create", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...verifyBody,
           items,
           address: orderAddress,
           payment,
           subtotal,
           discount,
           shipping_amount: shippingAmount,
-          total,
-          amount: amountPaise
+          total
         })
       });
-      const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) {
-        toast.error(verifyData.error ?? "Payment verification failed");
-        return false;
-      }
-      toast.success("Order placed!");
-      finishCheckout();
-      window.location.href = successUrl(verifyData.orderNumber);
-      return true;
-    };
 
-    if (payment === "cod" || data.isCod) {
-      if (data.success && data.orderNumber) {
-        toast.success("Order placed!");
-        finishCheckout();
-        window.location.href = successUrl(data.orderNumber);
+      const data = await createRes.json();
+
+      if (createRes.status === 401) {
+        toast.error("Please sign in to place an order");
+        window.location.href = `/login?redirect=${encodeURIComponent(isBuyNow ? "/checkout?mode=buy_now" : "/checkout")}`;
         return;
       }
-      toast.error(data.error ?? "Could not place COD order");
-      return;
-    }
 
-    if (data.demo) {
-      await completeOrder({ demo: true });
-      return;
-    }
-
-    const { razorpayOrderId, key, amount: amt } = data;
-    if (!razorpayOrderId || !key) {
-      toast.error("Payment not configured");
-      return;
-    }
-
-    const rzp = new window.Razorpay({
-      key,
-      amount: amt,
-      currency: "INR",
-      name: STORE_NAME,
-      order_id: razorpayOrderId,
-      handler: async (response: {
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-      }) => {
-        await completeOrder(response);
+      if (!createRes.ok) {
+        toast.error(data.error ?? "Could not start checkout");
+        return;
       }
-    });
-    rzp.open();
+
+      const orderNumber = data.orderNumber as string;
+      const orderId = data.orderId as string;
+
+      const finishCheckout = () => {
+        if (isBuyNow) {
+          endCheckoutSession();
+        } else {
+          cart.clearCart();
+        }
+      };
+
+      const completeOrder = async (verifyBody: Record<string, unknown>) => {
+        const verifyRes = await fetch("/api/payment/verify", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(verifyBody)
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyRes.ok) {
+          toast.error(verifyData.error ?? "Payment verification failed");
+          if (orderNumber) {
+            window.location.href = `/checkout/payment-failed?order=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(verifyData.error ?? "Verification failed")}`;
+          }
+          return false;
+        }
+        toast.success("Payment successful!");
+        finishCheckout();
+        window.location.href = successUrl(verifyData.orderNumber ?? orderNumber);
+        return true;
+      };
+
+      if (data.demo) {
+        await completeOrder({ demo: true, orderId });
+        return;
+      }
+
+      const { razorpayOrderId, key, amount: amt } = data;
+      if (!razorpayOrderId || !key) {
+        toast.error("Payment not configured");
+        return;
+      }
+
+      const rzp = new window.Razorpay({
+        key,
+        amount: amt,
+        currency: "INR",
+        name: STORE_NAME,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: address.name,
+          email: address.email,
+          contact: address.phone
+        },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          await completeOrder(response);
+        },
+        modal: {
+          ondismiss: () => {
+            window.location.href = `/checkout/payment-cancelled?order=${encodeURIComponent(orderNumber)}`;
+          }
+        }
+      });
+
+      rzp.on("payment.failed", (response) => {
+        const error = response.error as { description?: string } | undefined;
+        const description = error?.description ?? "Payment could not be completed";
+        void fetch("/api/payment/mark-failed", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderNumber, reason: description })
+        });
+        window.location.href = `/checkout/payment-failed?order=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(description)}`;
+      });
+
+      rzp.open();
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   if (checkoutMode === "buy_now" && !buyNowItem) {
@@ -472,6 +535,56 @@ export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: Checkout
             }}
           >
             <p className="font-semibold">Step 1 — Delivery Address</p>
+
+            {savedAddresses.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground/80">Saved addresses</p>
+                {savedAddresses.map((saved) => {
+                  const line = [saved.line1, saved.line2, saved.city, saved.state, saved.pincode]
+                    .filter(Boolean)
+                    .join(", ");
+                  return (
+                    <label
+                      key={saved.id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                        selectedAddressId === saved.id
+                          ? "border-primary bg-blush/30 ring-1 ring-primary/20"
+                          : "border-accent/20 hover:border-primary/40"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="saved-address"
+                        className="mt-1"
+                        checked={selectedAddressId === saved.id}
+                        onChange={() => handleSelectSavedAddress(saved.id)}
+                      />
+                      <div className="min-w-0 text-sm">
+                        <p className="font-medium text-foreground">
+                          {saved.label ?? "Address"} · {saved.name}
+                        </p>
+                        <p className="mt-0.5 text-foreground/60">{line}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition ${
+                    selectedAddressId === "new"
+                      ? "border-primary bg-blush/30 ring-1 ring-primary/20"
+                      : "border-accent/20 hover:border-primary/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="saved-address"
+                    checked={selectedAddressId === "new"}
+                    onChange={handleUseNewAddress}
+                  />
+                  <span className="text-sm font-medium">Use a new address</span>
+                </label>
+              </div>
+            ) : null}
 
             <FieldShell
               field="name"
@@ -640,6 +753,18 @@ export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: Checkout
             )}
 
             <Step1ErrorSummary errors={step1Errors} />
+
+            {selectedAddressId === "new" ? (
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={saveAddress}
+                  onChange={(e) => setSaveAddress(e.target.checked)}
+                  className="rounded border-accent/40"
+                />
+                Save this address to my account
+              </label>
+            ) : null}
 
             <button
               type="submit"
@@ -812,12 +937,38 @@ export function CheckoutForm({ initialAddress, checkoutMode = "cart" }: Checkout
             <section>
               <h3 className="text-sm font-semibold text-foreground/70">Payment Method</h3>
               <p className="mt-2 text-sm">{paymentMethodLabel(payment)}</p>
+              <p className="mt-1 text-xs text-foreground/50">
+                You will complete payment securely via Razorpay (UPI, cards, net banking).
+              </p>
+            </section>
+
+            <section className="text-sm text-foreground/70">
+              <p>
+                By placing this order you agree to our{" "}
+                <Link href="/terms-and-conditions" className="text-primary underline" target="_blank">
+                  Terms &amp; Conditions
+                </Link>
+                ,{" "}
+                <Link href="/shipping-policy" className="text-primary underline" target="_blank">
+                  Shipping Policy
+                </Link>
+                , and{" "}
+                <Link href="/return-policy" className="text-primary underline" target="_blank">
+                  Return Policy
+                </Link>
+                .
+              </p>
             </section>
 
             <FinalSalePolicyNotice variant="checkout" />
 
-            <button type="button" onClick={placeOrder} className="btn-primary w-full">
-              PLACE ORDER
+            <button
+              type="button"
+              onClick={placeOrder}
+              disabled={placingOrder}
+              className="btn-primary w-full disabled:opacity-60"
+            >
+              {placingOrder ? "Processing…" : "PLACE ORDER"}
             </button>
           </div>
         )}

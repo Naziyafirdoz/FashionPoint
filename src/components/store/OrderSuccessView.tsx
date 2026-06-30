@@ -8,9 +8,8 @@ import Link from "next/link";
 
 import { CheckCircle, Download, Truck } from "lucide-react";
 
-import toast from "react-hot-toast";
-
 import { paymentMethodLabel } from "@/lib/checkout/payment-methods";
+import { generateInvoiceNumber } from "@/lib/orders/invoice";
 import {
   CUSTOMER_CANCELLED_ONLINE_PAYMENT_MESSAGE,
   shouldShowCancelledRefundDetails
@@ -63,7 +62,17 @@ function formatAddress(address: Record<string, string> | undefined) {
 
 }
 
-
+function formatEstimatedDelivery(
+  order: Pick<Order, "estimated_delivery_date" | "preferred_delivery_date">
+): string {
+  const iso = order.estimated_delivery_date ?? order.preferred_delivery_date;
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+}
 
 export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSuccessViewProps) {
 
@@ -76,9 +85,10 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
 
   const handleInvoice = () => {
-
-    toast("Invoice generation coming soon", { icon: "📄" });
-
+    if (!order) return;
+    void import("@/lib/orders/admin-orders").then(({ downloadInvoicePdf }) => {
+      downloadInvoicePdf(order);
+    });
   };
 
 
@@ -153,8 +163,11 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
   const showVijayawadaDeliveryEstimate = shippingCity === "vijayawada";
 
   const isCod = order.payment_method === "cod";
+  const isPaidOnline = order.payment_status === "paid" && order.payment_method !== "cod";
   const isCancelled = order.status === "cancelled";
   const showCancelledRefundMessage = shouldShowCancelledRefundDetails(order);
+  const invoiceNumber = generateInvoiceNumber(order.order_number);
+  const estimatedDelivery = formatEstimatedDelivery(order);
 
 
 
@@ -176,7 +189,11 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         <h1 className="mt-6 font-display text-2xl font-bold text-foreground md:text-3xl">
 
-          {isCancelled ? "Order Cancelled" : "Order Placed Successfully!"}
+          {isCancelled
+            ? "Order Cancelled"
+            : isPaidOnline
+              ? "Payment Successful!"
+              : "Order Placed Successfully!"}
 
         </h1>
 
@@ -185,6 +202,31 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
           {order.order_number}
 
         </p>
+
+        {isPaidOnline ? (
+          <dl className="mx-auto mt-4 max-w-md space-y-1 text-left text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/60">Invoice Number</dt>
+              <dd className="font-medium">{invoiceNumber}</dd>
+            </div>
+            {order.razorpay_payment_id ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-foreground/60">Payment ID</dt>
+                <dd className="truncate font-medium">{order.razorpay_payment_id}</dd>
+              </div>
+            ) : null}
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/60">Amount Paid</dt>
+              <dd className="font-semibold text-primary">
+                ₹{Number(order.total).toLocaleString("en-IN")}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-foreground/60">Estimated Delivery</dt>
+              <dd>{estimatedDelivery}</dd>
+            </div>
+          </dl>
+        ) : null}
 
       </div>
 
@@ -376,20 +418,17 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">
 
-        <Link href="/account/orders" className="btn-primary flex-1 text-center">
+        <Link href={`/account/orders`} className="btn-primary flex-1 text-center">
 
-          Go To My Orders
+          View Order
 
         </Link>
 
         <button
-
           type="button"
-
           onClick={handleInvoice}
-
-          className="btn-outline flex flex-1 items-center justify-center gap-2"
-
+          disabled={!isPaidOnline && !isCod}
+          className="btn-outline flex flex-1 items-center justify-center gap-2 disabled:opacity-50"
         >
 
           <Download className="h-4 w-4" />
