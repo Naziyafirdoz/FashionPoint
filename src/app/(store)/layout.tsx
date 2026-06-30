@@ -2,6 +2,7 @@ import { StylistChatbotLazy } from "@/components/ai/StylistChatbotLazy";
 import { AnnouncementBar } from "@/components/store/AnnouncementBar";
 import { Navbar } from "@/components/store/Navbar";
 import { Footer } from "@/components/store/Footer";
+import { WishlistHydrator } from "@/components/wishlist/WishlistHydrator";
 import { getActiveCategories } from "@/lib/categories/get-categories";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <>
+      <WishlistHydrator />
       <AnnouncementBar />
       <Navbar categories={categories} />
       {children}

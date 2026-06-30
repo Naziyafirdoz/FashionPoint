@@ -1,19 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
-import {
-  Bot,
-  Palette,
-  Ruler,
-  Sparkles,
-  WandSparkles,
-  type LucideIcon
-} from "lucide-react";
+import { Palette, Ruler, Sparkles, WandSparkles, type LucideIcon } from "lucide-react";
 
 type AiFeature = {
-  href?: string;
+  href: string;
   label: string;
   description: string;
   icon: LucideIcon;
-  soon?: boolean;
 };
 
 const AI_FEATURES: AiFeature[] = [
@@ -34,14 +27,11 @@ const AI_FEATURES: AiFeature[] = [
     label: "AI Style Assistant",
     description: "Personalized style recommendations",
     icon: WandSparkles
-  },
-  {
-    label: "Virtual Try-On",
-    description: "Coming Soon",
-    icon: Bot,
-    soon: true
   }
 ];
+
+const CARD_CLASS =
+  "w-full rounded-[20px] border border-[#F2E4E8] bg-white p-6 shadow-[0_4px_20px_rgba(122,13,43,0.05)]";
 
 export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
   if (!premium) {
@@ -49,25 +39,14 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
       <aside className="hidden space-y-4 lg:block">
         <div className="card-store">
           <h3 className="font-bold text-primary">AI FEATURES</h3>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <Link href="/ai-features/size-finder" className="hover:text-primary">
-                AI Size Finder
-              </Link>
-            </li>
-            <li>
-              <Link href="/ai-features/color-matcher" className="hover:text-primary">
-                Saree Color Matcher
-              </Link>
-            </li>
-            <li>
-              <Link href="/ai-features/style-recommender" className="hover:text-primary">
-                AI Style Assistant
-              </Link>
-            </li>
-            <li>
-              <span className="text-foreground/50">Virtual Try-On (Soon)</span>
-            </li>
+          <ul className="mt-3 space-y-2.5 text-sm">
+            {AI_FEATURES.map((feature) => (
+              <li key={feature.href}>
+                <Link href={feature.href} className="hover:text-primary">
+                  {feature.label}
+                </Link>
+              </li>
+            ))}
           </ul>
           <Link href="/ai-features" className="btn-primary mt-4 block w-full text-center text-xs">
             TRY AI MAGIC
@@ -87,35 +66,37 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
   }
 
   return (
-    <aside className="hidden space-y-5 lg:block">
-      <div className="rounded-[18px] border border-black/[0.06] bg-white/95 p-5 shadow-[0_8px_28px_rgba(123,13,43,0.08)] lg:sticky lg:top-24 lg:self-start">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-secondary" aria-hidden="true" />
-          <h3 className="font-display text-lg font-bold text-primary">AI Features</h3>
+    <aside className="flex h-full w-full min-w-0 max-w-full flex-col">
+      <div className="flex w-full flex-col space-y-6 lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)] lg:z-0">
+        <div className={CARD_CLASS}>
+        <div className="flex items-center gap-2.5">
+          <Sparkles className="h-5 w-5 text-[#B8860B]" aria-hidden="true" />
+          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-[#7B0D2B]">
+            AI Features
+          </h3>
         </div>
-        <ul className="mt-4 space-y-3">
+        <p className="mt-2.5 text-sm leading-relaxed text-[#666666]">
+          Smart tools to help you find the perfect blouse faster.
+        </p>
+        <ul className="mt-6 space-y-3.5">
           {AI_FEATURES.map((feature) => {
             const Icon = feature.icon;
-            const content = (
-              <div className="flex gap-3 rounded-2xl border border-accent/10 bg-[#FFFCFA] px-3 py-3 transition hover:border-primary/15 hover:shadow-sm">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary">
-                  <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-primary">{feature.label}</p>
-                  <p className="text-xs leading-relaxed text-foreground/55">{feature.description}</p>
-                </div>
-              </div>
-            );
-
-            if (feature.soon || !feature.href) {
-              return <li key={feature.label}>{content}</li>;
-            }
-
             return (
-              <li key={feature.label}>
+              <li key={feature.href}>
                 <Link href={feature.href} className="block">
-                  {content}
+                  <div className="flex gap-3.5 rounded-xl border border-[#F2E4E8] bg-[#FFFCFA] px-4 py-4 transition duration-200 hover:border-[#7B0D2B]/25 hover:bg-[#FFF5F7]">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#F2E4E8] bg-white text-[#7B0D2B]">
+                      <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 py-0.5">
+                      <p className="text-sm font-semibold leading-tight text-[#2A2A2A]">
+                        {feature.label}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-[#666666]">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
                 </Link>
               </li>
             );
@@ -123,30 +104,35 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
         </ul>
         <Link
           href="/ai-features"
-          className="btn-primary mt-5 block w-full py-3 text-center text-sm font-semibold"
+          className="btn-primary mt-7 block w-full rounded-[12px] py-3.5 text-center text-sm font-bold uppercase tracking-[0.06em]"
         >
           Try AI Magic
         </Link>
-      </div>
+        </div>
 
-      <div className="overflow-hidden rounded-[18px] border border-primary/15 bg-gradient-to-br from-primary via-[#8f1230] to-primary p-5 text-white shadow-[0_10px_30px_rgba(123,13,43,0.2)]">
-        <p className="font-display text-lg font-bold leading-tight">Find Your Perfect Blouse</p>
-        <p className="mt-2 text-sm leading-relaxed text-white/80">
-          Discover styles tailored to your occasion, fit, and saree palette with our smart
-          recommendation tools.
+        <div className={CARD_CLASS}>
+        <p className="font-display text-base font-bold leading-snug text-[#7B0D2B]">
+          Find Your Perfect Blouse
         </p>
-        <div
-          className="mt-4 flex h-24 items-center justify-center rounded-2xl border border-white/15 bg-white/10"
-          aria-hidden="true"
-        >
-          <Sparkles className="h-10 w-10 text-secondary/80" />
+        <p className="mt-2.5 text-sm leading-relaxed text-[#666666]">
+          Discover styles tailored to your occasion, fit, and saree palette.
+        </p>
+        <div className="relative mt-5 h-[140px] overflow-hidden rounded-xl bg-[#FBF7F4]">
+          <Image
+            src="/assets/hero/hero-model.png"
+            alt=""
+            fill
+            className="object-contain object-bottom px-2"
+            sizes="260px"
+          />
         </div>
         <Link
           href="/ai-features/size-finder"
-          className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-secondary px-4 py-2.5 text-sm font-bold text-foreground transition hover:brightness-105"
+          className="btn-primary mt-5 inline-flex h-11 w-full items-center justify-center rounded-[12px] text-sm font-bold uppercase tracking-[0.06em]"
         >
           Start Now
         </Link>
+        </div>
       </div>
     </aside>
   );

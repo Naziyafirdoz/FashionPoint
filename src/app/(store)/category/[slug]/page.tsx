@@ -28,8 +28,9 @@ export default async function CategoryPage({ params }: Props) {
       <CategoryHeroSection
         title={category.name}
         description={category.description ?? `Browse our ${category.name} collection.`}
+        imageUrl={category.image_url}
       />
-      <Suspense fallback={<p className="p-8 text-center">Loading…</p>}>
+      <Suspense fallback={<p className="bg-[#FFF8F8] p-8 text-center text-sm text-[#777777]">Loading…</p>}>
         <CategoryListing categorySlug={slug} subCategories={subCategories} />
       </Suspense>
     </>

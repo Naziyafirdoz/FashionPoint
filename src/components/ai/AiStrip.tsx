@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Palette, Ruler, Sparkles, Wand2 } from "lucide-react";
+import { Palette, Ruler, Sparkles } from "lucide-react";
 
 const items = [
   {
@@ -22,19 +22,13 @@ const items = [
     desc: "Upload saree photo → matching blouses.",
     href: "/ai/color-match",
     icon: Palette
-  },
-  {
-    title: "AI Virtual Try‑On",
-    desc: "Upload photo → blouse preview (demo).",
-    href: "/ai/try-on",
-    icon: Wand2
   }
 ];
 
 export function AiStrip() {
   return (
     <section className="py-10">
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         {items.map((it, idx) => {
           const Icon = it.icon;
           return (

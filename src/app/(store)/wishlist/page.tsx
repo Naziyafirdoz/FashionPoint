@@ -1,8 +1,15 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getProductBySlugFromDb } from "@/lib/products/get-by-slug";
+import { getWishlistRecommendations } from "@/lib/wishlist/get-recommendations";
+import { devLog } from "@/lib/dev-log";
 import { redirect } from "next/navigation";
+import {
+  WishlistPageClient,
+  type WishlistInitialItem
+} from "@/components/wishlist/WishlistPageClient";
+import type { Product } from "@/types";
 
-export const metadata = { title: "Wishlist" };
+export const metadata = { title: "Wishlist | Fashion Point" };
 
 export default async function WishlistPage() {
   const supabase = await createClient();
@@ -12,45 +19,67 @@ export default async function WishlistPage() {
 
   if (!user) redirect("/login?redirect=/wishlist");
 
-  const { data: items } = await supabase
+  const { data: items, error } = await supabase
     .from("wishlist")
     .select("id, product_id, created_at, products(id, name, slug, price, images)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
+  devLog("[wishlist] page fetch", {
+    userId: user.id,
+    rowCount: items?.length ?? 0,
+    error
+  });
+
+  const initialItems: WishlistInitialItem[] = [];
+
+  for (const item of items ?? []) {
+    const raw = item.products;
+    const product = (Array.isArray(raw) ? raw[0] : raw) as {
+      id: string;
+      slug: string;
+    } | null;
+
+    let slug = product?.slug;
+
+    if (!slug && item.product_id) {
+      const { data: productRow } = await supabase
+        .from("products")
+        .select("slug")
+        .eq("id", item.product_id)
+        .maybeSingle();
+      slug = productRow?.slug ?? undefined;
+    }
+
+    if (!slug) continue;
+
+    initialItems.push({
+      wishlistId: item.id,
+      productId: item.product_id,
+      createdAt: item.created_at,
+      slug
+    });
+  }
+
+  devLog("[wishlist] page hydrated items", {
+    userId: user.id,
+    initialItems
+  });
+
+  const wishlistProductIds = new Set(initialItems.map((item) => item.productId));
+  const wishlistProducts = (
+    await Promise.all(initialItems.map((item) => getProductBySlugFromDb(item.slug)))
+  ).filter((product): product is Product => product !== null);
+
+  const recommendedProducts = await getWishlistRecommendations(
+    wishlistProducts,
+    wishlistProductIds
+  );
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="font-display text-3xl font-bold text-primary">Wishlist</h1>
-      {!items?.length ? (
-        <p className="mt-4 text-foreground/70">Your saved blouses will appear here.</p>
-      ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {items.map((item) => {
-            const raw = item.products;
-            const product = (Array.isArray(raw) ? raw[0] : raw) as {
-              id: string;
-              name: string;
-              slug: string;
-              price: number;
-              images?: string[];
-            } | null;
-            if (!product) return null;
-            return (
-              <Link
-                key={item.id}
-                href={`/product/${product.slug}`}
-                className="card-store hover:border-primary"
-              >
-                <p className="font-semibold text-primary">{product.name}</p>
-                <p className="mt-1 text-sm">₹{Number(product.price).toLocaleString("en-IN")}</p>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-      <Link href="/account/dashboard" className="mt-6 inline-block text-sm text-primary hover:underline">
-        ← Back to account
-      </Link>
-    </div>
+    <WishlistPageClient
+      initialItems={initialItems}
+      recommendedProducts={recommendedProducts}
+    />
   );
 }

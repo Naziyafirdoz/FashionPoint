@@ -1,51 +1,41 @@
-import { Headphones, Shield, Shirt, ShieldCheck, type LucideIcon } from "lucide-react";
-
-const HIGHLIGHTS: { icon: LucideIcon; title: string; sub: string }[] = [
-  { icon: Shield, title: "Premium Quality", sub: "Fine fabrics & finishing" },
-  { icon: Shirt, title: "Ready Made", sub: "Curated ready-to-wear styles" },
-  { icon: ShieldCheck, title: "Secure Payment", sub: "100% safe & trusted" },
-  { icon: Headphones, title: "Customer Support", sub: "We are here to help you" }
-];
+"use client";
 
 export function CategoryListingPreFooter() {
   return (
-    <>
-      <section className="border-t border-accent/15 bg-white py-12">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="font-display text-2xl font-bold text-primary sm:text-3xl">Stay Updated</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-foreground/60 sm:text-base">
-            Subscribe to receive exclusive offers, new arrivals, and styling inspiration from Fashion
-            Point.
+    <section className="border-t border-[#F2E4E8] bg-[#FFF8F8] py-3">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col items-center gap-3 px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="text-center lg:text-left">
+          <h2 className="font-display text-[1.35rem] font-bold leading-tight text-[#7B0D2B]">
+            Stay Updated
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-[#777777]">
+            Subscribe for new arrivals,
+            <br className="hidden sm:inline" /> offers &amp; more.
           </p>
-          <form
-            className="mx-auto mt-6 flex max-w-lg flex-col gap-3 sm:flex-row"
-            onSubmit={(event) => event.preventDefault()}
-          >
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="flex-1 rounded-full border border-black/[0.08] bg-[#FFFCFA] px-5 py-3 text-sm shadow-sm focus:border-primary/30 focus:outline-none"
-            />
-            <button type="submit" className="btn-primary px-8 py-3 text-sm">
-              Subscribe
-            </button>
-          </form>
         </div>
-      </section>
 
-      <section className="border-t border-accent/15 bg-[#FFFCFA] py-10">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:grid-cols-2 lg:grid-cols-4">
-          {HIGHLIGHTS.map(({ icon: Icon, title, sub }) => (
-            <div key={title} className="flex flex-col items-center text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-secondary/40 bg-white shadow-[0_4px_16px_rgba(123,13,43,0.08)]">
-                <Icon className="h-7 w-7 text-primary" strokeWidth={1.5} aria-hidden="true" />
-              </div>
-              <p className="mt-3 text-sm font-bold text-primary">{title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-foreground/60">{sub}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
+        <form
+          className="flex w-full max-w-xl flex-col gap-2 sm:flex-row sm:gap-3 lg:max-w-2xl lg:flex-1 lg:justify-end"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <input
+            type="email"
+            disabled
+            aria-disabled="true"
+            placeholder="Newsletter signup coming soon"
+            className="h-11 flex-1 cursor-not-allowed rounded-xl border border-[#F2E4E8] bg-[#FAFAFA] px-4 text-sm text-[#999999] shadow-[0_1px_3px_rgba(122,13,43,0.05)]"
+          />
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Newsletter signup is not available yet"
+            className="btn-primary h-11 shrink-0 cursor-not-allowed rounded-lg px-7 text-sm font-bold uppercase tracking-[0.06em] opacity-50"
+          >
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </section>
   );
 }

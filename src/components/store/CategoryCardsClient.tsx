@@ -58,8 +58,37 @@ export function getHomeCategoryDescription(description?: string | null): string 
   return trimmed || FALLBACK_DESCRIPTION;
 }
 
-export function getHomeCategoryHref(slug: string): string {
-  return slug === "soon" ? "/soon" : `/${slug}`;
+export function getHomeCategoryHref(slug?: string | null): string | null {
+  const trimmed = slug?.trim();
+  if (!trimmed) return null;
+  return `/category/${trimmed}`;
+}
+
+type CategoryCardLinkProps = {
+  href: string | null;
+  categoryName: string;
+  className: string;
+  children: React.ReactNode;
+};
+
+function CategoryCardLink({ href, categoryName, className, children }: CategoryCardLinkProps) {
+  const ariaLabel = href
+    ? `View ${categoryName} collection`
+    : `${categoryName} collection is unavailable`;
+
+  if (!href) {
+    return (
+      <div className={`${className} cursor-default`} aria-disabled="true" aria-label={ariaLabel}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href} className={className} aria-label={ariaLabel}>
+      {children}
+    </Link>
+  );
 }
 
 type CategoryCollectionCardProps = {
@@ -79,11 +108,7 @@ function BannerPromoCard({ category, index }: CategoryCollectionCardProps) {
       transition={{ duration: 0.45, delay: (index % 6) * 0.05, ease: "easeOut" }}
       className="aspect-[16/9] w-[min(calc(100vw-5rem),380px)] shrink-0 snap-start sm:w-[360px] lg:w-[380px]"
     >
-      <Link
-        href={href}
-        className={PROMO_LINK_CLASSNAME}
-        aria-label={`View ${category.name} collection`}
-      >
+      <CategoryCardLink href={href} categoryName={category.name} className={PROMO_LINK_CLASSNAME}>
         <Image
           src={bannerUrl}
           alt={`${category.name} collection banner`}
@@ -93,7 +118,7 @@ function BannerPromoCard({ category, index }: CategoryCollectionCardProps) {
           loading="lazy"
           unoptimized={bannerUrl.startsWith("data:")}
         />
-      </Link>
+      </CategoryCardLink>
     </motion.article>
   );
 }
@@ -115,7 +140,7 @@ function LegacyCategoryCard({ category, index }: CategoryCollectionCardProps) {
       className="w-[230px] shrink-0 snap-start sm:w-[230px]"
       style={{ height: LEGACY_CARD_HEIGHT }}
     >
-      <Link href={href} className={LEGACY_LINK_CLASSNAME} aria-label={`View ${category.name} collection`}>
+      <CategoryCardLink href={href} categoryName={category.name} className={LEGACY_LINK_CLASSNAME}>
         <div className="absolute inset-0" style={{ background: gradient }} aria-hidden="true" />
         <div
           className="pointer-events-none absolute inset-0 rounded-[22px]"
@@ -155,7 +180,7 @@ function LegacyCategoryCard({ category, index }: CategoryCollectionCardProps) {
             />
           </div>
         ) : null}
-      </Link>
+      </CategoryCardLink>
     </motion.article>
   );
 }
@@ -229,7 +254,14 @@ export function CategoryCardsClient({ categories }: CategoryCardsClientProps) {
     [scrollByDirection]
   );
 
+  const isCarouselDragTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return true;
+    return !target.closest("a, button, input, textarea, select, [role='link']");
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isCarouselDragTarget(event.target)) return;
+
     const container = scrollRef.current;
     if (!container) return;
 

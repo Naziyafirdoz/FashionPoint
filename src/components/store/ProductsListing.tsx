@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { Product } from "@/types";
 import { normalizeSizeFilter } from "@/config/size-chart";
 import { displayColorName } from "@/lib/product-filters";
+import type { ProductFilterOptions } from "@/lib/products/extract-filter-options";
 import { ProductGrid } from "./ProductGrid";
 import { FilterSidebar } from "./FilterSidebar";
 import { AiFeaturesPanel } from "./AiFeaturesPanel";
@@ -12,6 +13,16 @@ import { AiFeaturesPanel } from "./AiFeaturesPanel";
 export function ProductsListing() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
+  const [total, setTotal] = useState(0);
+  const [facets, setFacets] = useState<ProductFilterOptions>({
+    sizes: [],
+    colors: [],
+    fabrics: [],
+    neckTypes: [],
+    sleeveTypes: [],
+    priceMin: null,
+    priceMax: null
+  });
   const [loading, setLoading] = useState(true);
   const sizeFilter = searchParams.get("size");
   const colorFilter = searchParams.get("color");
@@ -24,15 +35,20 @@ export function ProductsListing() {
     (async () => {
       setLoading(true);
       const params = new URLSearchParams(searchParams.toString());
+      params.set("limit", "24");
       if (sizeFilter) {
         params.set("size", normalizeSizeFilter(sizeFilter));
       }
 
       const qs = params.toString();
       try {
-        const res = await fetch(`/api/products${qs ? `?${qs}` : ""}`);
+        const res = await fetch(`/api/products${qs ? `?${qs}` : ""}`, { cache: "no-store" });
         const data = await res.json();
-        if (!cancelled) setProducts(data.products ?? []);
+        if (!cancelled) {
+          setProducts(data.products ?? []);
+          setTotal(Number(data.total) || data.products?.length || 0);
+          if (data.facets) setFacets(data.facets);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -43,7 +59,7 @@ export function ProductsListing() {
     };
   }, [searchParams, sizeFilter]);
 
-  const visible = products.slice(0, 24);
+  const visible = products;
 
   return (
     <>
@@ -63,13 +79,13 @@ export function ProductsListing() {
       </section>
 
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 lg:grid-cols-[240px_1fr_220px]">
-        <FilterSidebar />
+        <FilterSidebar filterOptions={facets} />
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="text-foreground/60">
               {loading
                 ? "Loading products…"
-                : `Showing ${visible.length} of ${products.length} products`}
+                : `Showing ${visible.length} of ${total} products`}
             </span>
             {normalizedSize ? (
               <span className="rounded-full bg-secondary/20 px-3 py-1 text-xs font-medium text-primary">

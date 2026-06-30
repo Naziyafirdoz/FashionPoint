@@ -1,27 +1,72 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { normalizeSizeFilter, SIZE_CHART_CONFIG } from "@/config/size-chart";
-
-const SIZES = SIZE_CHART_CONFIG.sizes.map((s) => s.label);
-const COLORS = ["Pink", "Red", "Purple", "Green", "Blue", "Black", "Maroon", "Gold"];
-const FABRICS = ["Cotton", "Silk", "Satin", "Linen", "Georgette", "Rayon"];
-const NECK_TYPES = ["Round", "Boat", "V-Neck", "Square", "Princess", "Deep"];
-const SLEEVE_TYPES = ["Sleeveless", "Short", "Half Sleeve", "Full Sleeve", "Cap Sleeve"];
+import { normalizeSizeFilter } from "@/config/size-chart";
+import { colorMatchesFilter } from "@/lib/product-filters";
+import {
+  canRenderColorSwatch,
+  extractProductFilterOptions,
+  type FilterOption,
+  type ProductFilterOptions,
+} from "@/lib/products/extract-filter-options";
+import type { Product } from "@/types";
 
 const VISIBLE_LIMIT = 5;
 
+const LISTING_CHECKBOX =
+  "h-4 w-4 shrink-0 rounded border border-[#DCCFD4] bg-white text-white accent-[#7B0D2B] transition duration-200 ease-out hover:border-[#7B0D2B] focus:ring-2 focus:ring-[#7B0D2B]/15 focus:ring-offset-0 checked:border-[#7B0D2B] checked:bg-[#7B0D2B]";
+
+const LISTING_VIEW_MORE =
+  "text-xs font-semibold text-[#7B0D2B] transition-all duration-200 ease-out hover:text-[#B8860B] hover:underline";
+
+const LISTING_PANEL_CLASS =
+  "w-full min-w-0 max-w-full space-y-0 rounded-[20px] border border-[#F2E4E8] bg-white p-6 shadow-[0_10px_35px_rgba(122,13,43,0.06)]";
+
+const STICKY_LISTING_PANEL_CLASS =
+  "lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)] lg:z-0 lg:max-h-[calc(100vh-clamp(4.5rem,8vh,6rem)-0.75rem)] lg:overflow-y-auto lg:overscroll-y-contain";
+
 type FilterSidebarProps = {
+  products?: Product[];
+  filterOptions?: ProductFilterOptions;
   panel?: boolean;
   sticky?: boolean;
+  variant?: "default" | "listing";
 };
 
-export function FilterSidebar({ panel = false, sticky = false }: FilterSidebarProps) {
+function isSizeSelected(selected: string, value: string): boolean {
+  if (!selected) return false;
+  if (selected === value) return true;
+  return normalizeSizeFilter(selected).toLowerCase() === normalizeSizeFilter(value).toLowerCase();
+}
+
+function isColorSelected(selected: string, value: string): boolean {
+  if (!selected) return false;
+  return colorMatchesFilter(value, selected);
+}
+
+function isValueSelected(selected: string, value: string): boolean {
+  if (!selected) return false;
+  return selected.toLowerCase() === value.toLowerCase();
+}
+
+export function FilterSidebar({
+  products = [],
+  filterOptions: filterOptionsProp,
+  panel = false,
+  sticky = false,
+  variant = "default"
+}: FilterSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isListing = variant === "listing";
+
+  const filterOptions = useMemo(
+    () => filterOptionsProp ?? extractProductFilterOptions(products),
+    [filterOptionsProp, products]
+  );
 
   const selected = useMemo(
     () => ({
@@ -30,16 +75,24 @@ export function FilterSidebar({ panel = false, sticky = false }: FilterSidebarPr
       fabric: searchParams.get("fabric") ?? "",
       neck: searchParams.get("neck") ?? "",
       sleeve: searchParams.get("sleeve") ?? "",
-      priceMax: searchParams.get("priceMax") ?? "5000"
+      priceMax: searchParams.get("priceMax") ?? ""
     }),
     [searchParams]
   );
+
+  const priceSliderMax = filterOptions.priceMax ?? 0;
+  const priceSliderValue = selected.priceMax
+    ? Number(selected.priceMax)
+  : priceSliderMax;
 
   const updateParam = useCallback(
     (key: string, value: string) => {
       const params = new URLSearchParams(searchParams.toString());
       if (value) params.set(key, value);
       else params.delete(key);
+      if (key !== "page" && key !== "sort") {
+        params.delete("page");
+      }
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
     [pathname, router, searchParams]
@@ -48,117 +101,205 @@ export function FilterSidebar({ panel = false, sticky = false }: FilterSidebarPr
   const toggleParam = useCallback(
     (key: string, value: string) => {
       const current = searchParams.get(key);
-      updateParam(key, current === value ? "" : value);
+      const isActive =
+        key === "size"
+          ? current
+            ? isSizeSelected(current, value)
+            : false
+          : key === "color"
+            ? current
+              ? isColorSelected(current, value)
+              : false
+            : current?.toLowerCase() === value.toLowerCase();
+
+      updateParam(key, isActive ? "" : value);
     },
     [searchParams, updateParam]
   );
 
-  return (
-    <aside
-      className={
-        panel
-          ? `hidden space-y-1 rounded-[18px] border border-black/[0.06] bg-white/95 p-5 shadow-[0_8px_28px_rgba(123,13,43,0.06)] lg:block ${
-              sticky ? "lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto" : ""
-            }`
-          : `hidden space-y-6 lg:block ${sticky ? "lg:sticky lg:top-24 lg:self-start" : ""}`
-      }
-    >
-      <h2 className="mb-4 font-display text-lg font-bold text-primary">Filters</h2>
+  const asideClassName = (() => {
+    if (isListing && panel) {
+      return sticky ? "" : LISTING_PANEL_CLASS;
+    }
+    if (panel) {
+      return `w-full min-w-0 max-w-full space-y-1 rounded-[18px] border border-black/[0.06] bg-white/95 p-[clamp(1rem,2vw,1.25rem)] shadow-[0_8px_28px_rgba(123,13,43,0.06)] ${
+        sticky
+          ? "lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)] lg:max-h-[calc(100vh-clamp(5rem,10vh,7rem))] lg:overflow-y-auto"
+          : ""
+      }`;
+    }
+    return `hidden w-full min-w-0 space-y-6 lg:block ${sticky ? "lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)]" : ""}`;
+  })();
 
-      <CollapsibleFilterGroup title="Size">
-        <CheckboxFilterList
-          items={SIZES}
-          selected={selected.size}
-          onToggle={(value) => toggleParam("size", value)}
-        />
-      </CollapsibleFilterGroup>
+  const hasAnyFilters =
+    filterOptions.sizes.length > 0 ||
+    filterOptions.colors.length > 0 ||
+    filterOptions.fabrics.length > 0 ||
+    filterOptions.neckTypes.length > 0 ||
+    filterOptions.sleeveTypes.length > 0 ||
+  (filterOptions.priceMin !== null &&
+    filterOptions.priceMax !== null &&
+    filterOptions.priceMax > filterOptions.priceMin);
 
-      <CollapsibleFilterGroup title="Color">
-        <div className="flex flex-wrap gap-2">
-          {COLORS.map((color) => (
-            <button
-              key={color}
-              type="button"
-              title={color}
-              onClick={() => toggleParam("color", color)}
-              className={`h-7 w-7 rounded-full border-2 shadow-sm transition ${
-                selected.color === color
-                  ? "border-primary ring-2 ring-primary/30"
-                  : "border-white ring-1 ring-black/[0.08]"
-              }`}
-              style={{ background: color.toLowerCase() === "gold" ? "#d4af37" : color.toLowerCase() }}
-            />
-          ))}
+  const filterBody = (
+    <>
+      {isListing ? (
+        <div className="mb-2 flex items-center gap-2.5 border-b border-[#F3E7EA] pb-5">
+          <SlidersHorizontal className="h-5 w-5 text-[#7B0D2B]" aria-hidden="true" />
+          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[#7B0D2B]">Filters</h2>
         </div>
-      </CollapsibleFilterGroup>
+      ) : (
+        <h2 className="mb-4 font-display text-lg font-bold text-primary">Filters</h2>
+      )}
 
-      <CollapsibleFilterGroup title="Fabric">
-        <CheckboxFilterList
-          items={FABRICS}
-          selected={selected.fabric}
-          onToggle={(value) => toggleParam("fabric", value)}
-        />
-      </CollapsibleFilterGroup>
+      {!hasAnyFilters ? (
+        <p className={`text-sm ${isListing ? "text-[#666666]" : "text-foreground/60"}`}>
+          No filters available for the current products.
+        </p>
+      ) : null}
 
-      <CollapsibleFilterGroup title="Neck Type">
-        <CheckboxFilterList
-          items={NECK_TYPES}
-          selected={selected.neck}
-          onToggle={(value) => toggleParam("neck", value)}
-        />
-      </CollapsibleFilterGroup>
+      {filterOptions.sizes.length > 0 ? (
+        <CollapsibleFilterGroup title="Size" listing={isListing}>
+          <CheckboxFilterList
+            items={filterOptions.sizes}
+            selected={selected.size}
+            onToggle={(value) => toggleParam("size", value)}
+            listing={isListing}
+            isSelected={isSizeSelected}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
 
-      <CollapsibleFilterGroup title="Sleeve Type">
-        <CheckboxFilterList
-          items={SLEEVE_TYPES}
-          selected={selected.sleeve}
-          onToggle={(value) => toggleParam("sleeve", value)}
-        />
-      </CollapsibleFilterGroup>
+      {filterOptions.colors.length > 0 ? (
+        <CollapsibleFilterGroup title="Color" listing={isListing}>
+          <ColorFilterList
+            colors={filterOptions.colors}
+            selected={selected.color}
+            onToggle={(value) => toggleParam("color", value)}
+            listing={isListing}
+            isSelected={isColorSelected}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
 
-      <CollapsibleFilterGroup title="Price" defaultOpen>
-        <input
-          type="range"
-          min={0}
-          max={5000}
-          step={100}
-          value={selected.priceMax}
-          className="mt-1 w-full accent-primary"
-          onChange={(e) => updateParam("priceMax", e.target.value)}
-        />
-        <p className="mt-2 text-sm text-foreground/60">₹0 — ₹{selected.priceMax}</p>
-      </CollapsibleFilterGroup>
-    </aside>
+      {filterOptions.fabrics.length > 0 ? (
+        <CollapsibleFilterGroup title="Fabric" listing={isListing}>
+          <CheckboxFilterList
+            items={filterOptions.fabrics}
+            selected={selected.fabric}
+            onToggle={(value) => toggleParam("fabric", value)}
+            listing={isListing}
+            isSelected={isValueSelected}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
+
+      {filterOptions.neckTypes.length > 0 ? (
+        <CollapsibleFilterGroup title="Neck Type" listing={isListing}>
+          <CheckboxFilterList
+            items={filterOptions.neckTypes}
+            selected={selected.neck}
+            onToggle={(value) => toggleParam("neck", value)}
+            listing={isListing}
+            isSelected={isValueSelected}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
+
+      {filterOptions.sleeveTypes.length > 0 ? (
+        <CollapsibleFilterGroup title="Sleeve Type" listing={isListing}>
+          <CheckboxFilterList
+            items={filterOptions.sleeveTypes}
+            selected={selected.sleeve}
+            onToggle={(value) => toggleParam("sleeve", value)}
+            listing={isListing}
+            isSelected={isValueSelected}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
+
+      {filterOptions.priceMin !== null &&
+      filterOptions.priceMax !== null &&
+      filterOptions.priceMax > filterOptions.priceMin ? (
+        <CollapsibleFilterGroup title="Price" defaultOpen listing={isListing}>
+          <PriceFilterRange
+            min={filterOptions.priceMin}
+            max={filterOptions.priceMax}
+            value={Number.isFinite(priceSliderValue) ? priceSliderValue : filterOptions.priceMax}
+            listing={isListing}
+            onChange={(value) => updateParam("priceMax", String(value))}
+          />
+        </CollapsibleFilterGroup>
+      ) : null}
+    </>
+  );
+
+  if (isListing && panel && sticky) {
+    return (
+      <aside className="flex h-full w-full min-w-0 flex-col">
+        <div className={`${LISTING_PANEL_CLASS} ${STICKY_LISTING_PANEL_CLASS}`}>{filterBody}</div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className={asideClassName}>{filterBody}</aside>
   );
 }
 
 function CollapsibleFilterGroup({
   title,
   children,
-  defaultOpen = true
+  defaultOpen = true,
+  listing = false
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  listing?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-black/[0.06] py-4 last:border-b-0">
+    <div
+      className={`border-b last:border-b-0 ${
+        listing ? "border-[#F3E7EA] py-7 first:pt-2" : "border-black/[0.06] py-6"
+      }`}
+    >
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between text-left"
+        className={`group flex w-full items-center justify-between text-left transition-colors duration-200 ease-out ${
+          listing ? "-mx-1 rounded-lg px-1 py-1 hover:bg-[#FFF5F7]" : ""
+        }`}
         aria-expanded={open}
       >
-        <span className="text-sm font-semibold text-primary">{title}</span>
+        <span
+          className={
+            listing
+              ? "text-[13px] font-semibold uppercase tracking-[0.08em] text-[#7B0D2B]"
+              : "text-sm font-bold uppercase text-primary"
+          }
+        >
+          {title}
+        </span>
         {open ? (
-          <ChevronUp className="h-4 w-4 text-foreground/50" aria-hidden="true" />
+          <ChevronUp
+            className={`h-4 w-4 transition-transform duration-200 ease-out ${
+              listing ? "text-[#7B0D2B] group-hover:scale-110" : "text-[#777777]"
+            }`}
+            aria-hidden="true"
+          />
         ) : (
-          <ChevronDown className="h-4 w-4 text-foreground/50" aria-hidden="true" />
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ease-out ${
+              listing ? "text-[#7B0D2B] group-hover:rotate-180" : "text-[#777777]"
+            }`}
+            aria-hidden="true"
+          />
         )}
       </button>
-      {open ? <div className="mt-3">{children}</div> : null}
+      {open ? <div className="mt-4">{children}</div> : null}
     </div>
   );
 }
@@ -166,38 +307,178 @@ function CollapsibleFilterGroup({
 function CheckboxFilterList({
   items,
   selected,
-  onToggle
+  onToggle,
+  listing = false,
+  isSelected
 }: {
-  items: string[];
+  items: FilterOption[];
   selected: string;
   onToggle: (value: string) => void;
+  listing?: boolean;
+  isSelected: (selected: string, value: string) => boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visibleItems = expanded ? items : items.slice(0, VISIBLE_LIMIT);
   const hasMore = items.length > VISIBLE_LIMIT;
 
   return (
-    <div className="space-y-2">
-      {visibleItems.map((item) => (
-        <label key={item} className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground/80">
-          <input
-            type="checkbox"
-            className="rounded border-primary/40 text-primary focus:ring-primary/30"
-            checked={selected === item}
-            onChange={() => onToggle(item)}
-          />
-          {item}
-        </label>
-      ))}
+    <div className={listing ? "space-y-3.5" : "space-y-3"}>
+      {visibleItems.map((item) => {
+        const checked = isSelected(selected, item.value);
+        return (
+          <label
+            key={item.value}
+            className={`flex cursor-pointer items-center gap-3 leading-relaxed transition-colors duration-200 ease-out ${
+              listing
+                ? `rounded-lg px-1 py-0.5 hover:bg-[#FFF5F7] ${
+                    checked ? "text-[#7B0D2B]" : "text-[#333333] hover:text-[#7B0D2B]"
+                  }`
+                : "text-sm text-foreground/80"
+            }`}
+          >
+            <input
+              type="checkbox"
+              className={listing ? LISTING_CHECKBOX : "rounded border-primary/40 text-primary focus:ring-primary/30"}
+              checked={checked}
+              onChange={() => onToggle(item.value)}
+            />
+            <span className={listing ? "text-sm" : ""}>
+              {item.label}
+              {item.count > 0 ? ` (${item.count})` : ""}
+            </span>
+          </label>
+        );
+      })}
       {hasMore ? (
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="text-xs font-semibold text-primary transition hover:text-primary/80"
+          className={listing ? LISTING_VIEW_MORE : "text-xs font-semibold text-[#7B0D2B] transition hover:text-[#7B0D2B]/80 hover:underline"}
         >
-          {expanded ? "View Less" : "View More"}
+          {expanded ? "View Less" : "+ View More"}
         </button>
       ) : null}
     </div>
+  );
+}
+
+function ColorFilterList({
+  colors,
+  selected,
+  onToggle,
+  listing = false,
+  isSelected
+}: {
+  colors: FilterOption[];
+  selected: string;
+  onToggle: (value: string) => void;
+  listing?: boolean;
+  isSelected: (selected: string, value: string) => boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleColors = expanded ? colors : colors.slice(0, VISIBLE_LIMIT);
+  const hasMore = colors.length > VISIBLE_LIMIT;
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-3">
+        {visibleColors.map((color) => {
+          const checked = isSelected(selected, color.value);
+          const showSwatch = canRenderColorSwatch(color.value);
+
+          if (showSwatch) {
+            return (
+              <button
+                key={color.value}
+                type="button"
+                title={`${color.label}${color.count > 0 ? ` (${color.count})` : ""}`}
+                onClick={() => onToggle(color.value)}
+                className={
+                  listing
+                    ? `h-[22px] w-[22px] rounded-full transition-all duration-200 ease-out hover:scale-[1.08] hover:shadow-[0_2px_8px_rgba(122,13,43,0.14)] ${
+                        checked
+                          ? "border-2 border-[#7B0D2B] shadow-[0_0_0_3px_rgba(123,13,43,0.12)]"
+                          : "border-2 border-white shadow-[0_0_0_1px_#DCCFD4]"
+                      }`
+                    : `h-[24px] w-[24px] rounded-full border-2 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition ${
+                        checked
+                          ? "border-[#7B0D2B] ring-2 ring-[#7B0D2B]/25"
+                          : "border-white ring-1 ring-[#F2E4E8]"
+                      }`
+                }
+                style={{ background: color.value.trim().toLowerCase() }}
+              />
+            );
+          }
+
+          return (
+            <button
+              key={color.value}
+              type="button"
+              onClick={() => onToggle(color.value)}
+              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition duration-200 ease-out ${
+                listing
+                  ? checked
+                    ? "border-[#7B0D2B] bg-[#FCECEF] text-[#7B0D2B]"
+                    : "border-[#F2E4E8] bg-white text-[#333333] hover:border-[#7B0D2B]/40 hover:bg-[#FFF5F7]"
+                  : checked
+                    ? "border-primary bg-secondary/20 text-primary"
+                    : "border-black/10 bg-white text-foreground/80 hover:border-primary/30"
+              }`}
+            >
+              {color.label}
+              {color.count > 0 ? ` (${color.count})` : ""}
+            </button>
+          );
+        })}
+      </div>
+      {hasMore ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className={
+            listing
+              ? `mt-3.5 ${LISTING_VIEW_MORE}`
+              : "mt-3 text-xs font-semibold text-[#7B0D2B] transition hover:text-[#7B0D2B]/80 hover:underline"
+          }
+        >
+          {expanded ? "View Less" : "+ View More"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function PriceFilterRange({
+  min,
+  max,
+  value,
+  listing,
+  onChange
+}: {
+  min: number;
+  max: number;
+  value: number;
+  listing: boolean;
+  onChange: (value: number) => void;
+}) {
+  const step = max - min > 1000 ? 100 : max - min > 100 ? 50 : 10;
+  const clampedValue = Math.min(max, Math.max(min, value));
+
+  return (
+    <>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={clampedValue}
+        className="mt-1 w-full accent-[#7B0D2B]"
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <p className={`mt-2 text-sm ${listing ? "text-[#666666]" : "text-foreground/60"}`}>
+        ₹{min.toLocaleString("en-IN")} — ₹{clampedValue.toLocaleString("en-IN")}
+      </p>
+    </>
   );
 }

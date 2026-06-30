@@ -9,114 +9,79 @@ import {
   syncProductStockQuantity,
   type AdminVariantUpdateInput
 } from "@/lib/admin/products";
-import { STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
-import { MOCK_PRODUCTS, getProductsByCategory } from "@/lib/mock-data";
-import { clearProductColorCountCache, filterProductsByColor } from "@/lib/color-products";
-import { filterMockProducts, type ProductFilterParams } from "@/lib/product-filters";
-import { normalizeSizeFilter } from "@/config/size-chart";
+import { clearProductColorCountCache } from "@/lib/color-products";
+import { parseFilterParams } from "@/lib/product-filters";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
-import type { Product } from "@/types";
+import { listProductsFromDb } from "@/lib/products/list-products";
 import { devLog } from "@/lib/dev-log";
 
-const PRODUCT_LIST_LIMIT = 20;
-const PRODUCT_LIST_SELECT =
-  "id,slug,name,description,price,compare_price,status,is_active,images,sizes,colors,fabric,neck_type,category_id,created_at";
-
 let productsApiRequestCount = 0;
-
-function getFilters(url: URL): ProductFilterParams & { category?: string | null } {
-  return {
-    category: url.searchParams.get("category"),
-    sub_category: url.searchParams.get("sub_category"),
-    size: url.searchParams.get("size"),
-    color: url.searchParams.get("color"),
-    fabric: url.searchParams.get("fabric"),
-    neck: url.searchParams.get("neck"),
-    priceMin: url.searchParams.get("priceMin"),
-    priceMax: url.searchParams.get("priceMax")
-  };
-}
 
 export async function GET(req: Request) {
   productsApiRequestCount += 1;
   const start = performance.now();
   devLog("API PRODUCTS CALLED", { count: productsApiRequestCount });
   const url = new URL(req.url);
-  const filters = getFilters(url);
+  const filters = parseFilterParams(url.searchParams);
   const db = createServiceClient();
 
-  if (db) {
-    let query = db
-      .from("products")
-      .select(PRODUCT_LIST_SELECT)
-      .in("status", STOREFRONT_PRODUCT_STATUSES)
-      .order("created_at", { ascending: false })
-      .limit(PRODUCT_LIST_LIMIT);
-
-    if (filters.category) {
-      const { data: cat } = await db
-        .from("categories")
-        .select("id")
-        .eq("slug", filters.category)
-        .maybeSingle();
-      if (cat) query = query.eq("category_id", cat.id);
-    }
-
-    if (filters.sub_category) {
-      let subCategoryQuery = db
-        .from("sub_categories")
-        .select("id")
-        .eq("slug", filters.sub_category)
-        .eq("is_active", true);
-
-      if (filters.category) {
-        const { data: cat } = await db
-          .from("categories")
-          .select("id")
-          .eq("slug", filters.category)
-          .maybeSingle();
-        if (cat) subCategoryQuery = subCategoryQuery.eq("category_id", cat.id);
-      }
-
-      const { data: subCat } = await subCategoryQuery.maybeSingle();
-      if (subCat) query = query.eq("sub_category_id", subCat.id);
-    }
-
-    if (filters.size) {
-      const normalizedSize = normalizeSizeFilter(filters.size);
-      query = query.contains("sizes", [normalizedSize]);
-    }
-    if (filters.fabric) query = query.ilike("fabric", `%${filters.fabric}%`);
-    if (filters.neck) query = query.ilike("neck_type", `%${filters.neck}%`);
-    if (filters.priceMin) query = query.gte("price", Number(filters.priceMin));
-    if (filters.priceMax) query = query.lte("price", Number(filters.priceMax));
-
-    const { data, error } = await query;
-    devLog("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
-    if (!error && data) {
-      let products = data.map((row) => normalizeDbProduct(row as DbRow));
-      if (filters.color) {
-        products = filterProductsByColor(products, filters.color);
-      }
-      return NextResponse.json({
-        products,
-        source: "supabase"
-      });
-    }
+  if (!db) {
+    return NextResponse.json(
+      {
+        products: [],
+        total: 0,
+        page: 1,
+        pageSize: 12,
+        facets: {
+          sizes: [],
+          colors: [],
+          fabrics: [],
+          neckTypes: [],
+          sleeveTypes: [],
+          priceMin: null,
+          priceMax: null
+        },
+        source: "error",
+        error: "Database unavailable"
+      },
+      { status: 503 }
+    );
   }
 
-  let products: Product[] = filters.category
-    ? getProductsByCategory(filters.category)
-    : MOCK_PRODUCTS;
-
-  if (!filters.category && products.length === 0) {
-    products = MOCK_PRODUCTS;
-  }
-
-  products = filterMockProducts(products, filters);
-
+  const result = await listProductsFromDb(db, filters);
   devLog("[products] elapsed", performance.now() - start, { count: productsApiRequestCount });
-  return NextResponse.json({ products, source: "mock" });
+
+  if (!result) {
+    return NextResponse.json(
+      {
+        products: [],
+        total: 0,
+        page: Number(filters.page) || 1,
+        pageSize: Number(filters.limit) || 12,
+        facets: {
+          sizes: [],
+          colors: [],
+          fabrics: [],
+          neckTypes: [],
+          sleeveTypes: [],
+          priceMin: null,
+          priceMax: null
+        },
+        source: "error",
+        error: "Failed to load products"
+      },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    products: result.products,
+    total: result.total,
+    page: result.page,
+    pageSize: result.pageSize,
+    facets: result.facets,
+    source: "supabase"
+  });
 }
 
 export async function POST(req: Request) {

@@ -8,8 +8,12 @@ export type ProductFilterParams = {
   color?: string | null;
   fabric?: string | null;
   neck?: string | null;
+  sleeve?: string | null;
   priceMin?: string | null;
   priceMax?: string | null;
+  sort?: string | null;
+  page?: string | null;
+  limit?: string | null;
 };
 
 export function parseFilterParams(searchParams: URLSearchParams): ProductFilterParams {
@@ -20,8 +24,12 @@ export function parseFilterParams(searchParams: URLSearchParams): ProductFilterP
     color: searchParams.get("color"),
     fabric: searchParams.get("fabric"),
     neck: searchParams.get("neck"),
+    sleeve: searchParams.get("sleeve"),
     priceMin: searchParams.get("priceMin"),
-    priceMax: searchParams.get("priceMax")
+    priceMax: searchParams.get("priceMax"),
+    sort: searchParams.get("sort"),
+    page: searchParams.get("page"),
+    limit: searchParams.get("limit")
   };
 }
 
@@ -35,8 +43,12 @@ export function buildProductsQueryString(
   if (filters.color) params.set("color", filters.color);
   if (filters.fabric) params.set("fabric", filters.fabric);
   if (filters.neck) params.set("neck", filters.neck);
+  if (filters.sleeve) params.set("sleeve", filters.sleeve);
   if (filters.priceMin) params.set("priceMin", filters.priceMin);
   if (filters.priceMax) params.set("priceMax", filters.priceMax);
+  if (filters.sort) params.set("sort", filters.sort);
+  if (filters.page) params.set("page", filters.page);
+  if (filters.limit) params.set("limit", filters.limit);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -59,6 +71,12 @@ export function filterMockProducts(products: Product[], filters: ProductFilterPa
       return false;
     }
     if (filters.neck && !p.neck_type?.toLowerCase().includes(filters.neck.toLowerCase())) {
+      return false;
+    }
+    if (
+      filters.sleeve &&
+      !p.sleeve_type?.toLowerCase().includes(filters.sleeve.toLowerCase())
+    ) {
       return false;
     }
     const min = filters.priceMin ? Number(filters.priceMin) : 0;

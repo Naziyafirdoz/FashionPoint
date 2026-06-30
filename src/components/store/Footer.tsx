@@ -11,7 +11,7 @@ import { BrandLockup } from "@/components/BrandLockup";
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-accent/20 bg-white">
+    <footer className="mt-0 border-t border-accent/20 bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4">
         <div>
           <BrandLockup variant="dark" compactOnMobile={false} />

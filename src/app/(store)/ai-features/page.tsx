@@ -4,8 +4,7 @@ import { Sparkles } from "lucide-react";
 const FEATURES = [
   { title: "AI Size Finder", desc: "Get your perfect blouse size in seconds.", href: "/ai-features/size-finder", cta: "TRY AI SIZE FINDER" },
   { title: "Saree Color Matcher", desc: "Upload your saree and find matching blouse colors.", href: "/ai-features/color-matcher", cta: "TRY COLOR MATCHER" },
-  { title: "AI Style Assistant", desc: "Personalized style recommendations.", href: "/ai-features/style-recommender", cta: "CHAT WITH AI STYLIST" },
-  { title: "Virtual Try-On", desc: "See blouses on you — coming soon.", href: "/ai-features/smart-preview", cta: "NOTIFY ME" }
+  { title: "AI Style Assistant", desc: "Personalized style recommendations.", href: "/ai-features/style-recommender", cta: "CHAT WITH AI STYLIST" }
 ];
 
 export const metadata = { title: "AI Features" };
@@ -24,7 +23,7 @@ export default function AiFeaturesPage() {
           ))}
         </div>
       </section>
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-16 sm:grid-cols-2">
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f) => (
           <div key={f.title} className="card-store">
             <h2 className="font-display text-xl font-bold text-primary">{f.title}</h2>

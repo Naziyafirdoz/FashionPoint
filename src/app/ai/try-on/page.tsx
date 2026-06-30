@@ -1,2 +1,5 @@
 import { redirect } from "next/navigation";
-export default function Page() { redirect("/ai-features/smart-preview"); }
+
+export default function Page() {
+  redirect("/ai-features");
+}

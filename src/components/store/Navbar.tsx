@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useCartStore } from "@/stores/cart";
+import { useWishlistStore } from "@/stores/wishlist";
 import { SearchBar } from "@/components/store/SearchBar";
 import { BrandLockup } from "@/components/BrandLockup";
 import { FeaturedCategoryNavItem } from "@/components/store/FeaturedCategoryNavItem";
@@ -116,6 +117,7 @@ function MoreDropdown({
 
 export function Navbar({ categories = [] }: NavbarProps) {
   const count = useCartStore((s) => s.count());
+  const wishlistCount = useWishlistStore((s) => s.ids.size);
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -178,8 +180,13 @@ export function Navbar({ categories = [] }: NavbarProps) {
           <Link href="/account" className="rounded-full p-2 hover:bg-blush" aria-label="Account">
             <User className="h-5 w-5 text-primary" />
           </Link>
-          <Link href="/wishlist" className="rounded-full p-2 hover:bg-blush" aria-label="Wishlist">
+          <Link href="/wishlist" className="relative rounded-full p-2 hover:bg-blush" aria-label="Wishlist">
             <Heart className="h-5 w-5 text-primary" />
+            {mounted && wishlistCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-white">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
           <Link href="/cart" className="relative rounded-full p-2 hover:bg-blush" aria-label="Cart">
             <ShoppingBag className="h-5 w-5 text-primary" />

@@ -1,47 +1,87 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getPaginationRange } from "@/lib/products/pagination-range";
+
+const HOVER_PILL =
+  "transition duration-200 hover:border-[#7B0D2B]/40 hover:bg-[#FFF5F7] hover:text-[#7B0D2B]";
+
 type CategoryListingPaginationProps = {
-  totalProducts: number;
-  visibleCount: number;
+  page: number;
+  totalPages: number;
 };
 
-export function CategoryListingPagination({
-  totalProducts,
-  visibleCount
-}: CategoryListingPaginationProps) {
+export function CategoryListingPagination({ page, totalPages }: CategoryListingPaginationProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  if (totalPages <= 1) return null;
+
+  const goToPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages || nextPage === page) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextPage <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(nextPage));
+    }
+
+    router.push(`${pathname}?${params.toString()}`, { scroll: true });
+  };
+
+  const pageButtonClass = (active: boolean) =>
+    `flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition duration-200 ${
+      active
+        ? "bg-[#7B0D2B] text-white"
+        : `border border-[#F2E4E8] bg-white text-[#2A2A2A] ${HOVER_PILL}`
+    }`;
+
+  const navButtonClass = `flex h-10 w-10 items-center justify-center rounded-full border border-[#F2E4E8] bg-white text-sm text-[#666666] disabled:cursor-not-allowed disabled:opacity-40 ${HOVER_PILL}`;
+
+  const range = getPaginationRange(page, totalPages);
+
   return (
-    <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-      <nav className="flex items-center gap-1.5 text-sm" aria-label="Pagination">
-        <button
-          type="button"
-          className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-foreground/70 shadow-sm transition hover:border-primary/20 hover:text-primary"
-        >
-          Previous
-        </button>
-        {[1, 2, 3].map((n) => (
+    <nav
+      className="mt-6 flex w-full flex-wrap items-center justify-center gap-2"
+      aria-label="Pagination"
+    >
+      <button
+        type="button"
+        className={navButtonClass}
+        aria-label="Previous page"
+        disabled={page <= 1}
+        onClick={() => goToPage(page - 1)}
+      >
+        &lt;
+      </button>
+      {range.map((item, index) =>
+        item === "ellipsis" ? (
+          <span key={`ellipsis-${index}`} className="px-1 text-sm text-[#666666]">
+            ...
+          </span>
+        ) : (
           <button
-            key={n}
+            key={item}
             type="button"
-            className={`min-w-[2.5rem] rounded-full px-3 py-2 transition ${
-              n === 1
-                ? "bg-primary text-white shadow-sm"
-                : "border border-black/[0.08] bg-white text-foreground/70 shadow-sm hover:border-primary/20 hover:text-primary"
-            }`}
+            className={pageButtonClass(item === page)}
+            aria-current={item === page ? "page" : undefined}
+            onClick={() => goToPage(item)}
           >
-            {n}
+            {item}
           </button>
-        ))}
-        <span className="px-1 text-foreground/40">...</span>
-        <button
-          type="button"
-          className="rounded-full border border-black/[0.08] bg-white px-4 py-2 text-foreground/70 shadow-sm transition hover:border-primary/20 hover:text-primary"
-        >
-          Next
-        </button>
-      </nav>
-      <p className="text-sm text-foreground/60">
-        Showing 1 to {visibleCount} of {totalProducts} products
-      </p>
-    </div>
+        )
+      )}
+      <button
+        type="button"
+        className={navButtonClass}
+        aria-label="Next page"
+        disabled={page >= totalPages}
+        onClick={() => goToPage(page + 1)}
+      >
+        &gt;
+      </button>
+    </nav>
   );
 }
