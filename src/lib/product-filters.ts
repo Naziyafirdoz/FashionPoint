@@ -1,5 +1,6 @@
 import type { Product } from "@/types";
 import { normalizeSizeFilter } from "@/config/size-chart";
+import { getFacetLabel } from "@/lib/products/facet-registry";
 
 export type ProductFilterParams = {
   category?: string | null;
@@ -9,12 +10,26 @@ export type ProductFilterParams = {
   fabric?: string | null;
   neck?: string | null;
   sleeve?: string | null;
+  closure?: string | null;
+  occasion?: string | null;
+  tag?: string | null;
   priceMin?: string | null;
   priceMax?: string | null;
   sort?: string | null;
   page?: string | null;
   limit?: string | null;
+  slugs?: string | null;
 };
+
+const META_QUERY_KEYS = new Set([
+  "category",
+  "sub_category",
+  "priceMin",
+  "sort",
+  "page",
+  "limit",
+  "slugs"
+]);
 
 export function parseFilterParams(searchParams: URLSearchParams): ProductFilterParams {
   return {
@@ -25,12 +40,40 @@ export function parseFilterParams(searchParams: URLSearchParams): ProductFilterP
     fabric: searchParams.get("fabric"),
     neck: searchParams.get("neck"),
     sleeve: searchParams.get("sleeve"),
+    closure: searchParams.get("closure"),
+    occasion: searchParams.get("occasion"),
+    tag: searchParams.get("tag"),
     priceMin: searchParams.get("priceMin"),
     priceMax: searchParams.get("priceMax"),
     sort: searchParams.get("sort"),
     page: searchParams.get("page"),
-    limit: searchParams.get("limit")
+    limit: searchParams.get("limit"),
+    slugs: searchParams.get("slugs")
   };
+}
+
+export function getActiveFilterEntries(
+  searchParams: URLSearchParams
+): Array<{ key: string; value: string }> {
+  const entries: Array<{ key: string; value: string }> = [];
+
+  for (const [key, value] of searchParams.entries()) {
+    if (META_QUERY_KEYS.has(key)) continue;
+    if (!value.trim()) continue;
+    entries.push({ key, value });
+  }
+
+  return entries;
+}
+
+export function getActiveFilterDisplayLabel(key: string, value: string): string {
+  if (key === "priceMax") {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? `Up to ₹${amount.toLocaleString("en-IN")}` : value;
+  }
+
+  const label = getFacetLabel(key);
+  return `${label}: ${value}`;
 }
 
 export function buildProductsQueryString(
@@ -44,11 +87,15 @@ export function buildProductsQueryString(
   if (filters.fabric) params.set("fabric", filters.fabric);
   if (filters.neck) params.set("neck", filters.neck);
   if (filters.sleeve) params.set("sleeve", filters.sleeve);
+  if (filters.closure) params.set("closure", filters.closure);
+  if (filters.occasion) params.set("occasion", filters.occasion);
+  if (filters.tag) params.set("tag", filters.tag);
   if (filters.priceMin) params.set("priceMin", filters.priceMin);
   if (filters.priceMax) params.set("priceMax", filters.priceMax);
   if (filters.sort) params.set("sort", filters.sort);
   if (filters.page) params.set("page", filters.page);
   if (filters.limit) params.set("limit", filters.limit);
+  if (filters.slugs) params.set("slugs", filters.slugs);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }

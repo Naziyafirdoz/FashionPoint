@@ -10,8 +10,10 @@ import {
   type AdminVariantUpdateInput
 } from "@/lib/admin/products";
 import { clearProductColorCountCache } from "@/lib/color-products";
+import { clearSearchIndexCache } from "@/lib/search/search-products";
 import { parseFilterParams } from "@/lib/product-filters";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
+import { EMPTY_PRODUCT_FILTER_OPTIONS } from "@/lib/products/extract-filter-options";
 import { listProductsFromDb } from "@/lib/products/list-products";
 import { devLog } from "@/lib/dev-log";
 
@@ -32,15 +34,7 @@ export async function GET(req: Request) {
         total: 0,
         page: 1,
         pageSize: 12,
-        facets: {
-          sizes: [],
-          colors: [],
-          fabrics: [],
-          neckTypes: [],
-          sleeveTypes: [],
-          priceMin: null,
-          priceMax: null
-        },
+        facets: EMPTY_PRODUCT_FILTER_OPTIONS,
         source: "error",
         error: "Database unavailable"
       },
@@ -58,15 +52,7 @@ export async function GET(req: Request) {
         total: 0,
         page: Number(filters.page) || 1,
         pageSize: Number(filters.limit) || 12,
-        facets: {
-          sizes: [],
-          colors: [],
-          fabrics: [],
-          neckTypes: [],
-          sleeveTypes: [],
-          priceMin: null,
-          priceMax: null
-        },
+        facets: EMPTY_PRODUCT_FILTER_OPTIONS,
         source: "error",
         error: "Failed to load products"
       },
@@ -189,6 +175,7 @@ export async function POST(req: Request) {
   }
 
   clearProductColorCountCache();
+  clearSearchIndexCache();
 
   const { data: product } = await db
     .from("products")

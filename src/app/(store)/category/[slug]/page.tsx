@@ -1,9 +1,21 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { CategoryHeroSection } from "@/components/store/CategoryHeroSection";
+import dynamic from "next/dynamic";
+import { CategoryHero } from "@/components/store/category/CategoryHero";
 import { CategoryListing } from "@/components/store/CategoryListing";
-import { getCategoryBySlug } from "@/lib/categories/get-category-by-slug";
-import { getActiveSubCategoriesByCategorySlug } from "@/lib/sub-categories/get-sub-categories";
+import { RelatedCategories } from "@/components/store/category/RelatedCategories";
+import {
+  buildCategoryMetadata,
+  getCategoryPageBundle
+} from "@/lib/categories/get-category-page-data";
+
+const CategoryRecentlyViewed = dynamic(
+  () =>
+    import("@/components/store/category/CategoryRecentlyViewed").then(
+      (mod) => mod.CategoryRecentlyViewed
+    ),
+  { loading: () => null }
+);
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -11,28 +23,30 @@ type Props = {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
-  if (!category) return { title: "Category" };
-  return { title: `${category.name} | Fashion Point` };
+  const bundle = await getCategoryPageBundle(slug);
+  if (!bundle) return { title: "Category" };
+  return buildCategoryMetadata(bundle.category);
 }
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
-  if (!category) notFound();
+  const bundle = await getCategoryPageBundle(slug);
+  if (!bundle) notFound();
 
-  const subCategories = await getActiveSubCategoriesByCategorySlug(slug);
+  const { category, subCategories, relatedCategories } = bundle;
 
   return (
     <>
-      <CategoryHeroSection
-        title={category.name}
-        description={category.description ?? `Browse our ${category.name} collection.`}
-        imageUrl={category.image_url}
-      />
-      <Suspense fallback={<p className="bg-[#FFF8F8] p-8 text-center text-sm text-[#777777]">Loading…</p>}>
-        <CategoryListing categorySlug={slug} subCategories={subCategories} />
+      <CategoryHero category={category} />
+      <Suspense
+        fallback={
+          <p className="bg-[#FFF8F8] p-8 text-center text-sm text-[#777777]">Loading…</p>
+        }
+      >
+        <CategoryListing category={category} subCategories={subCategories} />
       </Suspense>
+      <RelatedCategories categories={relatedCategories} />
+      <CategoryRecentlyViewed />
     </>
   );
 }

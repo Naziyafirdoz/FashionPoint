@@ -128,10 +128,14 @@ function PriceSection({
   wishlist?: boolean;
   compact?: boolean;
 }) {
+  const rowClass = compact
+    ? "flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-2"
+    : "flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 pl-2";
+
   return (
-    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+    <div className={rowClass}>
       <span
-        className={`font-bold leading-none tracking-tight text-[#7B0D2B] ${
+        className={`shrink-0 font-bold leading-none tracking-tight text-[#7B0D2B] ${
           wishlist ? "text-[1.35rem]" : compact ? "text-lg" : "text-xl"
         }`}
       >
@@ -139,14 +143,16 @@ function PriceSection({
       </span>
       {product.compare_price ? (
         <span
-          className={`text-[#9A9A9A] line-through ${compact ? "text-[11px]" : wishlist ? "text-[13px]" : "text-xs"}`}
+          className={`shrink-0 text-[#9A9A9A] line-through ${
+            compact ? "text-[11px]" : wishlist ? "text-[13px]" : "text-xs"
+          }`}
         >
           ₹{product.compare_price.toLocaleString("en-IN")}
         </span>
       ) : null}
       {discountPercent ? (
         <span
-          className={`inline-flex items-center rounded-full bg-[#E8F5EE] font-bold uppercase tracking-wide text-[#2E7D57] ${
+          className={`inline-flex shrink-0 items-center rounded-full bg-[#E8F5EE] font-bold uppercase tracking-wide text-[#2E7D57] ${
             compact
               ? "px-1.5 py-px text-[8px]"
               : wishlist
@@ -186,14 +192,14 @@ function ViewProductButton({
 
 /** Two lines — fixed height for uniform card alignment */
 const TITLE_HEIGHT = "h-[2.625rem]";
-const TITLE_CLASS = `line-clamp-2 ${TITLE_HEIGHT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden text-[14px] font-semibold leading-[1.5] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
+const TITLE_CLASS = `line-clamp-2 ${TITLE_HEIGHT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[14px] font-semibold leading-[1.5] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
 const TITLE_MEASURE_CLASS =
-  "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none text-[14px] font-semibold leading-[1.5] opacity-0";
+  "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none pl-2 text-[14px] font-semibold leading-[1.5] opacity-0";
 
 const TITLE_HEIGHT_COMPACT = "h-[2.375rem]";
-const TITLE_CLASS_COMPACT = `line-clamp-2 ${TITLE_HEIGHT_COMPACT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden text-[13px] font-semibold leading-[1.45] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
+const TITLE_CLASS_COMPACT = `line-clamp-2 ${TITLE_HEIGHT_COMPACT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[13px] font-semibold leading-[1.45] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
 const TITLE_MEASURE_CLASS_COMPACT =
-  "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none text-[13px] font-semibold leading-[1.45] opacity-0";
+  "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none pl-2 text-[13px] font-semibold leading-[1.45] opacity-0";
 
 function ProductTitle({ name, slug, compact = false }: { name: string; slug: string; compact?: boolean }) {
   const areaRef = useRef<HTMLDivElement>(null);

@@ -4,33 +4,28 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import type { Product, SubCategory } from "@/types";
-import type { ProductFilterOptions } from "@/lib/products/extract-filter-options";
-import { ProductGrid } from "./ProductGrid";
-import { FilterSidebar } from "./FilterSidebar";
-import { AiFeaturesPanel } from "./AiFeaturesPanel";
-import { CategoryListingToolbar } from "./category-listing/CategoryListingToolbar";
-import { CategoryListingPagination } from "./category-listing/CategoryListingPagination";
-import { CategoryListingPreFooter } from "./category-listing/CategoryListingPreFooter";
-
-const EMPTY_FACETS: ProductFilterOptions = {
-  sizes: [],
-  colors: [],
-  fabrics: [],
-  neckTypes: [],
-  sleeveTypes: [],
-  priceMin: null,
-  priceMax: null
-};
+import type { CategoryPageData, SubCategory } from "@/types";
+import {
+  EMPTY_PRODUCT_FILTER_OPTIONS,
+  type ProductFilterOptions
+} from "@/lib/products/extract-filter-options";
+import { getActiveFilterEntries } from "@/lib/product-filters";
+import { ProductGrid } from "@/components/store/ProductGrid";
+import { FilterSidebar } from "@/components/store/FilterSidebar";
+import { AiFeaturesPanel } from "@/components/store/AiFeaturesPanel";
+import { CategoryListingToolbar } from "@/components/store/category-listing/CategoryListingToolbar";
+import { CategoryListingPagination } from "@/components/store/category-listing/CategoryListingPagination";
+import { CategoryListingPreFooter } from "@/components/store/category-listing/CategoryListingPreFooter";
+import { ActiveFilters } from "@/components/store/category/ActiveFilters";
+import { CategoryEmptyState } from "@/components/store/category/CategoryEmptyState";
 
 type Props = {
-  categorySlug?: string;
+  category: CategoryPageData;
   subCategories?: SubCategory[];
-  basePath?: string;
 };
 
 function buildCategoryHref(
-  basePath: string,
+  categorySlug: string,
   searchParams: URLSearchParams,
   subCategorySlug?: string | null
 ): string {
@@ -44,7 +39,7 @@ function buildCategoryHref(
   }
 
   const qs = params.toString();
-  return `${basePath}${qs ? `?${qs}` : ""}`;
+  return `/category/${categorySlug}${qs ? `?${qs}` : ""}`;
 }
 
 function ProductListingSkeleton() {
@@ -60,15 +55,12 @@ function ProductListingSkeleton() {
   );
 }
 
-export function CategoryListing({
-  categorySlug,
-  subCategories = [],
-  basePath
-}: Props) {
+export function CategoryListing({ category, subCategories = [] }: Props) {
   const searchParams = useSearchParams();
-  const activeSubCategory = searchParams.get("sub_category");
-  const [products, setProducts] = useState<Product[]>([]);
-  const [facets, setFacets] = useState<ProductFilterOptions>(EMPTY_FACETS);
+  const activeSubCategorySlug = searchParams.get("sub_category");
+
+  const [products, setProducts] = useState<import("@/types").Product[]>([]);
+  const [facets, setFacets] = useState<ProductFilterOptions>(EMPTY_PRODUCT_FILTER_OPTIONS);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
@@ -77,13 +69,16 @@ export function CategoryListing({
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  const listingBasePath = basePath ?? (categorySlug ? `/category/${categorySlug}` : "");
-
   const chipBase =
     "rounded-full border px-3 py-1 text-xs font-medium transition sm:text-sm";
   const chipActive = "border-primary bg-primary text-white";
   const chipInactive =
     "border-[#F2E4E8] bg-white text-[#777777] hover:border-primary/40 hover:text-primary";
+
+  const hasActiveFilters = useMemo(
+    () => getActiveFilterEntries(searchParams).length > 0,
+    [searchParams]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -93,46 +88,34 @@ export function CategoryListing({
       setError(null);
 
       const params = new URLSearchParams(searchParams.toString());
-      if (categorySlug) params.set("category", categorySlug);
+      params.set("category", category.slug);
 
-      const qs = params.toString();
+      const result = await fetchProducts(params.toString());
 
-      try {
-        const res = await fetch(`/api/products${qs ? `?${qs}` : ""}`, { cache: "no-store" });
-        const data = await res.json();
-
-        if (!cancelled) {
-          if (!res.ok) {
-            setProducts([]);
-            setFacets(data.facets ?? EMPTY_FACETS);
-            setTotal(0);
-            setPage(1);
-            setError(data.error ?? "Unable to load products. Please try again.");
-            return;
-          }
-
-          setProducts(data.products ?? []);
-          setFacets(data.facets ?? EMPTY_FACETS);
-          setTotal(Number(data.total) || 0);
-          setPage(Number(data.page) || 1);
-          setPageSize(Number(data.pageSize) || 12);
-        }
-      } catch {
-        if (!cancelled) {
+      if (!cancelled) {
+        if (result.error) {
           setProducts([]);
-          setFacets(EMPTY_FACETS);
+          setFacets(result.facets);
           setTotal(0);
-          setError("Network error. Please check your connection and try again.");
+          setPage(1);
+          setError(result.error);
+          return;
         }
-      } finally {
-        if (!cancelled) setLoading(false);
+
+        setProducts(result.products);
+        setFacets(result.facets);
+        setTotal(result.total);
+        setPage(result.page);
+        setPageSize(result.pageSize);
       }
-    })();
+    })().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [categorySlug, searchParams]);
+  }, [category.slug, searchParams]);
 
   const totalPages = useMemo(
     () => (pageSize > 0 ? Math.max(1, Math.ceil(total / pageSize)) : 1),
@@ -151,21 +134,21 @@ export function CategoryListing({
 
   return (
     <>
-      {subCategories.length > 0 && listingBasePath ? (
+      {subCategories.length > 0 ? (
         <section className="border-b border-[#F2E4E8] bg-white py-4">
           <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-2 px-6">
             <Link
-              href={buildCategoryHref(listingBasePath, searchParams)}
-              className={`${chipBase} ${!activeSubCategory ? chipActive : chipInactive}`}
+              href={buildCategoryHref(category.slug, searchParams)}
+              className={`${chipBase} ${!activeSubCategorySlug ? chipActive : chipInactive}`}
             >
               All
             </Link>
             {subCategories.map((sub) => (
               <Link
                 key={sub.id}
-                href={buildCategoryHref(listingBasePath, searchParams, sub.slug)}
+                href={buildCategoryHref(category.slug, searchParams, sub.slug)}
                 className={`${chipBase} ${
-                  activeSubCategory === sub.slug ? chipActive : chipInactive
+                  activeSubCategorySlug === sub.slug ? chipActive : chipInactive
                 }`}
               >
                 {sub.name}
@@ -175,7 +158,10 @@ export function CategoryListing({
         </section>
       ) : null}
 
-      <section className="w-full bg-[#FFF8F8] pt-5 pb-0 sm:pt-6 sm:pb-0">
+      <section
+        id="category-listing"
+        className="w-full bg-[#FFF8F8] pt-5 pb-0 sm:pt-6 sm:pb-0"
+      >
         <div className="mx-auto w-full max-w-[1600px] px-6">
           <div className="w-full rounded-[24px] bg-white p-4 shadow-[0_4px_24px_rgba(122,13,43,0.05)] sm:p-5 lg:p-6">
             <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)_280px] lg:items-stretch">
@@ -196,14 +182,14 @@ export function CategoryListing({
                   onOpenMobileFilters={() => setMobileFiltersOpen(true)}
                 />
 
+                <ActiveFilters />
+
                 {loading ? (
                   <ProductListingSkeleton />
                 ) : error ? (
                   <p className="w-full text-sm font-medium text-[#7B0D2B]">{error}</p>
                 ) : products.length === 0 ? (
-                  <p className="w-full text-sm font-medium text-[#666666]">
-                    No products match your filters.
-                  </p>
+                  <CategoryEmptyState hasActiveFilters={hasActiveFilters} />
                 ) : (
                   <>
                     <ProductGrid products={products} layout="listing" viewMode={viewMode} />
@@ -250,4 +236,48 @@ export function CategoryListing({
       <CategoryListingPreFooter />
     </>
   );
+}
+
+async function fetchProducts(queryString: string): Promise<{
+  products: import("@/types").Product[];
+  facets: ProductFilterOptions;
+  total: number;
+  page: number;
+  pageSize: number;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`/api/products${queryString ? `?${queryString}` : ""}`, {
+      cache: "no-store"
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      return {
+        products: [],
+        facets: data.facets ?? EMPTY_PRODUCT_FILTER_OPTIONS,
+        total: 0,
+        page: 1,
+        pageSize: 12,
+        error: data.error ?? "Unable to load products. Please try again."
+      };
+    }
+
+    return {
+      products: data.products ?? [],
+      facets: data.facets ?? EMPTY_PRODUCT_FILTER_OPTIONS,
+      total: Number(data.total) || 0,
+      page: Number(data.page) || 1,
+      pageSize: Number(data.pageSize) || 12
+    };
+  } catch {
+    return {
+      products: [],
+      facets: EMPTY_PRODUCT_FILTER_OPTIONS,
+      total: 0,
+      page: 1,
+      pageSize: 12,
+      error: "Network error. Please check your connection and try again."
+    };
+  }
 }

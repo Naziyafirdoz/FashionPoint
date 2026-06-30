@@ -14,12 +14,25 @@ export function SearchBar() {
       setSuggestions([]);
       return;
     }
-    const t = setTimeout(async () => {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      setSuggestions(data.suggestions ?? []);
-    }, 300);
-    return () => clearTimeout(t);
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setSuggestions(data.suggestions ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }, 275);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [q]);
 
   return (

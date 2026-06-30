@@ -7,6 +7,7 @@ import type { Product, ProductVariant } from "@/types";
 export type DbRow = Record<string, unknown> & {
   product_variants?: Array<Record<string, unknown>>;
   categories?: Record<string, unknown> | null;
+  sub_categories?: Record<string, unknown> | null;
 };
 
 export function normalizeDbProduct(row: DbRow): Product {

@@ -48,12 +48,16 @@ export type ListProductsParams = {
   fabric?: string | null;
   neck?: string | null;
   sleeve?: string | null;
+  closure?: string | null;
+  occasion?: string | null;
+  tag?: string | null;
   priceMin?: string | null;
   priceMax?: string | null;
   sort?: string | null;
   page?: string | null;
   limit?: string | null;
   includeFacets?: boolean;
+  slugs?: string | null;
 };
 
 export type ListProductsResult = {
@@ -116,6 +120,15 @@ function applyProductFilters(query: any, params: ListProductsParams, categoryId:
   if (params.sleeve) {
     next = next.ilike("sleeve_type", `%${params.sleeve}%`);
   }
+  if (params.closure) {
+    next = next.ilike("closure_type", `%${params.closure}%`);
+  }
+  if (params.occasion) {
+    next = next.contains("occasion", [params.occasion]);
+  }
+  if (params.tag) {
+    next = next.contains("tags", [params.tag]);
+  }
   if (params.priceMin) {
     next = next.gte("price", Number(params.priceMin));
   }
@@ -159,6 +172,47 @@ export async function listProductsFromDb(
   const pageSize = Math.max(1, Math.min(48, Number(params.limit) || PRODUCT_LIST_PAGE_SIZE));
   const page = Math.max(1, Number(params.page) || 1);
   const sort = parseProductSort(params.sort);
+
+  if (params.slugs) {
+    const slugList = params.slugs
+      .split(",")
+      .map((slug) => slug.trim())
+      .filter(Boolean)
+      .slice(0, 24);
+
+    if (slugList.length === 0) {
+      return {
+        products: [],
+        total: 0,
+        page: 1,
+        pageSize,
+        facets: extractProductFilterOptions([])
+      };
+    }
+
+    const { data, error } = await db
+      .from("products")
+      .select(PRODUCT_LIST_SELECT)
+      .in("slug", slugList)
+      .in("status", STOREFRONT_PRODUCT_STATUSES);
+
+    if (error || !data) return null;
+
+    const bySlug = new Map(
+      data.map((row) => [String((row as DbRow).slug), normalizeDbProduct(row as DbRow)])
+    );
+    const ordered = slugList
+      .map((slug) => bySlug.get(slug))
+      .filter((product): product is Product => Boolean(product));
+
+    return {
+      products: ordered,
+      total: ordered.length,
+      page: 1,
+      pageSize: ordered.length,
+      facets: extractProductFilterOptions(ordered)
+    };
+  }
 
   const categoryId = params.category ? await resolveCategoryId(db, params.category) : null;
 

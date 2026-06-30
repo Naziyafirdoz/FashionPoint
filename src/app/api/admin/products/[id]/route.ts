@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/products";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { clearProductColorCountCache } from "@/lib/color-products";
+import { clearSearchIndexCache } from "@/lib/search/search-products";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -62,6 +63,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   }
 
   clearProductColorCountCache();
+  clearSearchIndexCache();
   const product = await getAdminProductDetail(auth.ctx.db, id);
   return NextResponse.json({ product });
 }
@@ -93,5 +95,6 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
   }
 
   clearProductColorCountCache();
+  clearSearchIndexCache();
   return NextResponse.json({ success: true });
 }

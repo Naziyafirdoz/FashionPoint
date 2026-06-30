@@ -31,8 +31,8 @@ const HERO_FEATURES: HeroFeature[] = [
 type CategoryHeroSectionProps = {
   title: string;
   description: string;
-  imageUrl?: string;
   cta?: ReactNode;
+  ctaLabel?: string;
   plainBackground?: boolean;
 };
 
@@ -77,7 +77,7 @@ function HeroFeatureRow() {
   );
 }
 
-function DefaultHeroCta() {
+function DefaultHeroCta({ label = "Explore Collection" }: { label?: string }) {
   function scrollToListing(event: React.MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();
     const hero = event.currentTarget.closest("section");
@@ -90,7 +90,7 @@ function DefaultHeroCta() {
       onClick={scrollToListing}
       className="group mt-4 inline-flex h-11 w-fit items-center gap-1.5 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)] sm:px-7"
     >
-      Explore Collection
+      {label}
       <ArrowRight
         className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
         aria-hidden="true"
@@ -102,11 +102,10 @@ function DefaultHeroCta() {
 export function CategoryHeroSection({
   title,
   description,
-  imageUrl,
   cta,
+  ctaLabel,
   plainBackground = false
 }: CategoryHeroSectionProps) {
-  const heroBackground = imageUrl || CATEGORY_HERO_BACKGROUND;
   const heroDescription = formatHeroDescription(description);
 
   return (
@@ -117,7 +116,7 @@ export function CategoryHeroSection({
       {!plainBackground ? (
         <div className="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
           <Image
-            src={heroBackground}
+            src={CATEGORY_HERO_BACKGROUND}
             alt=""
             fill
             priority
@@ -160,7 +159,7 @@ export function CategoryHeroSection({
 
           <HeroFeatureRow />
 
-          {cta ?? <DefaultHeroCta />}
+          {cta ?? <DefaultHeroCta label={ctaLabel} />}
         </motion.div>
 
         <div className="hidden min-h-[1px] lg:block" aria-hidden="true" />

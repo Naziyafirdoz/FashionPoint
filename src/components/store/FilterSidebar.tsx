@@ -7,7 +7,9 @@ import { normalizeSizeFilter } from "@/config/size-chart";
 import { colorMatchesFilter } from "@/lib/product-filters";
 import {
   canRenderColorSwatch,
+  EMPTY_PRODUCT_FILTER_OPTIONS,
   extractProductFilterOptions,
+  type FacetGroup,
   type FilterOption,
   type ProductFilterOptions,
 } from "@/lib/products/extract-filter-options";
@@ -68,22 +70,22 @@ export function FilterSidebar({
     [filterOptionsProp, products]
   );
 
-  const selected = useMemo(
-    () => ({
-      size: searchParams.get("size") ? normalizeSizeFilter(searchParams.get("size")!) : "",
-      color: searchParams.get("color") ?? "",
-      fabric: searchParams.get("fabric") ?? "",
-      neck: searchParams.get("neck") ?? "",
-      sleeve: searchParams.get("sleeve") ?? "",
-      priceMax: searchParams.get("priceMax") ?? ""
-    }),
-    [searchParams]
-  );
+  const selected = useMemo(() => {
+    const values: Record<string, string> = {};
+    for (const [key, value] of searchParams.entries()) {
+      if (key === "page" || key === "sort" || key === "category" || key === "sub_category") {
+        continue;
+      }
+      values[key] = value;
+    }
+    if (values.size) values.size = normalizeSizeFilter(values.size);
+    return values;
+  }, [searchParams]);
 
   const priceSliderMax = filterOptions.priceMax ?? 0;
   const priceSliderValue = selected.priceMax
     ? Number(selected.priceMax)
-  : priceSliderMax;
+    : priceSliderMax;
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -99,14 +101,14 @@ export function FilterSidebar({
   );
 
   const toggleParam = useCallback(
-    (key: string, value: string) => {
+    (key: string, value: string, type: FacetGroup["type"]) => {
       const current = searchParams.get(key);
       const isActive =
-        key === "size"
+        type === "size"
           ? current
             ? isSizeSelected(current, value)
             : false
-          : key === "color"
+          : type === "color"
             ? current
               ? isColorSelected(current, value)
               : false
@@ -116,6 +118,42 @@ export function FilterSidebar({
     },
     [searchParams, updateParam]
   );
+
+  const hasAnyFilters =
+    filterOptions.groups.length > 0 ||
+    (filterOptions.priceMin !== null &&
+      filterOptions.priceMax !== null &&
+      filterOptions.priceMax > filterOptions.priceMin);
+
+  const renderFacetGroup = (group: FacetGroup) => {
+    const selectedValue = selected[group.key] ?? "";
+
+    if (group.type === "color") {
+      return (
+        <CollapsibleFilterGroup key={group.key} title={group.label} listing={isListing}>
+          <ColorFilterList
+            colors={group.options}
+            selected={selectedValue}
+            onToggle={(value) => toggleParam(group.key, value, group.type)}
+            listing={isListing}
+            isSelected={isColorSelected}
+          />
+        </CollapsibleFilterGroup>
+      );
+    }
+
+    return (
+      <CollapsibleFilterGroup key={group.key} title={group.label} listing={isListing}>
+        <CheckboxFilterList
+          items={group.options}
+          selected={selectedValue}
+          onToggle={(value) => toggleParam(group.key, value, group.type)}
+          listing={isListing}
+          isSelected={group.type === "size" ? isSizeSelected : isValueSelected}
+        />
+      </CollapsibleFilterGroup>
+    );
+  };
 
   const asideClassName = (() => {
     if (isListing && panel) {
@@ -130,16 +168,6 @@ export function FilterSidebar({
     }
     return `hidden w-full min-w-0 space-y-6 lg:block ${sticky ? "lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)]" : ""}`;
   })();
-
-  const hasAnyFilters =
-    filterOptions.sizes.length > 0 ||
-    filterOptions.colors.length > 0 ||
-    filterOptions.fabrics.length > 0 ||
-    filterOptions.neckTypes.length > 0 ||
-    filterOptions.sleeveTypes.length > 0 ||
-  (filterOptions.priceMin !== null &&
-    filterOptions.priceMax !== null &&
-    filterOptions.priceMax > filterOptions.priceMin);
 
   const filterBody = (
     <>
@@ -158,65 +186,7 @@ export function FilterSidebar({
         </p>
       ) : null}
 
-      {filterOptions.sizes.length > 0 ? (
-        <CollapsibleFilterGroup title="Size" listing={isListing}>
-          <CheckboxFilterList
-            items={filterOptions.sizes}
-            selected={selected.size}
-            onToggle={(value) => toggleParam("size", value)}
-            listing={isListing}
-            isSelected={isSizeSelected}
-          />
-        </CollapsibleFilterGroup>
-      ) : null}
-
-      {filterOptions.colors.length > 0 ? (
-        <CollapsibleFilterGroup title="Color" listing={isListing}>
-          <ColorFilterList
-            colors={filterOptions.colors}
-            selected={selected.color}
-            onToggle={(value) => toggleParam("color", value)}
-            listing={isListing}
-            isSelected={isColorSelected}
-          />
-        </CollapsibleFilterGroup>
-      ) : null}
-
-      {filterOptions.fabrics.length > 0 ? (
-        <CollapsibleFilterGroup title="Fabric" listing={isListing}>
-          <CheckboxFilterList
-            items={filterOptions.fabrics}
-            selected={selected.fabric}
-            onToggle={(value) => toggleParam("fabric", value)}
-            listing={isListing}
-            isSelected={isValueSelected}
-          />
-        </CollapsibleFilterGroup>
-      ) : null}
-
-      {filterOptions.neckTypes.length > 0 ? (
-        <CollapsibleFilterGroup title="Neck Type" listing={isListing}>
-          <CheckboxFilterList
-            items={filterOptions.neckTypes}
-            selected={selected.neck}
-            onToggle={(value) => toggleParam("neck", value)}
-            listing={isListing}
-            isSelected={isValueSelected}
-          />
-        </CollapsibleFilterGroup>
-      ) : null}
-
-      {filterOptions.sleeveTypes.length > 0 ? (
-        <CollapsibleFilterGroup title="Sleeve Type" listing={isListing}>
-          <CheckboxFilterList
-            items={filterOptions.sleeveTypes}
-            selected={selected.sleeve}
-            onToggle={(value) => toggleParam("sleeve", value)}
-            listing={isListing}
-            isSelected={isValueSelected}
-          />
-        </CollapsibleFilterGroup>
-      ) : null}
+      {filterOptions.groups.map(renderFacetGroup)}
 
       {filterOptions.priceMin !== null &&
       filterOptions.priceMax !== null &&

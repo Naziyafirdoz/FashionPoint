@@ -1,5 +1,9 @@
 import { colorMatchesFilter } from "@/lib/product-filters";
 import { normalizeSizeFilter } from "@/config/size-chart";
+import {
+  PRODUCT_FACET_FIELDS,
+  type FacetFieldDefinition
+} from "@/lib/products/facet-registry";
 import type { Product } from "@/types";
 
 export type FilterOption = {
@@ -8,31 +12,26 @@ export type FilterOption = {
   count: number;
 };
 
+export type FacetGroupType = "size" | "color" | "checkbox" | "price";
+
+export type FacetGroup = {
+  key: string;
+  label: string;
+  type: FacetGroupType;
+  options: FilterOption[];
+};
+
 export type ProductFilterOptions = {
-  sizes: FilterOption[];
-  colors: FilterOption[];
-  fabrics: FilterOption[];
-  neckTypes: FilterOption[];
-  sleeveTypes: FilterOption[];
+  groups: FacetGroup[];
   priceMin: number | null;
   priceMax: number | null;
 };
 
-const EMPTY_OPTIONS: ProductFilterOptions = {
-  sizes: [],
-  colors: [],
-  fabrics: [],
-  neckTypes: [],
-  sleeveTypes: [],
+export const EMPTY_PRODUCT_FILTER_OPTIONS: ProductFilterOptions = {
+  groups: [],
   priceMin: null,
   priceMax: null
 };
-
-function cleanValue(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
 
 function dedupePreserveOrder(values: string[]): string[] {
   const seen = new Set<string>();
@@ -71,48 +70,18 @@ function sortFilterValues(values: string[]): string[] {
   });
 }
 
-function collectStringValues(products: Product[], getter: (product: Product) => string | null): string[] {
+function collectFieldValues(products: Product[], field: FacetFieldDefinition): string[] {
   const values: string[] = [];
 
   for (const product of products) {
-    const value = getter(product);
-    if (value) values.push(value);
-  }
+    if (field.kind === "scalar") {
+      const scalar = field.getScalar(product);
+      if (scalar) values.push(scalar);
+      continue;
+    }
 
-  return sortFilterValues(dedupePreserveOrder(values));
-}
-
-function collectSizeValues(products: Product[]): string[] {
-  const values: string[] = [];
-
-  for (const product of products) {
-    product.sizes?.forEach((size) => {
-      const cleaned = cleanValue(size);
-      if (cleaned) values.push(cleaned);
-    });
-
-    product.variants?.forEach((variant) => {
-      const cleaned = cleanValue(variant.size);
-      if (cleaned) values.push(cleaned);
-    });
-  }
-
-  return sortFilterValues(dedupePreserveOrder(values));
-}
-
-function collectColorValues(products: Product[]): string[] {
-  const values: string[] = [];
-
-  for (const product of products) {
-    product.colors?.forEach((color) => {
-      const cleaned = cleanValue(color);
-      if (cleaned) values.push(cleaned);
-    });
-
-    product.variants?.forEach((variant) => {
-      const cleaned = cleanValue(variant.color);
-      if (cleaned) values.push(cleaned);
-    });
+    const arrayValues = field.getArray?.(product) ?? [];
+    arrayValues.forEach((value) => values.push(value));
   }
 
   return sortFilterValues(dedupePreserveOrder(values));
@@ -128,7 +97,7 @@ function countProductsWithSize(products: Product[], size: string): number {
     ];
 
     return sizes.some((value) => {
-      const cleaned = cleanValue(value);
+      const cleaned = value?.trim();
       if (!cleaned) return false;
       return (
         cleaned.toLowerCase() === size.toLowerCase() ||
@@ -146,45 +115,79 @@ function countProductsWithColor(products: Product[], color: string): number {
     ];
 
     return colors.some((value) => {
-      const cleaned = cleanValue(value);
+      const cleaned = value?.trim();
       return cleaned ? colorMatchesFilter(cleaned, color) : false;
     });
   }).length;
 }
 
-function countProductsMatching(
+function countScalarMatches(
   products: Product[],
-  getter: (product: Product) => string | undefined | null,
+  field: FacetFieldDefinition,
   value: string
 ): number {
   const target = value.toLowerCase();
 
   return products.filter((product) => {
-    const field = cleanValue(getter(product));
-    return field?.toLowerCase() === target;
+    const scalar = field.getScalar(product)?.trim();
+    return scalar?.toLowerCase() === target;
+  }).length;
+}
+
+function countArrayMatches(
+  products: Product[],
+  field: FacetFieldDefinition,
+  value: string
+): number {
+  const target = value.toLowerCase();
+
+  return products.filter((product) => {
+    const values = field.getArray?.(product) ?? [];
+    return values.some((entry) => entry.trim().toLowerCase() === target);
   }).length;
 }
 
 function toOptions(
   products: Product[],
-  values: string[],
-  countFn: (products: Product[], value: string) => number
+  field: FacetFieldDefinition,
+  values: string[]
 ): FilterOption[] {
   return values.map((value) => ({
     value,
     label: value,
-    count: countFn(products, value)
+    count:
+      field.kind === "size"
+        ? countProductsWithSize(products, value)
+        : field.kind === "color"
+          ? countProductsWithColor(products, value)
+          : field.kind === "array"
+            ? countArrayMatches(products, field, value)
+            : countScalarMatches(products, field, value)
   }));
 }
 
-export function extractProductFilterOptions(products: Product[]): ProductFilterOptions {
-  if (!products.length) return EMPTY_OPTIONS;
+function mapFacetType(kind: FacetFieldDefinition["kind"]): FacetGroupType {
+  if (kind === "size") return "size";
+  if (kind === "color") return "color";
+  return "checkbox";
+}
 
-  const sizes = collectSizeValues(products);
-  const colors = collectColorValues(products);
-  const fabrics = collectStringValues(products, (product) => cleanValue(product.fabric));
-  const neckTypes = collectStringValues(products, (product) => cleanValue(product.neck_type));
-  const sleeveTypes = collectStringValues(products, (product) => cleanValue(product.sleeve_type));
+export function extractProductFilterOptions(products: Product[]): ProductFilterOptions {
+  if (!products.length) return EMPTY_PRODUCT_FILTER_OPTIONS;
+
+  const groups: FacetGroup[] = [];
+
+  for (const field of PRODUCT_FACET_FIELDS) {
+    const values = collectFieldValues(products, field);
+    if (values.length === 0) continue;
+
+    groups.push({
+      key: field.paramKey,
+      label: field.label,
+      type: mapFacetType(field.kind),
+      options: toOptions(products, field, values)
+    });
+  }
 
   const prices = products
     .map((product) => product.price)
@@ -193,31 +196,12 @@ export function extractProductFilterOptions(products: Product[]): ProductFilterO
   const priceMin = prices.length ? Math.min(...prices) : null;
   const priceMax = prices.length ? Math.max(...prices) : null;
 
-  return {
-    sizes: toOptions(products, sizes, countProductsWithSize),
-    colors: toOptions(products, colors, countProductsWithColor),
-    fabrics: toOptions(products, fabrics, (items, value) =>
-      countProductsMatching(items, (product) => product.fabric, value)
-    ),
-    neckTypes: toOptions(products, neckTypes, (items, value) =>
-      countProductsMatching(items, (product) => product.neck_type, value)
-    ),
-    sleeveTypes: toOptions(products, sleeveTypes, (items, value) =>
-      countProductsMatching(items, (product) => product.sleeve_type, value)
-    ),
-    priceMin,
-    priceMax
-  };
+  return { groups, priceMin, priceMax };
 }
 
 export function getActiveFilterLabels(options: ProductFilterOptions): string[] {
-  const labels: string[] = [];
+  const labels = options.groups.map((group) => group.label);
 
-  if (options.sizes.length) labels.push("Size");
-  if (options.colors.length) labels.push("Color");
-  if (options.fabrics.length) labels.push("Fabric");
-  if (options.neckTypes.length) labels.push("Neck Type");
-  if (options.sleeveTypes.length) labels.push("Sleeve Type");
   if (
     options.priceMin !== null &&
     options.priceMax !== null &&
@@ -242,4 +226,19 @@ export function canRenderColorSwatch(color: string): boolean {
   probe.style.color = "";
   probe.style.color = trimmed.toLowerCase();
   return probe.style.color !== "";
+}
+
+/** @deprecated Use groups from ProductFilterOptions instead */
+export function getLegacyFacetBuckets(options: ProductFilterOptions) {
+  const findGroup = (key: string) => options.groups.find((group) => group.key === key);
+
+  return {
+    sizes: findGroup("size")?.options ?? [],
+    colors: findGroup("color")?.options ?? [],
+    fabrics: findGroup("fabric")?.options ?? [],
+    neckTypes: findGroup("neck")?.options ?? [],
+    sleeveTypes: findGroup("sleeve")?.options ?? [],
+    priceMin: options.priceMin,
+    priceMax: options.priceMax
+  };
 }

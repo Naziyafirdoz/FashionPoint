@@ -57,6 +57,23 @@ export type Category = {
   navbar_position: number | null;
 };
 
+export type CategoryPageData = Category & {
+  hero_subtitle?: string;
+  banner_image_url?: string;
+  cta_label?: string;
+  theme?: string;
+  product_count: number;
+};
+
+export type RelatedCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  banner_image_url: string;
+  product_count: number;
+  product_count_label?: string;
+};
+
 export type SubCategory = {
   id: string;
   category_id: string;

@@ -6,6 +6,7 @@ import type { Product } from "@/types";
 import { normalizeSizeFilter } from "@/config/size-chart";
 import { displayColorName } from "@/lib/product-filters";
 import type { ProductFilterOptions } from "@/lib/products/extract-filter-options";
+import { EMPTY_PRODUCT_FILTER_OPTIONS } from "@/lib/products/extract-filter-options";
 import { ProductGrid } from "./ProductGrid";
 import { FilterSidebar } from "./FilterSidebar";
 import { AiFeaturesPanel } from "./AiFeaturesPanel";
@@ -14,15 +15,7 @@ export function ProductsListing() {
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
-  const [facets, setFacets] = useState<ProductFilterOptions>({
-    sizes: [],
-    colors: [],
-    fabrics: [],
-    neckTypes: [],
-    sleeveTypes: [],
-    priceMin: null,
-    priceMax: null
-  });
+  const [facets, setFacets] = useState<ProductFilterOptions>(EMPTY_PRODUCT_FILTER_OPTIONS);
   const [loading, setLoading] = useState(true);
   const sizeFilter = searchParams.get("size");
   const colorFilter = searchParams.get("color");
