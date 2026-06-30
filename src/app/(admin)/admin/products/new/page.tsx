@@ -16,6 +16,8 @@ import { CategoryField } from "./components/CategoryField";
 import { SubCategoryField } from "@/components/admin/SubCategoryField";
 import { ProductAttributesSection } from "@/components/admin/products/ProductAttributesSection";
 import { ColorPicker } from "./components/ColorPicker";
+import { colorNamesFromSwatches } from "@/lib/products/color-swatches";
+import type { ProductColorSwatch } from "@/types";
 import { MediaUploader } from "./components/MediaUploader";
 import { SizePicker } from "./components/SizePicker";
 
@@ -48,7 +50,7 @@ export default function NewProductPage() {
     neck_type: "Round",
     sleeve_type: "Half",
     closure_type: "",
-    colors: [] as string[],
+    color_swatches: [] as ProductColorSwatch[],
     sizes: [] as string[],
     occasion: [] as string[],
     status: "draft" as ProductStatus,
@@ -58,16 +60,17 @@ export default function NewProductPage() {
   });
 
   useEffect(() => {
+    const colorNames = colorNamesFromSwatches(form.color_swatches);
     const basePrice = Number(form.price) || 0;
     const baseCompare = form.compare_price ? Number(form.compare_price) : null;
     setVariants((prev) => {
-      const next = buildAdminVariantMatrixRows(form.sizes, form.colors, [], {
+      const next = buildAdminVariantMatrixRows(form.sizes, colorNames, [], {
         price: basePrice,
         compare_price: baseCompare
       });
       return mergeVariantMatrixRows(next, prev);
     });
-  }, [form.sizes, form.colors, form.price, form.compare_price]);
+  }, [form.sizes, form.color_swatches, form.price, form.compare_price]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +82,7 @@ export default function NewProductPage() {
       toast.error("Select or create a category");
       return;
     }
-    if (!form.colors.length || !form.sizes.length) {
+    if (!form.color_swatches.length || !form.sizes.length) {
       toast.error("Select at least one color and size");
       return;
     }
@@ -87,6 +90,7 @@ export default function NewProductPage() {
     setSaving(true);
     try {
       const slug = slugify(form.name);
+      const colorNames = colorNamesFromSwatches(form.color_swatches);
       const videoTags = videos.map((url) => `${VIDEO_TAG_PREFIX}${url}`);
       const payload = {
         name: form.name.trim(),
@@ -101,7 +105,8 @@ export default function NewProductPage() {
         neck_type: form.neck_type,
         sleeve_type: form.sleeve_type,
         closure_type: form.closure_type.trim() || null,
-        colors: form.colors,
+        colors: colorNames,
+        color_swatches: form.color_swatches,
         sizes: form.sizes,
         occasion: form.occasion,
         status: form.status,
@@ -312,8 +317,8 @@ export default function NewProductPage() {
           <section className={`${sectionCardClass} max-xl:order-6 space-y-3`}>
             <h2 className="font-semibold text-primary">Colors</h2>
             <ColorPicker
-              selected={form.colors}
-              onChange={(colors) => setForm((f) => ({ ...f, colors }))}
+              selected={form.color_swatches}
+              onChange={(color_swatches) => setForm((f) => ({ ...f, color_swatches }))}
             />
           </section>
 

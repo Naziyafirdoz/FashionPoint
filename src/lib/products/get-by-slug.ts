@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase";
+import { resolveProductColorSwatches } from "@/lib/products/color-swatches";
 import { resolveProductStatus, STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
 import type { Product, ProductVariant } from "@/types";
 
@@ -23,9 +24,21 @@ export function normalizeDbProduct(row: DbRow): Product {
   }));
 
   const totalStock = variants.reduce((sum, v) => sum + v.stock_quantity, 0);
+  const colors = Array.isArray(rest.colors) ? (rest.colors as string[]) : [];
+  const color_swatches = resolveProductColorSwatches(colors, rest.color_swatches);
 
   return {
-    ...(rest as Omit<Product, "price" | "compare_price" | "variants" | "category" | "images" | "status">),
+    ...(rest as Omit<
+      Product,
+      | "price"
+      | "compare_price"
+      | "variants"
+      | "category"
+      | "images"
+      | "status"
+      | "colors"
+      | "color_swatches"
+    >),
     price: Number(rest.price),
     compare_price: rest.compare_price != null ? Number(rest.compare_price) : undefined,
     status: resolveProductStatus({
@@ -34,6 +47,8 @@ export function normalizeDbProduct(row: DbRow): Product {
       total_stock: totalStock
     }),
     images: Array.isArray(rest.images) ? (rest.images as string[]) : [],
+    colors: color_swatches.length > 0 ? color_swatches.map((swatch) => swatch.name) : colors,
+    color_swatches,
     variants: variants.length > 0 ? variants : undefined,
     category: categories
       ? {

@@ -10,6 +10,8 @@ import { CategorySelect } from "@/components/admin/CategorySelect";
 import { SubCategoryField } from "@/components/admin/SubCategoryField";
 import { ProductAttributesSection } from "@/components/admin/products/ProductAttributesSection";
 import { ColorPicker } from "@/app/(admin)/admin/products/new/components/ColorPicker";
+import { colorNamesFromSwatches } from "@/lib/products/color-swatches";
+import type { ProductColorSwatch } from "@/types";
 import { SizePicker } from "@/app/(admin)/admin/products/new/components/SizePicker";
 import { slugify } from "@/lib/product-filters";
 import {
@@ -51,6 +53,7 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
     status: "draft" as ProductStatus,
     is_featured: false,
     colors: [] as string[],
+    color_swatches: [] as ProductColorSwatch[],
     sizes: [] as string[]
   });
   const [images, setImages] = useState<string[]>([]);
@@ -84,6 +87,7 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
         status: product.status,
         is_featured: product.is_featured,
         colors: product.colors,
+        color_swatches: product.color_swatches,
         sizes: product.sizes
       });
       setImages(product.images);
@@ -109,16 +113,17 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
   }, [loadProduct]);
 
   useEffect(() => {
+    const colorNames = colorNamesFromSwatches(form.color_swatches);
     const basePrice = Number(form.price) || 0;
     const baseCompare = form.compare_price ? Number(form.compare_price) : null;
     setVariants((prev) => {
-      const next = buildAdminVariantMatrixRows(form.sizes, form.colors, loadedVariants, {
+      const next = buildAdminVariantMatrixRows(form.sizes, colorNames, loadedVariants, {
         price: basePrice,
         compare_price: baseCompare
       });
       return mergeVariantMatrixRows(next, prev);
     });
-  }, [form.sizes, form.colors, form.price, form.compare_price, loadedVariants]);
+  }, [form.sizes, form.color_swatches, form.price, form.compare_price, loadedVariants]);
 
   const onImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -157,13 +162,14 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
       toast.error("Select a category");
       return;
     }
-    if (!form.colors.length || !form.sizes.length) {
+    if (!form.color_swatches.length || !form.sizes.length) {
       toast.error("Select at least one color and size");
       return;
     }
 
     setSaving(true);
     try {
+      const colorNames = colorNamesFromSwatches(form.color_swatches);
       const payload = {
         name: form.name.trim(),
         slug: slugify(form.name),
@@ -180,7 +186,8 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
         occasion: form.occasion,
         status: form.status,
         is_featured: form.is_featured,
-        colors: form.colors,
+        colors: colorNames,
+        color_swatches: form.color_swatches,
         sizes: form.sizes,
         images,
         variants: variants.map((v) => ({
@@ -404,8 +411,8 @@ export function AdminEditProductClient({ productId }: AdminEditProductClientProp
           <section className="card-store space-y-3">
             <h2 className="font-semibold text-primary">Colors</h2>
             <ColorPicker
-              selected={form.colors}
-              onChange={(colors) => setForm((f) => ({ ...f, colors }))}
+              selected={form.color_swatches}
+              onChange={(color_swatches) => setForm((f) => ({ ...f, color_swatches }))}
             />
           </section>
 

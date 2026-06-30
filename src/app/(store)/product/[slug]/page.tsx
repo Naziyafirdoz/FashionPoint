@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductDetail } from "@/components/store/ProductDetail";
 import { getProductBySlugFromDb } from "@/lib/products/get-by-slug";
+import { getProductRecommendations } from "@/lib/products/get-product-recommendations";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -24,5 +25,6 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const product = await getProductBySlugFromDb(slug);
   if (!product) notFound();
-  return <ProductDetail product={product} />;
+  const recommendedProducts = await getProductRecommendations(product);
+  return <ProductDetail product={product} recommendedProducts={recommendedProducts} />;
 }

@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS products (
   closure_type text,
   occasion text[],
   colors text[],
+  color_swatches jsonb NOT NULL DEFAULT '[]'::jsonb,
   sizes text[],
   images text[],
   tags text[],

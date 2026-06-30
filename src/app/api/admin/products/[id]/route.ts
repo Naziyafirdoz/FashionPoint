@@ -41,6 +41,10 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     );
   }
 
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
   const existing = await getAdminProductDetail(auth.ctx.db, id);
   if (!existing) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });

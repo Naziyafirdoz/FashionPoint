@@ -83,6 +83,11 @@ export type ProductVariant = {
   compare_price?: number;
 };
 
+export type ProductColorSwatch = {
+  name: string;
+  hex?: string | null;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -103,6 +108,7 @@ export type Product = {
   closure_type?: string;
   occasion?: string[];
   colors?: string[];
+  color_swatches?: ProductColorSwatch[];
   sizes?: string[];
   images?: string[];
   tags?: string[];

@@ -108,13 +108,18 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const normalizedBody = normalizeProductCreateFields(body) as Record<string, unknown>;
+  const normalizedBody = normalizeProductCreateFields(body);
+  if ("error" in normalizedBody) {
+    return NextResponse.json({ error: normalizedBody.error }, { status: 400 });
+  }
+
+  const normalizedRecord = normalizedBody as Record<string, unknown>;
   const {
     variants: variantsBody,
     initial_stock,
     stock_quantity: _stockQuantity,
     ...productFields
-  } = normalizedBody as Record<string, unknown> & {
+  } = normalizedRecord as Record<string, unknown> & {
     variants?: AdminVariantUpdateInput[];
     initial_stock?: number | string;
     sizes?: string[];

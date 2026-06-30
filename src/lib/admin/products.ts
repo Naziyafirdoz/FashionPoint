@@ -1,11 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import {
+  normalizeProductColorFields,
+  type ProductColorFieldResult
+} from "@/lib/products/color-swatches";
+import {
   isActiveFromStatus,
   parseProductStatus,
   resolveProductStatus,
   type ProductStatus
 } from "@/lib/products/status";
+import type { ProductColorSwatch } from "@/types";
+import { resolveProductColorSwatches } from "@/lib/products/color-swatches";
+
+export type { ProductColorFieldResult } from "@/lib/products/color-swatches";
 
 export const PRODUCT_HAS_REVIEWS_DELETE_MESSAGE =
   "This product cannot be deleted because it has associated customer reviews. Please remove the reviews first or archive the product.";
@@ -205,6 +213,7 @@ export type AdminProductDetail = {
   closure_type: string | null;
   occasion: string[];
   colors: string[];
+  color_swatches: ProductColorSwatch[];
   sizes: string[];
   images: string[];
   status: ProductStatus;
@@ -227,6 +236,7 @@ export type AdminProductUpdateInput = {
   closure_type: string | null;
   occasion: string[];
   colors: string[];
+  color_swatches: ProductColorSwatch[];
   sizes: string[];
   images: string[];
   status: ProductStatus;
@@ -306,6 +316,7 @@ type DbProductDetail = {
   closure_type: string | null;
   occasion: string[] | null;
   colors: string[] | null;
+  color_swatches: unknown;
   sizes: string[] | null;
   images: string[] | null;
   status: string | null;
@@ -345,6 +356,7 @@ export async function getAdminProductDetail(
       closure_type,
       occasion,
       colors,
+      color_swatches,
       sizes,
       images,
       status,
@@ -376,6 +388,7 @@ export async function getAdminProductDetail(
     closure_type: row.closure_type,
     occasion: Array.isArray(row.occasion) ? row.occasion : [],
     colors: Array.isArray(row.colors) ? row.colors : [],
+    color_swatches: resolveProductColorSwatches(row.colors, row.color_swatches),
     sizes: Array.isArray(row.sizes) ? row.sizes : [],
     images: Array.isArray(row.images) ? row.images : [],
     status: resolveProductStatus({
@@ -401,7 +414,10 @@ export async function getAdminProductDetail(
 
 export function normalizeProductUpdateInput(
   body: Record<string, unknown>
-): { product: AdminProductUpdateInput; variants: AdminVariantUpdateInput[] } | null {
+):
+  | { product: AdminProductUpdateInput; variants: AdminVariantUpdateInput[] }
+  | { error: string }
+  | null {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const slug = typeof body.slug === "string" ? body.slug.trim() : "";
   const category_id = typeof body.category_id === "string" ? body.category_id.trim() : "";
@@ -413,6 +429,11 @@ export function normalizeProductUpdateInput(
 
   if (!name || !slug || !category_id || Number.isNaN(price)) return null;
 
+  const colorFields = normalizeProductColorFields(body);
+  if (!colorFields.ok) return { error: colorFields.error };
+
+  const { colors, color_swatches } = colorFields;
+
   const compareRaw = body.compare_price;
   const compare_price =
     compareRaw === null || compareRaw === ""
@@ -421,9 +442,6 @@ export function normalizeProductUpdateInput(
         ? Number(compareRaw)
         : null;
 
-  const colors = Array.isArray(body.colors)
-    ? body.colors.filter((c): c is string => typeof c === "string")
-    : [];
   const sizes = Array.isArray(body.sizes)
     ? body.sizes.filter((s): s is string => typeof s === "string")
     : [];
@@ -492,6 +510,7 @@ export function normalizeProductUpdateInput(
         typeof body.closure_type === "string" ? body.closure_type.trim() || null : null,
       occasion,
       colors,
+      color_swatches,
       sizes,
       images,
       status,
@@ -504,7 +523,10 @@ export function normalizeProductUpdateInput(
 
 export function normalizeProductCreateFields(
   body: Record<string, unknown>
-): Record<string, unknown> {
+): Record<string, unknown> | { error: string } {
+  const colorFields = normalizeProductColorFields(body);
+  if (!colorFields.ok) return { error: colorFields.error };
+
   const status = parseProductStatus(body.status, {
     is_active: typeof body.is_active === "boolean" ? body.is_active : false
   });
@@ -512,6 +534,8 @@ export function normalizeProductCreateFields(
 
   return {
     ...body,
+    colors: colorFields.colors,
+    color_swatches: colorFields.color_swatches,
     status,
     is_featured,
     is_active: isActiveFromStatus(status)
@@ -611,6 +635,7 @@ export async function updateAdminProductDetail(
       closure_type: product.closure_type,
       occasion: product.occasion,
       colors: product.colors,
+      color_swatches: product.color_swatches,
       sizes: product.sizes,
       images: product.images,
       status: product.status,

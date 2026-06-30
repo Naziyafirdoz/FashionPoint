@@ -1,0 +1,27 @@
+/** Admin quick-select suggestions — not used for storefront rendering. */
+export const ADMIN_COLOR_PRESETS = [
+  { name: "Olive Green", hex: "#556B2F" },
+  { name: "Bottle Green", hex: "#006A4E" },
+  { name: "Mehendi Green", hex: "#8A9A5B" },
+  { name: "Forest Green", hex: "#228B22" },
+  { name: "Maroon", hex: "#800000" },
+  { name: "Wine", hex: "#722F37" },
+  { name: "Orange", hex: "#F97316" },
+  { name: "Mustard", hex: "#E1AD01" },
+  { name: "Yellow", hex: "#FFD700" },
+  { name: "Royal Blue", hex: "#4169E1" },
+  { name: "Navy Blue", hex: "#000080" },
+  { name: "Sky Blue", hex: "#87CEEB" },
+  { name: "Black", hex: "#000000" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Cream", hex: "#FFFDD0" },
+  { name: "Beige", hex: "#F5F5DC" },
+  { name: "Brown", hex: "#8B4513" },
+  { name: "Pink", hex: "#FFC0CB" },
+  { name: "Peach", hex: "#FFDAB9" },
+  { name: "Lavender", hex: "#E6E6FA" },
+  { name: "Purple", hex: "#800080" },
+  { name: "Gold", hex: "#D4AF37" },
+  { name: "Silver", hex: "#C0C0C0" },
+  { name: "Grey", hex: "#808080" }
+] as const;
