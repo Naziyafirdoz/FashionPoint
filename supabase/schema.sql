@@ -214,6 +214,8 @@ CREATE TABLE IF NOT EXISTS out_of_stock_requests (
   user_id uuid REFERENCES auth.users(id),
   status text DEFAULT 'pending',
   notified_at timestamptz,
+  cancel_reason text,
+  cancelled_at timestamptz,
   created_at timestamptz DEFAULT now()
 );
 

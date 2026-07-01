@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
-import { ADMIN_ORDER_LIST_SELECT, ADMIN_ORDER_LIST_WITH_ITEMS_SELECT } from "@/lib/admin/fetch-all-orders";
+import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { orderMatchesPaymentFilter, orderMatchesSearch } from "@/lib/admin/notifications/orders-view";
 import { fetchAdminOrderStats } from "@/lib/orders/admin-stats";
@@ -145,8 +145,7 @@ export async function GET(req: Request) {
   const includeReviewCounts = url.searchParams.get("include_review_counts") === "true";
   const includeStats = url.searchParams.get("include_stats") === "true";
   const statsOnly = url.searchParams.get("stats_only") === "true";
-  const withItems = url.searchParams.get("with_items") === "true";
-  const adminOrderSelect = withItems ? ADMIN_ORDER_LIST_WITH_ITEMS_SELECT : ADMIN_ORDER_LIST_SELECT;
+  const adminOrderSelect = ADMIN_ORDER_LIST_SELECT;
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
   const limit = Math.min(
     MAX_LIMIT,
@@ -422,10 +421,7 @@ export async function GET(req: Request) {
     orders = await attachReviewCountsSafely(db, orders);
   }
 
-  if (admin && orders.length > 0) {
-    // TEMP DEBUG: normalizeAdminOrderList disabled to isolate 57014 timeout
-    orders = orders;
-  } else if (orders.length > 0) {
+  if (orders.length > 0) {
     orders = orders.map(normalizeCustomerOrderRow);
   }
 

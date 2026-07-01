@@ -67,7 +67,7 @@ export function ShippingModal({
           <input
             type="text"
             className="mt-1 w-full rounded-lg border bg-gray-50 px-3 py-2 text-sm"
-            placeholder="Rapido"
+            placeholder="Rapido Parcel"
             value={courier}
             readOnly={autoBooked && Boolean(initialCourier)}
             onChange={(e) => setCourier(e.target.value)}

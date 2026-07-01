@@ -48,13 +48,8 @@ export async function syncProductStock(
 
   if (updateError) return { error: updateError.message };
 
-  if (previousStock <= 0 && total > 0 && product?.slug) {
-    void processBackInStockNotifications(
-      db,
-      productId,
-      product.name,
-      product.slug
-    ).catch((err) => {
+  if (previousStock <= 0 && total > 0) {
+    void processBackInStockNotifications(db, productId).catch((err) => {
       console.error("[back-in-stock] notification dispatch failed", {
         productId,
         message: err instanceof Error ? err.message : String(err)

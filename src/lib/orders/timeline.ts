@@ -2,6 +2,7 @@ import type { Order, OrderStatus, ReturnRequest } from "@/types";
 import type { OrderTimelineEntry } from "@/lib/orders/refunds";
 import { isPrepaidPayment } from "@/lib/orders/payment-rules";
 import { wasOrderPaidBeforeRefund } from "@/lib/orders/refunds";
+import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 
 export type FulfillmentMilestoneStep = {
@@ -179,7 +180,7 @@ export function buildFullOrderTimeline(
   }
 
   if (order.shipping_date || ["out_for_delivery", "delivered"].includes(status)) {
-    const courier = order.courier_partner ?? order.courier_name;
+    const courier = resolveOrderCourierName(order);
     const awb = order.tracking_number ?? order.tracking_id;
     const shipNotes = [courier ? `Courier: ${courier}` : null, awb ? `AWB: ${awb}` : null]
       .filter(Boolean)

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
+import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
 import { getAvailableShippingOptionalColumns } from "@/lib/orders/shipping-schema";
 import { assertTransition } from "@/lib/orders/workflow-validation";
@@ -79,12 +80,20 @@ export async function POST(_req: Request, { params }: RouteContext) {
 
   const now = new Date().toISOString();
   const optionalColumns = await getAvailableShippingOptionalColumns(db);
+  const courierName = resolveOrderCourierName(existing as Order);
   const payload: Record<string, unknown> = {
     status: "shipped",
-    updated_at: now
+    updated_at: now,
+    courier_name: courierName
   };
   if (optionalColumns.has("shipping_date")) {
     payload.shipping_date = now;
+  }
+  if (optionalColumns.has("courier_partner")) {
+    payload.courier_partner = courierName;
+  }
+  if (optionalColumns.has("delivery_partner")) {
+    payload.delivery_partner = courierName;
   }
 
   const { data: updated, error } = await db

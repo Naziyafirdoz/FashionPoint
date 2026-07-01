@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import {
   BarChart3,
+  Bell,
   Boxes,
   BrainCircuit,
   ChartColumnBig,
@@ -179,6 +180,12 @@ const PRODUCT_CHILDREN: ProductChild[] = [
     isActive: (path) => path.startsWith("/admin/inventory")
   },
   {
+    href: "/admin/products/back-in-stock-requests",
+    label: "Back In Stock Requests",
+    icon: Bell,
+    isActive: (path) => path.startsWith("/admin/products/back-in-stock-requests")
+  },
+  {
     href: "/admin/reviews",
     label: "Product Reviews",
     icon: Star,
@@ -197,7 +204,8 @@ const PRODUCT_SECTION_PATHS = [
   "/admin/categories",
   "/admin/sub-categories",
   "/admin/inventory",
-  "/admin/reviews"
+  "/admin/reviews",
+  "/admin/products/back-in-stock-requests"
 ];
 
 const LINKS: NavLink[] = [

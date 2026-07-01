@@ -1,16 +1,11 @@
 import type { Order } from "@/types";
 
-/** Lean projection for admin list/analytics pagination — excludes items and large JSON blobs. */
+/** Admin list projection — includes `items` jsonb for qty/thumbnails (same source as customer My Orders). */
 export const ADMIN_ORDER_LIST_SELECT =
-  "id,order_number,status,payment_status,payment_method,total,created_at,updated_at,user_id,guest_email,shipping_address";
-
-/**
- * Same admin list columns plus `items` (jsonb line items).
- * Required for product-level analytics via normalizeOrderItems().
- * ADMIN_ORDER_LIST_SELECT alone leaves order.items undefined on initial fetch.
- */
-export const ADMIN_ORDER_LIST_WITH_ITEMS_SELECT =
   "id,order_number,status,payment_status,payment_method,total,created_at,updated_at,user_id,guest_email,shipping_address,items";
+
+/** @deprecated Alias for ADMIN_ORDER_LIST_SELECT — items are always included for admin list UI. */
+export const ADMIN_ORDER_LIST_WITH_ITEMS_SELECT = ADMIN_ORDER_LIST_SELECT;
 
 /** Minimal order columns for inventory units-sold aggregation (avoids heavy list projection + timeout). */
 export const INVENTORY_REPORT_ORDER_SELECT = "id,status,created_at,items";

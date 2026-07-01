@@ -103,6 +103,10 @@ export function getEmailAppUrl(): string | undefined {
     if (normalized) return normalized;
   }
 
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3000";
+  }
+
   return undefined;
 }
 

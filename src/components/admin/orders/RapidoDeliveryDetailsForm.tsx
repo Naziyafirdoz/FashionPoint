@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import {
   formatPickupTimeDisplay,
   getRapidoDeliveryDetails,
+  DEFAULT_COURIER_NAME,
   type RapidoDeliveryDetails
 } from "@/lib/orders/rapido-delivery-metadata";
 import type { Order } from "@/types";
@@ -16,6 +17,7 @@ type RapidoDeliveryDetailsFormProps = {
 };
 
 const EMPTY: RapidoDeliveryDetails = {
+  courier_name: DEFAULT_COURIER_NAME,
   rider_name: "",
   rider_phone: "",
   vehicle_number: "",
@@ -42,6 +44,7 @@ export function RapidoDeliveryDetailsForm({
   useEffect(() => {
     const saved = getRapidoDeliveryDetails(order);
     setForm({
+      courier_name: saved?.courier_name ?? DEFAULT_COURIER_NAME,
       rider_name: saved?.rider_name ?? "",
       rider_phone: saved?.rider_phone ?? "",
       vehicle_number: saved?.vehicle_number ?? "",
@@ -55,6 +58,12 @@ export function RapidoDeliveryDetailsForm({
   };
 
   const handleSave = async () => {
+    const courierName = form.courier_name?.trim();
+    if (!courierName) {
+      toast.error("Delivery partner name is required");
+      return;
+    }
+
     setSaving(true);
     try {
       const pickupIso = form.pickup_time
@@ -67,6 +76,7 @@ export function RapidoDeliveryDetailsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          courier_name: courierName,
           pickup_time: pickupIso || form.pickup_time
         })
       });
@@ -93,6 +103,19 @@ export function RapidoDeliveryDetailsForm({
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm sm:col-span-2">
+          <span className="font-medium text-maroon">
+            Delivery Partner / Courier Name <span className="text-red-600">*</span>
+          </span>
+          <input
+            type="text"
+            required
+            className="mt-1 w-full rounded-lg border border-gold/30 bg-white px-3 py-2 text-sm text-gray-900"
+            placeholder={DEFAULT_COURIER_NAME}
+            value={form.courier_name ?? DEFAULT_COURIER_NAME}
+            onChange={(e) => updateField("courier_name", e.target.value)}
+          />
+        </label>
         <label className="block text-sm">
           <span className="font-medium text-maroon">Rider Name</span>
           <input

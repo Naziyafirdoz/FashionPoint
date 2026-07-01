@@ -22,6 +22,7 @@ function notificationIcon(type: AdminNotification["type"]): string {
   }
   if (type === "shipped") return "🚚";
   if (type === "reminder") return "🔔";
+  if (type === "back_in_stock") return "📬";
   if (type === "refund_pending" || type === "refund_completed") return "💰";
   if (type === "customer_cancelled" || type === "cancelled") return "🚨";
   return "🔔";
@@ -58,7 +59,8 @@ function isVisibleAdminNotification(notification: AdminNotification): boolean {
     notification.type === "ready_for_shipping" ||
     notification.type === "ready_for_dispatch" ||
     notification.type === "shipped" ||
-    notification.type === "reminder"
+    notification.type === "reminder" ||
+    notification.type === "back_in_stock"
   ) {
     return true;
   }
@@ -66,7 +68,18 @@ function isVisibleAdminNotification(notification: AdminNotification): boolean {
 }
 
 function notificationActionLabel(notification: AdminNotification): string {
+  if (notification.type === "back_in_stock") return "View requests";
   return notification.actionLabel ?? "View order";
+}
+
+function notificationActionHref(notification: AdminNotification): string {
+  if (notification.type === "back_in_stock") {
+    return "/admin/products/back-in-stock-requests";
+  }
+  if (notification.orderId) {
+    return `/admin/orders/${notification.orderId}`;
+  }
+  return "/admin/dashboard";
 }
 
 function isDeliveryFollowUpNotification(notification: AdminNotification): boolean {
@@ -203,13 +216,13 @@ export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprov
                               ) : null}
                             </div>
                             <div className="mt-1 space-y-1 text-xs leading-relaxed text-gray-600">
-                              {n.type === "new_order" ? (
+                              {n.type === "new_order" && n.orderId ? (
                                 <NewOrderNotificationCard
                                   orderId={n.orderId}
                                   fallbackMessage={n.message}
                                   onActionComplete={() => markAsRead(n.id)}
                                 />
-                              ) : isDeliveryFollowUpNotification(n) ? (
+                              ) : isDeliveryFollowUpNotification(n) && n.orderId ? (
                                 <DeliveryFollowUpNotificationCard
                                   orderId={n.orderId}
                                   orderNumber={n.orderNumber}
@@ -228,7 +241,7 @@ export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprov
                             <p className="mt-2 text-[11px] text-gray-400">{formatTime(n.createdAt)}</p>
                             {n.type !== "new_order" && !isDeliveryFollowUpNotification(n) ? (
                               <Link
-                                href={`/admin/orders/${n.orderId}`}
+                                href={notificationActionHref(n)}
                                 className="mt-2 inline-flex rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"
                                 onClick={() => {
                                   markAsRead(n.id);
@@ -237,7 +250,7 @@ export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprov
                               >
                                 {notificationActionLabel(n)}
                               </Link>
-                            ) : n.type === "new_order" ? (
+                            ) : n.type === "new_order" && n.orderId ? (
                               <Link
                                 href={`/admin/orders/${n.orderId}`}
                                 className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"

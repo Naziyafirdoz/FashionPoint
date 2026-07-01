@@ -597,13 +597,8 @@ export async function syncProductStockQuantity(
 
   if (error) return { error: error.message };
 
-  if (previousStock <= 0 && totalStock > 0 && product?.slug) {
-    void processBackInStockNotifications(
-      db,
-      productId,
-      product.name,
-      product.slug
-    ).catch((err) => {
+  if (previousStock <= 0 && totalStock > 0) {
+    void processBackInStockNotifications(db, productId).catch((err) => {
       console.error("[back-in-stock] notification dispatch failed", {
         productId,
         message: err instanceof Error ? err.message : String(err)

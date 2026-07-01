@@ -8,6 +8,7 @@ import {
   resolveAdminDeliveryDisplay
 } from "@/lib/orders/admin-delivery-display";
 import { deliveryStatusLabel } from "@/lib/shipping/delivery-status";
+import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
 
@@ -50,7 +51,7 @@ export function ShippingCard({
   const [copied, setCopied] = useState(false);
   const tracking =
     order.tracking_number?.trim() || order.tracking_id?.trim() || "";
-  const courier = order.courier_partner ?? order.courier_name ?? order.delivery_partner ?? "";
+  const courier = resolveOrderCourierName(order);
   const deliveryStatus = deliveryStatusLabel(order.delivery_status ?? order.status);
   const deliveryDisplay = resolveAdminDeliveryDisplay(order);
   const trackUrl = tracking && courier ? trackShipmentUrl(courier, tracking) : null;

@@ -4,7 +4,8 @@ export type InAppNotificationType =
   | "packed"
   | "ready_for_shipping"
   | "shipped"
-  | "reminder";
+  | "reminder"
+  | "back_in_stock";
 
 export type NotificationChannel = "email" | "whatsapp" | "push";
 
@@ -19,7 +20,7 @@ export type OrderNotificationEvent =
 
 export type DbNotification = {
   id: string;
-  order_id: string;
+  order_id: string | null;
   type: InAppNotificationType;
   recipient: string;
   title: string;
@@ -69,6 +70,8 @@ export function notificationTypeLabel(type: string): string {
       return "Shipped";
     case "reminder":
       return "Pending Reminder";
+    case "back_in_stock":
+      return "Back In Stock Request";
     default:
       return type.replace(/_/g, " ");
   }

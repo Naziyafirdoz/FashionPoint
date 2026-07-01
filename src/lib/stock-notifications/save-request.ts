@@ -53,7 +53,7 @@ export async function saveStockNotificationRequest(
     return {
       ok: false,
       code: "duplicate",
-      message: "You've already requested a notification for this product."
+      message: "You've already requested this notification."
     };
   }
 
@@ -75,7 +75,7 @@ export async function saveStockNotificationRequest(
       return {
         ok: false,
         code: "duplicate",
-        message: "You've already requested a notification for this product."
+        message: "You've already requested this notification."
       };
     }
     return {

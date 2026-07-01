@@ -12,12 +12,13 @@ export type AdminNotificationType =
   | "customer_cancelled"
   | "refund_completed"
   | "worker_packed"
-  | "ready_for_dispatch";
+  | "ready_for_dispatch"
+  | "back_in_stock";
 
 export type AdminNotification = {
   id: string;
   type: AdminNotificationType;
-  orderId: string;
+  orderId: string | null;
   orderNumber: string;
   title: string;
   message: string;

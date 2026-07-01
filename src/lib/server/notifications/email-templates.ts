@@ -8,7 +8,8 @@ import {
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 import {
   formatPickupTimeDisplay,
-  getRapidoDeliveryDetails
+  getRapidoDeliveryDetails,
+  resolveOrderCourierName
 } from "@/lib/orders/rapido-delivery-metadata";
 import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
 import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
@@ -279,10 +280,7 @@ function adminGenericBody(order: Order, title: string): string {
 }
 
 function resolveDeliveryPartnerLabel(order: Order): string {
-  if (order.courier_partner?.trim()) return order.courier_partner.trim();
-  if (order.delivery_partner?.trim()) return order.delivery_partner.trim();
-  if (order.courier_name?.trim()) return order.courier_name.trim();
-  return "Rapido";
+  return resolveOrderCourierName(order);
 }
 
 function customerDeliveryPartnerCardHtml(order: Order): string {

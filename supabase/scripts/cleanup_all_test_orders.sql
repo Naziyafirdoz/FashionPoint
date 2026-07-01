@@ -1,8 +1,18 @@
 -- =============================================================================
--- Fashion Point — SAFE ORDER DATA CLEANUP (all test orders)
+-- Fashion Point — SAFE ORDER DATA CLEANUP (all orders)
 -- =============================================================================
 -- Scope: DELETE order-related rows only. Single transaction. No schema changes.
--- Child tables first; reviews deleted before orders (NO ACTION FK).
+--
+-- AFFECTED TABLES (order-exclusive or order-linked):
+--   notification_logs (order-linked rows only)
+--   notifications (order-linked rows only; preserves back_in_stock)
+--   order_action_logs, action_tokens, order_notification_log, order_reminders
+--   return_requests, orders
+--   reviews: order_id unlinked (rows preserved per product-review policy)
+--
+-- NOT TOUCHED:
+--   products, product_variants, categories, customers (rows), addresses,
+--   wishlist, coupons, out_of_stock_requests, auth.users, settings, inventory
 -- =============================================================================
 
 BEGIN;
@@ -16,19 +26,18 @@ DO $$
 DECLARE
   n bigint;
 BEGIN
-  DELETE FROM reviews WHERE order_id IS NOT NULL;
+  -- Unlink reviews (preserve review rows; FK is NO ACTION on orders)
+  UPDATE reviews SET order_id = NULL WHERE order_id IS NOT NULL;
   GET DIAGNOSTICS n = ROW_COUNT;
-  INSERT INTO _cleanup_deleted VALUES ('reviews (order-linked)', n);
+  INSERT INTO _cleanup_deleted VALUES ('reviews (order_id unlinked)', n);
 
-  DELETE FROM notification_logs
-  WHERE order_id IS NOT NULL AND btrim(order_id) <> '';
+  DELETE FROM notification_logs WHERE order_id IS NOT NULL;
   GET DIAGNOSTICS n = ROW_COUNT;
   INSERT INTO _cleanup_deleted VALUES ('notification_logs (order-linked)', n);
 
-  DELETE FROM notifications
-  WHERE order_id IS NOT NULL AND btrim(order_id) <> '';
+  DELETE FROM notifications WHERE order_id IS NOT NULL;
   GET DIAGNOSTICS n = ROW_COUNT;
-  INSERT INTO _cleanup_deleted VALUES ('notifications', n);
+  INSERT INTO _cleanup_deleted VALUES ('notifications (order-linked)', n);
 
   DELETE FROM order_action_logs;
   GET DIAGNOSTICS n = ROW_COUNT;
@@ -53,9 +62,16 @@ BEGIN
   DELETE FROM orders;
   GET DIAGNOSTICS n = ROW_COUNT;
   INSERT INTO _cleanup_deleted VALUES ('orders', n);
+
+  -- Denormalized customer stats (not used by live dashboard counts, but zero for consistency)
+  UPDATE customers
+  SET total_orders = 0, total_spent = 0
+  WHERE COALESCE(total_orders, 0) <> 0 OR COALESCE(total_spent, 0) <> 0;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  INSERT INTO _cleanup_deleted VALUES ('customers (stats reset)', n);
 END $$;
 
-SELECT '=== DELETED ROW COUNTS ===' AS section;
+SELECT '=== DELETED / UPDATED ROW COUNTS ===' AS section;
 SELECT table_name, deleted_count FROM _cleanup_deleted ORDER BY table_name;
 
 SELECT '=== POST-DELETE VERIFICATION (expect 0) ===' AS section;
@@ -74,20 +90,18 @@ SELECT 'order_reminders', COUNT(*) FROM order_reminders
 UNION ALL
 SELECT 'order_notification_log', COUNT(*) FROM order_notification_log
 UNION ALL
-SELECT 'notifications', COUNT(*) FROM notifications
+SELECT 'notifications (order-linked)', COUNT(*) FROM notifications WHERE order_id IS NOT NULL
 UNION ALL
-SELECT 'notification_logs (order-linked)', COUNT(*) FROM notification_logs
-  WHERE order_id IS NOT NULL AND btrim(order_id) <> ''
+SELECT 'notification_logs (order-linked)', COUNT(*) FROM notification_logs WHERE order_id IS NOT NULL
 ORDER BY table_name;
 
-SELECT 'notification_logs (preserved, no order link)' AS note,
+SELECT 'notifications (preserved, no order link)' AS note,
   COUNT(*)::bigint AS row_count
-FROM notification_logs
-WHERE order_id IS NULL OR btrim(order_id) = '';
-
-SELECT 'reviews (preserved, no order link)' AS note,
-  COUNT(*)::bigint AS row_count
-FROM reviews
+FROM notifications
 WHERE order_id IS NULL;
+
+SELECT 'reviews (preserved total)' AS note,
+  COUNT(*)::bigint AS row_count
+FROM reviews;
 
 COMMIT;

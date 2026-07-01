@@ -11,6 +11,7 @@ import {
 import { generateDeliveryOtp } from "@/lib/orders/workflow";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
 import { createShipmentForOrder } from "@/lib/delivery/shipment-service";
+import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { notifyAdminOrderShipped, notifyCustomerOrderShipped } from "@/lib/server/notifications/new-order-alerts";
 import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
 import type { Order } from "@/types";
@@ -85,7 +86,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       ? body.courier_partner.trim()
       : typeof body.courier_name === "string"
         ? body.courier_name.trim()
-        : order.courier_partner?.trim() || order.courier_name?.trim() || "";
+        : resolveOrderCourierName(order);
   const shippingDate =
     typeof body.shipping_date === "string" && body.shipping_date
       ? new Date(body.shipping_date).toISOString()

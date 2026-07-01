@@ -5,6 +5,7 @@ import { isAdminUser } from "@/lib/auth/helpers";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import {
   buildShippingAddressWithRapidoDetails,
+  DEFAULT_COURIER_NAME,
   type RapidoDeliveryDetails
 } from "@/lib/orders/rapido-delivery-metadata";
 import type { Order } from "@/types";
@@ -12,6 +13,9 @@ import type { Order } from "@/types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 function parseDetails(body: Record<string, unknown>): RapidoDeliveryDetails | null {
+  const courier_name =
+    (typeof body.courier_name === "string" ? body.courier_name.trim() : "") ||
+    DEFAULT_COURIER_NAME;
   const rider_name = typeof body.rider_name === "string" ? body.rider_name.trim() : "";
   const rider_phone = typeof body.rider_phone === "string" ? body.rider_phone.trim() : "";
   const vehicle_number =
@@ -19,11 +23,11 @@ function parseDetails(body: Record<string, unknown>): RapidoDeliveryDetails | nu
   const pickup_time = typeof body.pickup_time === "string" ? body.pickup_time.trim() : "";
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
-  if (!rider_name && !rider_phone && !vehicle_number && !pickup_time && !notes) {
+  if (!courier_name) {
     return null;
   }
 
-  return { rider_name, rider_phone, vehicle_number, pickup_time, notes };
+  return { courier_name, rider_name, rider_phone, vehicle_number, pickup_time, notes };
 }
 
 export async function POST(req: Request, { params }: RouteContext) {

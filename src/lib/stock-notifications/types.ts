@@ -8,8 +8,10 @@ export type StockNotificationRequest = {
   customer_email: string;
   user_id: string | null;
   status: StockNotificationStatus;
+  cancel_reason: string | null;
   created_at: string;
   notified_at: string | null;
+  cancelled_at: string | null;
 };
 
 export type SaveStockNotificationInput = {

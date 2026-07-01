@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/products";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { clearProductColorCountCache } from "@/lib/color-products";
+import { notifyDiscontinuedProductIfNeeded } from "@/lib/stock-notifications/discontinued-trigger";
 import { clearSearchIndexCache } from "@/lib/search/search-products";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -62,6 +63,19 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
+  if (existing.status !== "archived" && parsed.product.status === "archived") {
+    void notifyDiscontinuedProductIfNeeded(auth.ctx.db, {
+      productId: id,
+      productName: parsed.product.name,
+      categoryId: existing.category_id
+    }).catch((err) => {
+      console.error("[back-in-stock] discontinued notify on archive failed", {
+        productId: id,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    });
+  }
+
   clearProductColorCountCache();
   clearSearchIndexCache();
   const product = await getAdminProductDetail(auth.ctx.db, id);
@@ -87,6 +101,12 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
   if (reviewCheck.count > 0) {
     return NextResponse.json({ error: PRODUCT_HAS_REVIEWS_DELETE_MESSAGE }, { status: 409 });
   }
+
+  await notifyDiscontinuedProductIfNeeded(auth.ctx.db, {
+    productId: id,
+    productName: existing.name,
+    categoryId: existing.category_id
+  });
 
   const { error } = await auth.ctx.db.from("products").delete().eq("id", id);
 
