@@ -1,4 +1,5 @@
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 
 /** Storefront product page URL for emails (never hardcodes domain). */
 export function buildProductPageUrl(slug: string | null | undefined): string | undefined {
@@ -20,7 +21,7 @@ export function buildAdminInventoryUrl(): string {
 /** Storefront browse URL for discontinued product alternatives. */
 export function buildBrowseProductsUrl(categorySlug?: string | null): string {
   const path = categorySlug?.trim()
-    ? `/category/${encodeURIComponent(categorySlug.trim())}`
+    ? getCategoryUrl(categorySlug.trim())
     : "/designer-wear";
   const url = emailAppUrl(path);
   return url === "#" ? path : url;

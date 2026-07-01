@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Loader2, Ruler, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Product } from "@/types";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import { useCartStore } from "@/stores/cart";
 import { useCheckoutSession } from "@/stores/checkout-session";
 import { OutOfStockModal } from "./OutOfStockModal";
@@ -124,7 +125,7 @@ export function ProductDetail({
   const discount = discountPercent(selection.price, selection.compare_price);
   const attributeFields = buildAttributeFields(product);
   const categoryHref = product.category?.slug
-    ? `/category/${product.category.slug}`
+    ? getCategoryUrl(product.category.slug)
     : "/designer-wear";
   const categoryName = product.category?.name ?? "Category";
 

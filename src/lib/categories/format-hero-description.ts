@@ -1,4 +1,4 @@
-const HERO_DESCRIPTION_MAX_LENGTH = 85;
+const HERO_DESCRIPTION_MAX_LENGTH = 200;
 
 /**
  * Shortens a category description for the hero banner only.

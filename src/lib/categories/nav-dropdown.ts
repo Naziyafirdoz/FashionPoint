@@ -1,3 +1,4 @@
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import { createServiceClient } from "@/lib/supabase";
 import { CATEGORIES } from "@/lib/mock-data";
 import {
@@ -18,24 +19,38 @@ export type NavDropdownData = {
   href: string;
   description: string | null;
   image_url: string | null;
+  /** Homepage banner with fallback to category image_url */
+  banner_image_url: string | null;
   sub_categories: NavDropdownSubCategory[];
 };
 
 export type NavDropdownMap = Record<string, NavDropdownData>;
+
+function resolveBannerImageUrl(
+  homepage_banner_image_url: string | null | undefined,
+  image_url: string | null | undefined
+): string | null {
+  const banner = homepage_banner_image_url?.trim();
+  if (banner) return banner;
+  const image = image_url?.trim();
+  return image || null;
+}
 
 function buildDropdownData(
   slug: string,
   name: string,
   description: string | null | undefined,
   image_url: string | null | undefined,
+  homepage_banner_image_url: string | null | undefined,
   subCategories: NavDropdownSubCategory[]
 ): NavDropdownData {
   return {
     slug,
     name,
-    href: `/category/${slug}`,
+    href: getCategoryUrl(slug),
     description: description?.trim() || null,
     image_url: image_url?.trim() || null,
+    banner_image_url: resolveBannerImageUrl(homepage_banner_image_url, image_url),
     sub_categories: subCategories
   };
 }
@@ -50,6 +65,7 @@ function buildMockDropdowns(slugs: string[]): NavDropdownMap {
       category.name,
       category.description,
       category.image_url,
+      null,
       []
     );
   }
@@ -65,7 +81,7 @@ export async function getNavDropdownsBySlugs(slugs: string[]): Promise<NavDropdo
 
   const { data: categories, error } = await db
     .from("categories")
-    .select("id, name, slug, description, image_url")
+    .select("id, name, slug, description, image_url, homepage_banner_image_url")
     .in("slug", uniqueSlugs)
     .eq("is_active", true);
 
@@ -92,6 +108,9 @@ export async function getNavDropdownsBySlugs(slugs: string[]): Promise<NavDropdo
       String(category.name),
       category.description != null ? String(category.description) : null,
       category.image_url != null ? String(category.image_url) : null,
+      category.homepage_banner_image_url != null
+        ? String(category.homepage_banner_image_url)
+        : null,
       subs
     );
   }

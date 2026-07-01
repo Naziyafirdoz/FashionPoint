@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import { createServiceClient } from "@/lib/supabase";
 import type { SubCategory } from "@/types";
 
@@ -81,5 +82,5 @@ function mapSubCategoryRow(row: Record<string, unknown>): SubCategory {
 }
 
 export function getSubCategoryHref(categorySlug: string, subCategorySlug: string): string {
-  return `/category/${categorySlug}?sub_category=${encodeURIComponent(subCategorySlug)}`;
+  return `${getCategoryUrl(categorySlug)}?sub_category=${encodeURIComponent(subCategorySlug)}`;
 }

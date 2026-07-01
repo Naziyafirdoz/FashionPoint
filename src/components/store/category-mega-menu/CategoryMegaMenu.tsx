@@ -22,11 +22,15 @@ export function CategoryMegaMenu({
     <div
       className={
         compact
-          ? "w-[min(36rem,calc(100vw-2rem))] rounded-xl border border-accent/20 bg-white p-4 shadow-xl"
-          : "w-[min(44rem,calc(100vw-2rem))] rounded-xl border border-accent/20 bg-white p-5 shadow-xl xl:w-[min(48rem,calc(100vw-2rem))] xl:p-6"
+          ? "w-[min(41rem,calc(100vw-2rem))] rounded-[18px] border border-accent/20 bg-white p-6 shadow-[0_12px_40px_rgba(123,13,43,0.12)]"
+          : "w-[min(50rem,calc(100vw-2rem))] rounded-[18px] border border-accent/20 bg-white p-6 shadow-[0_12px_40px_rgba(123,13,43,0.12)] xl:w-[min(54rem,calc(100vw-2rem))] xl:p-8"
       }
     >
-      <div className="flex gap-4 xl:gap-6">
+      <div
+        className={`grid items-center ${
+          compact ? "grid-cols-[50%_1fr] gap-9" : "grid-cols-[51%_1fr] gap-9 xl:gap-10"
+        }`}
+      >
         <CategoryImageCard category={category} compact={compact} />
         <CategorySubCategoryList
           categoryName={category.name}

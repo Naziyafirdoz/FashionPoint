@@ -10,37 +10,32 @@ type CategoryImageCardProps = {
 };
 
 export function CategoryImageCard({ category, compact = false }: CategoryImageCardProps) {
+  const bannerUrl =
+    category.banner_image_url?.trim() || category.image_url?.trim() || null;
+
   return (
-    <div className={compact ? "w-40 shrink-0" : "w-44 shrink-0 xl:w-48"}>
-      {category.image_url ? (
-        <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-accent/10 bg-blush">
+    <Link
+      href={category.href}
+      className={`group relative block w-full overflow-hidden rounded-[18px] border border-[#F2E4E8] bg-blush shadow-[0_4px_16px_rgba(123,13,43,0.06)] transition-shadow duration-200 ease-out hover:shadow-[0_8px_24px_rgba(123,13,43,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+        compact ? "h-[220px]" : "h-[230px]"
+      }`}
+      aria-label={`View ${category.name} collection`}
+    >
+      {bannerUrl ? (
+        <div className="absolute inset-0">
           <ProductImage
-            src={category.image_url}
-            alt={category.name}
-            className="object-cover"
-            sizes={compact ? "160px" : "192px"}
+            src={bannerUrl}
+            alt={`${category.name} collection banner`}
+            className="object-cover object-center transition-transform duration-200 ease-out group-hover:scale-[1.02]"
+            sizes={compact ? "(max-width: 1280px) 260px, 400px" : "400px"}
           />
         </div>
       ) : (
-        <div className="aspect-[3/4] rounded-lg border border-accent/10 bg-gradient-to-br from-blush via-white to-accent/10" />
+        <div
+          className="absolute inset-0 bg-gradient-to-br from-blush via-white to-accent/10"
+          aria-hidden="true"
+        />
       )}
-
-      <h3 className="mt-3 font-display text-sm font-semibold text-primary xl:text-base">
-        {category.name}
-      </h3>
-
-      {category.description ? (
-        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-foreground/70">
-          {category.description}
-        </p>
-      ) : null}
-
-      <Link
-        href={category.href}
-        className="btn-primary mt-3 inline-block px-4 py-2 text-xs transition hover:brightness-105"
-      >
-        View All
-      </Link>
-    </div>
+    </Link>
   );
 }

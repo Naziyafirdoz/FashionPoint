@@ -1,20 +1,23 @@
 import type { Category } from "@/types";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 
 export const FEATURED_CATEGORY_COUNT = 3;
 
 export type NavCategoryLink = {
   label: string;
   href: string;
+  slug: string;
 };
 
 export function getCategoryHref(slug: string): string {
-  return `/${slug}`;
+  return getCategoryUrl(slug);
 }
 
 export function toNavCategoryLink(category: Category): NavCategoryLink {
   return {
     label: category.name.toUpperCase(),
-    href: getCategoryHref(category.slug)
+    slug: category.slug,
+    href: getCategoryUrl(category)
   };
 }
 

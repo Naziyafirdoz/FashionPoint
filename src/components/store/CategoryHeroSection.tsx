@@ -12,7 +12,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { formatHeroDescription } from "@/lib/categories/format-hero-description";
+import type { CategoryHeroFeatureLines } from "@/lib/categories/resolve-category-hero-content";
 
 const CATEGORY_HERO_BACKGROUND = "/assets/hero/category-bg.png";
 
@@ -33,15 +33,18 @@ type CategoryHeroSectionProps = {
   description: string;
   cta?: ReactNode;
   ctaLabel?: string;
+  badge?: string | null;
+  features?: CategoryHeroFeatureLines[] | null;
   plainBackground?: boolean;
 };
 
-function HeroFeatureRow() {
+function HeroFeatureRow({ features }: { features?: CategoryHeroFeatureLines[] | null }) {
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-wrap items-center justify-center gap-x-1 gap-y-2 sm:flex-nowrap sm:gap-x-0 sm:gap-y-0">
       {HERO_FEATURES.map((feature, index) => {
         const Icon = feature.icon;
-        const isReturnPolicy = feature.lines[0] === "No Return";
+        const lines = features?.[index]?.lines ?? feature.lines;
+        const isReturnPolicy = lines[0] === "No Return";
 
         return (
           <div
@@ -63,7 +66,7 @@ function HeroFeatureRow() {
                 aria-hidden="true"
               />
               <span className="flex min-h-[1.9rem] flex-col items-center justify-center text-[10px] font-medium leading-[1.15] text-[#333] sm:min-h-[2rem] sm:text-[11px]">
-                {feature.lines.map((line) => (
+                {lines.map((line) => (
                   <span key={line} className="block">
                     {line}
                   </span>
@@ -88,7 +91,7 @@ function DefaultHeroCta({ label = "Explore Collection" }: { label?: string }) {
     <Link
       href="#"
       onClick={scrollToListing}
-      className="group mt-4 inline-flex h-11 w-fit items-center gap-1.5 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)] sm:px-7"
+      className="group mt-3 inline-flex h-11 w-fit items-center gap-1.5 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)] sm:px-7"
     >
       {label}
       <ArrowRight
@@ -101,13 +104,12 @@ function DefaultHeroCta({ label = "Explore Collection" }: { label?: string }) {
 
 export function CategoryHeroSection({
   title,
-  description,
   cta,
   ctaLabel,
+  badge,
+  features,
   plainBackground = false
 }: CategoryHeroSectionProps) {
-  const heroDescription = formatHeroDescription(description);
-
   return (
     <section
       className="relative w-full overflow-x-clip"
@@ -146,20 +148,19 @@ export function CategoryHeroSection({
             <span className="font-medium text-foreground/65">{title}</span>
           </nav>
 
-          <h1 className="mb-2 font-display text-[2rem] font-bold leading-[1.12] text-primary sm:text-[2.25rem] lg:text-[2.5rem]">
+          {badge ? (
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary/80">
+              {badge}
+            </p>
+          ) : null}
+
+          <h1 className="mb-1.5 text-balance font-display text-[2rem] font-semibold leading-[1.1] tracking-tight text-primary sm:text-[2.25rem] sm:leading-[1.08] lg:text-[2.5rem] lg:leading-[1.06]">
             {title}
           </h1>
 
-          <p
-            className="mb-3 text-base font-medium leading-snug text-[#444]/90 sm:leading-relaxed"
-            title={description !== heroDescription ? description : undefined}
-          >
-            {heroDescription}
-          </p>
+          <HeroFeatureRow features={features} />
 
-          <HeroFeatureRow />
-
-          {cta ?? <DefaultHeroCta label={ctaLabel} />}
+          {cta ?? <DefaultHeroCta label={ctaLabel ?? "Explore Collection"} />}
         </motion.div>
 
         <div className="hidden min-h-[1px] lg:block" aria-hidden="true" />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import type { CategoryPageData, SubCategory } from "@/types";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import {
   EMPTY_PRODUCT_FILTER_OPTIONS,
   type ProductFilterOptions
@@ -39,7 +40,7 @@ function buildCategoryHref(
   }
 
   const qs = params.toString();
-  return `/category/${categorySlug}${qs ? `?${qs}` : ""}`;
+  return `${getCategoryUrl(categorySlug)}${qs ? `?${qs}` : ""}`;
 }
 
 function ProductListingSkeleton() {

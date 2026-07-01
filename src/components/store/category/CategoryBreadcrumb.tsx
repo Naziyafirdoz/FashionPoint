@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import type { CategoryPageData } from "@/types";
 
 type CategoryBreadcrumbProps = {
@@ -20,7 +21,7 @@ export function CategoryBreadcrumb({ category, subCategoryName }: CategoryBreadc
       </span>
       {subCategoryName ? (
         <>
-          <Link href={`/category/${category.slug}`} className="transition hover:text-primary">
+          <Link href={getCategoryUrl(category.slug)} className="transition hover:text-primary">
             {category.name}
           </Link>
           <span className="text-foreground/40" aria-hidden="true">

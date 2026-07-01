@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
+import { getCategoryUrlOrNull } from "@/lib/categories/category-url";
 
 const HOMEPAGE_THEME_GRADIENTS: Record<string, string> = {
   blush: "linear-gradient(160deg, #FFF0F3 0%, #FFE4EC 100%)",
@@ -46,7 +47,7 @@ export function HomepageCollectionPreview({
     description.trim() || "Short description shown on homepage card...";
   const previewButton = buttonText.trim() || "Explore Collection";
   const hasBanner = Boolean(bannerImageUrl.trim());
-  const previewHref = slug.trim() ? `/${slug.trim()}` : null;
+  const previewHref = getCategoryUrlOrNull(slug);
   const isInteractive = hasBanner && Boolean(previewHref);
 
   const previewBody = (

@@ -210,12 +210,20 @@ async function sendRestockEmailToRequest(
   });
 
   try {
-    await resend!.emails.send({
+    const response = await resend!.emails.send({
       from: RESEND_FROM_ALERTS_STORE,
       to: recipient,
       subject,
       html
     });
+
+    console.log("[BACK IN STOCK] Recipient:", recipient);
+    console.log("[BACK IN STOCK] Request ID:", requestId);
+    console.log("[BACK IN STOCK] Resend Response:", response);
+
+    if (response.error) {
+      console.error("[BACK IN STOCK] Resend Error:", response.error);
+    }
   } catch (err) {
     console.error("[back-in-stock] customer email send failed", {
       requestId,

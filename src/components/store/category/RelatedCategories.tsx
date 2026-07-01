@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import type { RelatedCategory } from "@/types";
 import { ProductImage } from "@/components/store/ProductImage";
 
@@ -14,7 +15,7 @@ const BANNER_IMAGE_SIZES = "(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 2
 function RelatedCategoryBannerCard({ category }: { category: RelatedCategory }) {
   return (
     <Link
-      href={`/category/${category.slug}`}
+      href={getCategoryUrl(category.slug)}
       className={CARD_CLASSNAME}
       aria-label={`View ${category.name} collection`}
     >

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getCategoryUrlOrNull } from "@/lib/categories/category-url";
 
 const LEGACY_CARD_HEIGHT = 330;
 const BANNER_CARD_WIDTH = 380;
@@ -59,9 +60,7 @@ export function getHomeCategoryDescription(description?: string | null): string 
 }
 
 export function getHomeCategoryHref(slug?: string | null): string | null {
-  const trimmed = slug?.trim();
-  if (!trimmed) return null;
-  return `/category/${trimmed}`;
+  return getCategoryUrlOrNull(slug);
 }
 
 type CategoryCardLinkProps = {

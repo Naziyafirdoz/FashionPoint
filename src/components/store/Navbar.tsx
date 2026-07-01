@@ -95,7 +95,7 @@ function MoreDropdown({
         <div className="absolute left-0 top-full z-50 mt-2 min-w-[12rem] overflow-hidden rounded-md border border-accent/20 bg-white shadow-lg">
           <ul className="max-h-64 overflow-y-auto py-1">
             {items.map((item) => (
-              <li key={item.href}>
+              <li key={item.slug}>
                 <Link
                   href={item.href}
                   className="block px-4 py-2 text-xs font-medium text-foreground/80 hover:bg-blush hover:text-primary transition"
@@ -125,7 +125,7 @@ export function Navbar({ categories = [] }: NavbarProps) {
 
   const { featured, more } = useMemo(() => splitCategoriesForNav(categories), [categories]);
   const featuredSlugs = useMemo(
-    () => featured.map((item) => item.href.replace(/^\//, "")),
+    () => featured.map((item) => item.slug),
     [featured]
   );
   const { dropdowns, loading: dropdownsLoading, loadDropdowns } = useNavDropdownData(featuredSlugs);
@@ -151,7 +151,7 @@ export function Navbar({ categories = [] }: NavbarProps) {
 
           {featured.map((item) => (
             <FeaturedCategoryNavItem
-              key={item.href}
+              key={item.slug}
               item={item}
               linkClassName={desktopLinkClass}
               dropdowns={dropdowns}
@@ -224,7 +224,7 @@ export function Navbar({ categories = [] }: NavbarProps) {
 
           {featured.map((item) => (
             <NavLink
-              key={item.href}
+              key={item.slug}
               href={item.href}
               label={item.label}
               className={mobileLinkClass}
@@ -247,7 +247,7 @@ export function Navbar({ categories = [] }: NavbarProps) {
                 <div className="max-h-64 overflow-y-auto pl-3">
                   {more.map((item) => (
                     <NavLink
-                      key={item.href}
+                      key={item.slug}
                       href={item.href}
                       label={item.label}
                       className={mobileLinkClass}

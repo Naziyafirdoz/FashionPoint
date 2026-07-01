@@ -25,7 +25,7 @@ export function FeaturedCategoryNavItem({
   loading,
   onOpen
 }: FeaturedCategoryNavItemProps) {
-  const slug = item.href.replace(/^\//, "");
+  const slug = item.slug;
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
@@ -75,8 +75,8 @@ export function FeaturedCategoryNavItem({
           {data ? (
             <div
               className={cn(
-                "origin-top transition-all duration-200 ease-out",
-                visible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                "transition-opacity duration-200 ease-out",
+                visible ? "opacity-100" : "opacity-0"
               )}
             >
               <div className="hidden xl:block">
@@ -97,8 +97,8 @@ export function FeaturedCategoryNavItem({
           ) : loading ? (
             <div
               className={cn(
-                "w-56 rounded-xl border border-accent/20 bg-white px-4 py-3 text-xs text-foreground/60 shadow-lg transition-all duration-200 ease-out",
-                visible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                "w-56 rounded-xl border border-accent/20 bg-white px-4 py-3 text-xs text-foreground/60 shadow-lg transition-opacity duration-200 ease-out",
+                visible ? "opacity-100" : "opacity-0"
               )}
             >
               Loading…
