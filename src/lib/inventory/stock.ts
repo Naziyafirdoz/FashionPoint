@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CartItem } from "@/types";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
+import { processBackInStockNotifications } from "@/lib/stock-notifications/process-restocks";
 
 export type StockValidationError = {
   productId: string;
@@ -18,6 +19,16 @@ export async function syncProductStock(
   db: SupabaseClient,
   productId: string
 ): Promise<{ error?: string; total?: number }> {
+  const { data: product, error: productError } = await db
+    .from("products")
+    .select("stock_quantity, name, slug")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (productError) return { error: productError.message };
+
+  const previousStock = Number(product?.stock_quantity ?? 0);
+
   const { data: variants, error: fetchError } = await db
     .from("product_variants")
     .select("stock_quantity")
@@ -36,6 +47,21 @@ export async function syncProductStock(
     .eq("id", productId);
 
   if (updateError) return { error: updateError.message };
+
+  if (previousStock <= 0 && total > 0 && product?.slug) {
+    void processBackInStockNotifications(
+      db,
+      productId,
+      product.name,
+      product.slug
+    ).catch((err) => {
+      console.error("[back-in-stock] notification dispatch failed", {
+        productId,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    });
+  }
+
   invalidateAdminDataCaches();
   return { total };
 }

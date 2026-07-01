@@ -208,14 +208,12 @@ CREATE TABLE IF NOT EXISTS coupons (
 CREATE TABLE IF NOT EXISTS out_of_stock_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id uuid REFERENCES products(id),
-  name text NOT NULL,
-  phone text NOT NULL,
-  email text,
-  bust numeric,
-  waist numeric,
-  shoulder numeric,
-  message text,
+  product_name text,
+  customer_name text NOT NULL,
+  customer_email text NOT NULL,
+  user_id uuid REFERENCES auth.users(id),
   status text DEFAULT 'pending',
+  notified_at timestamptz,
   created_at timestamptz DEFAULT now()
 );
 

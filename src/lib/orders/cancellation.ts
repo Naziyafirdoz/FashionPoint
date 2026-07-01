@@ -38,7 +38,7 @@ export function orderHasShipmentDispatched(
   return status === "out_for_delivery" || status === "delivered" || (order.status as string) === "shipped";
 }
 
-/** Customer may cancel only while processing, before tracking/shipment. */
+/** Customer may cancel only while processing, before shipment is dispatched. */
 export function isOrderEligibleForCustomerCancellation(
   order: Pick<
     Order,
@@ -55,8 +55,14 @@ export function isOrderEligibleForCustomerCancellation(
     return false;
   }
   if (status !== "processing") return false;
-  if (orderHasTrackingAssigned(order)) return false;
-  if (orderHasShipmentDispatched(order)) return false;
+
+  // Mock shipment rows are created at payment (status "booked") before admin fulfillment.
+  // Block cancellation only once delivery has actually left the store pipeline.
+  const deliveryStatus = (order.delivery_status ?? "").toLowerCase();
+  if (deliveryStatus && DISPATCHED_DELIVERY_STATUSES.has(deliveryStatus)) {
+    return false;
+  }
+
   return true;
 }
 

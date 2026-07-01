@@ -86,7 +86,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
   const handleInvoice = () => {
     if (!order) return;
-    void import("@/lib/orders/admin-orders").then(({ downloadInvoicePdf }) => {
+    void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
       downloadInvoicePdf(order);
     });
   };

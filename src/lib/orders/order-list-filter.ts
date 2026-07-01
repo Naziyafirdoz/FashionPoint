@@ -3,7 +3,7 @@ import {
   isCancelledAwaitingRefund,
   isCancelledRefunded
 } from "@/lib/orders/cancellation";
-import { ORDER_STATUSES } from "@/lib/orders/admin-orders";
+import { ORDER_STATUSES } from "@/lib/orders/status-config";
 
 export type OrderListFilter =
   | { kind: "all" }

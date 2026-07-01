@@ -8,8 +8,8 @@ import { CustomerCancelledOrderSection } from "@/components/account/CustomerCanc
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import { canCustomerCancelOrder } from "@/lib/orders/customer-orders";
 import { getStageLabel } from "@/lib/orders/admin-order-ui";
+import { downloadInvoicePdf } from "@/lib/orders/admin-order-invoice";
 import {
-  downloadInvoicePdf,
   formatCurrency,
   formatOrderDate,
   formatOrderTime,

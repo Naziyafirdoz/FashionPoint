@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
+import { processBackInStockNotifications } from "@/lib/stock-notifications/process-restocks";
 import {
   normalizeProductColorFields,
   type ProductColorFieldResult
@@ -576,6 +577,16 @@ export async function syncProductStockQuantity(
   productId: string,
   totalStock: number
 ): Promise<{ error?: string }> {
+  const { data: product, error: productError } = await db
+    .from("products")
+    .select("stock_quantity, name, slug")
+    .eq("id", productId)
+    .maybeSingle();
+
+  if (productError) return { error: productError.message };
+
+  const previousStock = Number(product?.stock_quantity ?? 0);
+
   const { error } = await db
     .from("products")
     .update({
@@ -585,6 +596,21 @@ export async function syncProductStockQuantity(
     .eq("id", productId);
 
   if (error) return { error: error.message };
+
+  if (previousStock <= 0 && totalStock > 0 && product?.slug) {
+    void processBackInStockNotifications(
+      db,
+      productId,
+      product.name,
+      product.slug
+    ).catch((err) => {
+      console.error("[back-in-stock] notification dispatch failed", {
+        productId,
+        message: err instanceof Error ? err.message : String(err)
+      });
+    });
+  }
+
   invalidateAdminDataCaches();
   return {};
 }

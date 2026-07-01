@@ -17,7 +17,7 @@ import { RefundTrackingUnavailable } from "@/components/admin/orders/RefundTrack
 import {
   downloadInvoicePdf,
   printOrder
-} from "@/lib/orders/admin-orders";
+} from "@/lib/orders/admin-order-invoice";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import {
   canMarkAsRefunded,

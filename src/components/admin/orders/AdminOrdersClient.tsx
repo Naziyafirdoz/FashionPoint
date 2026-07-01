@@ -18,12 +18,7 @@ import {
   orderMatchesOrdersView,
   toOrderListRow
 } from "@/lib/admin/notifications/orders-view";
-import {
-  PAGE_SIZE,
-  printOrder,
-  downloadInvoicePdf,
-  type OrderListRow
-} from "@/lib/orders/admin-orders";
+import { PAGE_SIZE, type OrderListRow } from "@/lib/orders/admin-orders";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import { triggerPostShipSideEffects } from "@/lib/orders/post-ship-side-effects";
 import { refundAmountForOrder } from "@/lib/orders/refunds";
@@ -513,8 +508,16 @@ export function AdminOrdersClient() {
             <OrdersTable
               orders={filteredOrders}
               updatingOrderId={updatingOrderId}
-              onPrint={printOrder}
-              onDownloadInvoice={downloadInvoicePdf}
+              onPrint={(order) => {
+                void import("@/lib/orders/admin-order-invoice").then(({ printOrder }) => {
+                  printOrder(order);
+                });
+              }}
+              onDownloadInvoice={(order) => {
+                void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
+                  downloadInvoicePdf(order);
+                });
+              }}
               onStartProcessing={startProcessing}
               onApproveOrder={approveOrder}
               onReadyForShipping={readyForShipping}

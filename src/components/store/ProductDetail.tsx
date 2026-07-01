@@ -358,14 +358,14 @@ export function ProductDetail({
                   OUT OF STOCK
                 </button>
                 <p className="mt-2.5 text-sm leading-relaxed text-[#666666]">
-                  Want to buy this? Notify me on WhatsApp when available
+                  Out of stock? We&apos;ll email you as soon as it&apos;s back in stock.
                 </p>
                 <button
                   type="button"
                   onClick={() => setNotifyOpen(true)}
                   className={`btn-primary mt-3 w-full ${PDP_BTN}`}
                 >
-                  NOTIFY ME
+                  Notify Me
                 </button>
               </div>
             ) : (
@@ -414,6 +414,7 @@ export function ProductDetail({
         onClose={() => setNotifyOpen(false)}
         productId={product.id}
         productName={product.name}
+        source="detail"
       />
     </div>
   );
