@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
-import { adminMessaging } from "@/lib/server/firebase-admin";
+import { getAdminMessaging } from "@/lib/server/firebase-admin";
 
 const INVALID_TOKEN_CODES = new Set([
   "messaging/invalid-registration-token",
@@ -24,6 +24,17 @@ export async function POST(req: Request) {
     if (!db) {
       return NextResponse.json(
         { success: false, error: "DB not configured" },
+        { status: 503 }
+      );
+    }
+
+    const adminMessaging = getAdminMessaging();
+    if (!adminMessaging) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Firebase Admin credentials are not configured"
+        },
         { status: 503 }
       );
     }
