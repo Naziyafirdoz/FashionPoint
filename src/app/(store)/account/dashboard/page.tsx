@@ -1,19 +1,13 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ensureCustomerRecord, hasMeasurements } from "@/lib/auth/helpers";
-import { SignOutButton } from "@/components/auth/SignOutButton";
+import { ensureCustomerRecord } from "@/lib/auth/helpers";
+import {
+  computeDashboardProfileStatus,
+  getDisplayInitials
+} from "@/lib/account/dashboard-profile";
+import { DashboardShell } from "@/components/account/dashboard/DashboardShell";
 
 export const metadata = { title: "My Account" };
-
-const LINKS = [
-  { href: "/account/orders", label: "My Orders" },
-  { href: "/wishlist", label: "My Wishlist" },
-  { href: "/account/profile", label: "Edit Profile" },
-  { href: "/account/measurements", label: "My Measurements" },
-  { href: "/account/addresses", label: "Saved Addresses" },
-  { href: "/account/ai-history", label: "AI History" }
-];
 
 export default async function AccountDashboardPage() {
   const supabase = await createClient();
@@ -30,17 +24,13 @@ export default async function AccountDashboardPage() {
     phone: (user.user_metadata?.phone as string | undefined) ?? undefined
   });
 
-  const [{ data: customer }, ordersResult, wishlistResult] = await Promise.all([
-    supabase.from("customers").select("*").eq("id", user.id).maybeSingle(),
-    supabase
-      .from("orders")
-      .select("id", { count: "estimated", head: true })
-      .eq("user_id", user.id),
-    supabase
-      .from("wishlist")
-      .select("id", { count: "estimated", head: true })
-      .eq("user_id", user.id)
-  ]);
+  const [{ data: customer }, ordersCountResult, wishlistCountResult, addressesCountResult] =
+    await Promise.all([
+      supabase.from("customers").select("*").eq("id", user.id).maybeSingle(),
+      supabase.from("orders").select("id", { count: "estimated", head: true }).eq("user_id", user.id),
+      supabase.from("wishlist").select("id", { count: "estimated", head: true }).eq("user_id", user.id),
+      supabase.from("addresses").select("id", { count: "estimated", head: true }).eq("customer_id", user.id)
+    ]);
 
   const displayName =
     customer?.full_name ??
@@ -48,63 +38,22 @@ export default async function AccountDashboardPage() {
     user.email?.split("@")[0] ??
     "there";
 
-  const ordersCount = ordersResult.count ?? 0;
-  const wishlistCount = wishlistResult.count ?? 0;
-  const measurementsComplete = hasMeasurements(customer);
+  const profile = computeDashboardProfileStatus(
+    customer,
+    user.email_confirmed_at,
+    addressesCountResult.count ?? 0
+  );
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-bold text-primary">
-            Welcome, {displayName}
-          </h1>
-          <p className="mt-2 text-foreground/70">{user.email}</p>
-        </div>
-        <SignOutButton />
-      </div>
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="card-store text-center">
-          <p className="text-3xl font-bold text-primary">{ordersCount}</p>
-          <p className="mt-1 text-sm text-foreground/70">Orders</p>
-          <Link href="/account/orders" className="mt-2 inline-block text-sm text-primary hover:underline">
-            View orders
-          </Link>
-        </div>
-        <div className="card-store text-center">
-          <p className="text-3xl font-bold text-primary">{wishlistCount}</p>
-          <p className="mt-1 text-sm text-foreground/70">Wishlist items</p>
-          <Link href="/wishlist" className="mt-2 inline-block text-sm text-primary hover:underline">
-            View wishlist
-          </Link>
-        </div>
-        <div className="card-store text-center">
-          <p className="text-3xl font-bold text-primary">
-            {measurementsComplete ? "✓" : "—"}
-          </p>
-          <p className="mt-1 text-sm text-foreground/70">Measurements</p>
-          <p className="mt-2 text-xs text-foreground/60">
-            {measurementsComplete ? "Profile complete" : "Add bust, waist & shoulder"}
-          </p>
-          {!measurementsComplete ? (
-            <Link
-              href="/account/measurements"
-              className="mt-2 inline-block text-sm text-primary hover:underline"
-            >
-              Add measurements
-            </Link>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {LINKS.map((l) => (
-          <Link key={l.href} href={l.href} className="card-store font-medium hover:border-primary">
-            {l.label}
-          </Link>
-        ))}
-      </div>
-    </div>
+    <DashboardShell
+      displayName={displayName}
+      email={user.email ?? ""}
+      avatarUrl={customer?.avatar_url ?? null}
+      initials={getDisplayInitials(displayName)}
+      profile={profile}
+      ordersCount={ordersCountResult.count ?? 0}
+      wishlistCount={wishlistCountResult.count ?? 0}
+      addressesCount={addressesCountResult.count ?? 0}
+    />
   );
 }

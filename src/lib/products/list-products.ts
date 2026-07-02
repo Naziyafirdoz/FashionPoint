@@ -1,6 +1,11 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { filterProductsByColor } from "@/lib/color-products";
 import { normalizeSizeFilter } from "@/config/size-chart";
+import {
+  filterProductsByCompatibleOversizeSize,
+  isAiChartSizeFilter,
+  type SizeMatchMode
+} from "@/lib/products/ai-size-shop-fallback";
 import { extractProductFilterOptions } from "@/lib/products/extract-filter-options";
 import { applyProductSort, parseProductSort } from "@/lib/products/catalog-sort";
 import { STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
@@ -66,6 +71,8 @@ export type ListProductsResult = {
   page: number;
   pageSize: number;
   facets: ProductFilterOptions;
+  /** Present when ?size= is set — exact chart match vs Jumbo/Free Size fallback. */
+  sizeMatchMode?: SizeMatchMode;
 };
 
 async function resolveCategoryId(
@@ -101,14 +108,19 @@ async function resolveSubCategoryId(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyProductFilters(query: any, params: ListProductsParams, categoryId: string | null) {
+function applyProductFilters(
+  query: any,
+  params: ListProductsParams,
+  categoryId: string | null,
+  options?: { omitSize?: boolean }
+) {
   let next = query.in("status", STOREFRONT_PRODUCT_STATUSES);
 
   if (categoryId) {
     next = next.eq("category_id", categoryId);
   }
 
-  if (params.size) {
+  if (params.size && !options?.omitSize) {
     next = next.contains("sizes", [normalizeSizeFilter(params.size)]);
   }
   if (params.fabric) {
@@ -273,6 +285,40 @@ export async function listProductsFromDb(
 
   let facetProducts = facetRows.map((row) => normalizeDbProduct(row as DbRow));
   facetProducts = applyColorFilter(facetProducts, params.color);
+
+  let sizeMatchMode: SizeMatchMode | undefined;
+
+  // AI "Shop This Size": when exact chart size has no matches, surface Jumbo / Free Size blouses.
+  if (
+    params.size &&
+    facetProducts.length === 0 &&
+    isAiChartSizeFilter(params.size)
+  ) {
+    let fallbackQuery = db.from("products").select(PRODUCT_LIST_SELECT);
+    fallbackQuery = applyProductFilters(fallbackQuery, filterParams, categoryId, {
+      omitSize: true
+    });
+    if (subCategoryId) {
+      fallbackQuery = fallbackQuery.eq("sub_category_id", subCategoryId);
+    }
+    fallbackQuery = applyProductSort(fallbackQuery, sort);
+
+    const { data: fallbackRows, error: fallbackError } = await fallbackQuery;
+
+    if (!fallbackError && fallbackRows) {
+      let fallbackProducts = fallbackRows.map((row) => normalizeDbProduct(row as DbRow));
+      fallbackProducts = applyColorFilter(fallbackProducts, params.color);
+      fallbackProducts = filterProductsByCompatibleOversizeSize(fallbackProducts);
+
+      if (fallbackProducts.length > 0) {
+        facetProducts = fallbackProducts;
+        sizeMatchMode = "compatible_oversize";
+      }
+    }
+  } else if (params.size && facetProducts.length > 0) {
+    sizeMatchMode = "exact";
+  }
+
   const facets = extractProductFilterOptions(facetProducts);
 
   const total = facetProducts.length;
@@ -284,6 +330,7 @@ export async function listProductsFromDb(
     total,
     page,
     pageSize,
-    facets
+    facets,
+    ...(sizeMatchMode ? { sizeMatchMode } : {})
   };
 }

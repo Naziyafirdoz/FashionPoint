@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ExploreCollectionsScrollHandler } from "@/components/store/ExploreCollectionsScrollHandler";
 import { HeroBanner } from "@/components/store/HeroBanner";
 import { CategoryCards } from "@/components/store/CategoryCards";
 import { UspStrip } from "@/components/store/UspStrip";
@@ -13,6 +14,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <ExploreCollectionsScrollHandler />
       <HeroBanner />
       <CategoryCards />
       <UspStrip />

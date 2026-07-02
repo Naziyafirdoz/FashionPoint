@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { DetectedColor } from "@/lib/color-analysis";
 import {
   buildColorMatchAnalysis,
+  COLOR_MATCH_LOW_CONFIDENCE_MESSAGE,
   generateBlouseRecommendations,
   type BlouseColorRecommendation
 } from "@/lib/color-matcher";
@@ -41,6 +42,13 @@ export async function POST(req: Request) {
 
   const { imageUrls, detectedColors } = parsed.data;
   const baseRecommendations = generateBlouseRecommendations(detectedColors as DetectedColor[]);
+
+  if (baseRecommendations.length === 0) {
+    return NextResponse.json(
+      { error: COLOR_MATCH_LOW_CONFIDENCE_MESSAGE },
+      { status: 422 }
+    );
+  }
 
   const db = createServiceClient();
   const withCounts = (await attachProductCounts(

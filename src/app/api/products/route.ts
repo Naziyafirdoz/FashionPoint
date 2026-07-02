@@ -66,7 +66,8 @@ export async function GET(req: Request) {
     page: result.page,
     pageSize: result.pageSize,
     facets: result.facets,
-    source: "supabase"
+    source: "supabase",
+    ...(result.sizeMatchMode ? { sizeMatchMode: result.sizeMatchMode } : {})
   });
 }
 

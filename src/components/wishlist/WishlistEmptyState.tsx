@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, ShoppingBag } from "lucide-react";
+import {
+  EXPLORE_COLLECTIONS_HREF,
+  handleExploreCollectionsClick
+} from "@/lib/navigation/explore-collections";
 
 export function WishlistEmptyState() {
   return (
@@ -26,7 +30,8 @@ export function WishlistEmptyState() {
       </p>
       <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
         <Link
-          href="/"
+          href={EXPLORE_COLLECTIONS_HREF}
+          onClick={handleExploreCollectionsClick}
           className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7B0D2B] px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition duration-300 hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)]"
         >
           Explore Collections

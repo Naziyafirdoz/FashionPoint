@@ -2,18 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle, Crown, HelpCircle } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Circle,
+  Loader2,
+  Minus,
+  Ruler,
+  Sparkles
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { AuthError, AuthSuccess } from "@/components/auth/AuthLayout";
 import { findSize } from "@/lib/ai-size-finder";
 import {
   validateMeasurementField,
   validateMeasurementForm,
   type MeasurementFormValues
 } from "@/lib/size-finder-validation";
-import { SIZE_CHART_CONFIG, type FitPreference } from "@/config/size-chart";
+import { SIZE_CHART_CONFIG, type FitPreference, type MeasurementField } from "@/config/size-chart";
 import { saveSizeRecommendationAction } from "@/app/(store)/account/actions";
-import { MeasurementGuideModal } from "./MeasurementGuideModal";
+import { MeasurementHelpAccordion } from "@/components/ai/size-finder/MeasurementHelpAccordion";
+import { SizeFinderHero } from "@/components/ai/size-finder/SizeFinderHero";
+import { SizeFinderRecommendationPanel } from "@/components/ai/size-finder/SizeFinderRecommendationPanel";
+import { SizeFinderSizeChart } from "@/components/ai/size-finder/SizeFinderSizeChart";
 import type { SizeRecommendation } from "@/types";
 
 export type SavedMeasurements = {
@@ -36,7 +45,14 @@ type SizeFinderClientProps = {
   isLoggedIn?: boolean;
 };
 
-const FIELD_ORDER = ["bust", "underbust", "waist", "shoulder"] as const;
+const FIELD_ORDER: MeasurementField[] = ["bust", "underbust", "waist", "shoulder"];
+
+const FIELD_ICONS: Record<MeasurementField, typeof Ruler> = {
+  bust: Circle,
+  underbust: Minus,
+  waist: Ruler,
+  shoulder: ArrowLeftRight
+};
 
 function buildInitialForm(saved?: SavedMeasurements | null): MeasurementFormValues {
   return {
@@ -65,6 +81,9 @@ export function SizeFinderClient({
   savedSizeProfile,
   isLoggedIn = false
 }: SizeFinderClientProps) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
+
   const hasSaved = Boolean(
     savedMeasurements?.bust != null &&
       savedMeasurements?.waist != null &&
@@ -78,7 +97,6 @@ export function SizeFinderClient({
   );
   const [result, setResult] = useState<SizeRecommendation | null>(null);
   const [loading, setLoading] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
   const [savedProfile, setSavedProfile] = useState(savedSizeProfile ?? null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "success" | "error">("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -231,82 +249,105 @@ export function SizeFinderClient({
     }
   };
 
+  const handleEditMeasurements = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    firstFieldRef.current?.focus();
+  };
+
+  const handleTryAgain = () => {
+    setResult(null);
+    setSaveState("idle");
+    setSaveMessage(null);
+    handleEditMeasurements();
+  };
+
   const formInvalid = Object.keys(fieldErrors).length > 0;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
-      <h1 className="font-display text-3xl font-bold text-primary">AI Size Finder</h1>
-      <p className="mt-2 max-w-2xl text-sm text-foreground/70">
-        Smart scoring compares your measurements against our size chart to recommend the best
-        blouse fit — with clear reasons you can trust.
-      </p>
+    <div className="mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 sm:py-5">
+      <SizeFinderHero
+        hasSaved={hasSaved}
+        lastSavedSize={lastSavedSize}
+        lastSavedAt={lastSavedAt}
+      />
 
-      {hasSaved ? (
-        <p className="mt-2 text-sm text-foreground/70">
-          Pre-filled from your saved measurements.{" "}
-          <Link href="/account/measurements" className="text-primary hover:underline">
-            Edit measurements
-          </Link>
-        </p>
-      ) : null}
-
-      {lastSavedSize ? (
-        <p className="mt-2 text-sm text-foreground/80">
-          Last saved size: <span className="font-semibold text-primary">{lastSavedSize}</span>
-          {lastSavedAt ? <span className="text-foreground/60"> · {lastSavedAt}</span> : null}
-        </p>
-      ) : null}
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-3">
-        <form onSubmit={submit} className="card-store space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-semibold">Your Measurements</p>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              <HelpCircle className="h-4 w-4" />
-              How to Measure?
-            </button>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-[35fr_35fr_30fr] lg:items-stretch lg:gap-5">
+        <form
+          ref={formRef}
+          id="measurement-form"
+          onSubmit={submit}
+          className="h-full rounded-[16px] border border-[#F3E5E8] bg-white p-4 shadow-[0_2px_14px_rgba(122,13,43,0.04)] md:col-span-1 lg:col-span-1"
+        >
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF0F3] text-primary">
+              <Ruler className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden="true" />
+            </span>
+            <div>
+              <h2 className="font-display text-base font-bold text-primary">Your Measurements</h2>
+              <p className="text-[11px] text-foreground/60">All fields in inches</p>
+            </div>
           </div>
 
-          {FIELD_ORDER.map((field) => {
-            const meta = SIZE_CHART_CONFIG.validation[field];
-            return (
-              <div key={field}>
-                <label htmlFor={field} className="mb-1 block text-sm font-medium">
-                  {meta.label} ({meta.unit})
-                </label>
-                <input
-                  id={field}
-                  required={field !== "underbust"}
-                  inputMode="decimal"
-                  className={`w-full rounded-lg border px-3 py-2 text-sm ${
-                    fieldErrors[field] ? "border-red-500" : ""
-                  }`}
-                  value={form[field]}
-                  onChange={(e) => updateField(field, e.target.value)}
-                  aria-invalid={Boolean(fieldErrors[field])}
-                  aria-describedby={fieldErrors[field] ? `${field}-error` : undefined}
-                />
-                {fieldErrors[field] ? (
-                  <p id={`${field}-error`} className="mt-1 text-xs text-red-600" role="alert">
-                    {fieldErrors[field]}
-                  </p>
-                ) : null}
-              </div>
-            );
-          })}
+          <div className="mt-3 space-y-2.5">
+            {FIELD_ORDER.map((field, index) => {
+              const meta = SIZE_CHART_CONFIG.validation[field];
+              const Icon = FIELD_ICONS[field];
+              return (
+                <div key={field}>
+                  <label htmlFor={field} className="mb-1 block text-xs font-medium text-[#2A2A2A]">
+                    {meta.label}
+                  </label>
+                  <div className="relative">
+                    <Icon
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-primary/45"
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={index === 0 ? firstFieldRef : undefined}
+                      id={field}
+                      required={field !== "underbust"}
+                      inputMode="decimal"
+                      className={`w-full rounded-lg border bg-white py-2 pl-9 pr-14 text-sm transition focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15 ${
+                        fieldErrors[field] ? "border-red-400" : "border-[#F3E5E8]"
+                      }`}
+                      value={form[field]}
+                      onChange={(e) => updateField(field, e.target.value)}
+                      aria-invalid={Boolean(fieldErrors[field])}
+                      aria-describedby={fieldErrors[field] ? `${field}-error` : `${field}-unit`}
+                    />
+                    <span
+                      id={`${field}-unit`}
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-foreground/45"
+                    >
+                      {meta.unit}
+                    </span>
+                  </div>
+                  {fieldErrors[field] ? (
+                    <p id={`${field}-error`} className="mt-1 text-xs text-red-600" role="alert">
+                      {fieldErrors[field]}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
 
-          <div>
-            <p className="mb-2 text-sm font-medium">Fit Preference</p>
-            <div className="space-y-2">
+          <fieldset className="mt-3">
+            <legend className="mb-1.5 text-xs font-medium text-[#2A2A2A]">Fit Preference</legend>
+            <div className="grid grid-cols-3 gap-1.5">
               {(["fitted", "regular", "loose"] as const).map((option) => (
-                <label key={option} className="flex cursor-pointer items-center gap-2 text-sm">
+                <label
+                  key={option}
+                  className={`flex cursor-pointer items-center justify-center rounded-lg border px-2 py-2 text-xs font-medium transition ${
+                    fitPreference === option
+                      ? "border-primary bg-[#FFF5F7] text-primary shadow-sm"
+                      : "border-[#F3E5E8] bg-white text-foreground/70 hover:border-primary/20"
+                  }`}
+                >
                   <input
                     type="radio"
                     name="fitPreference"
+                    className="sr-only"
                     checked={fitPreference === option}
                     onChange={() => handleFitChange(option)}
                   />
@@ -314,146 +355,57 @@ export function SizeFinderClient({
                 </label>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <button
             type="submit"
             disabled={loading || formInvalid}
-            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary mt-4 inline-flex h-10 w-full items-center justify-center gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Calculating..." : "FIND MY SIZE"}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                FIND MY SIZE
+              </>
+            )}
           </button>
-          <p className="text-xs text-foreground/60">
+
+          {hasSaved ? (
+            <p className="mt-2 text-center text-[11px] text-foreground/60">
+              <Link href="/account/measurements" className="text-primary hover:underline">
+                Edit saved measurements
+              </Link>
+            </p>
+          ) : null}
+
+          <p className="mt-1.5 text-center text-[11px] text-foreground/55">
             Your data is 100% secure and will not be shared.
           </p>
         </form>
 
-        <div className="card-store">
-          {result ? (
-            <div className="text-center">
-              <Crown className="mx-auto h-10 w-10 text-secondary" />
-              <p className="mt-4 text-sm font-medium text-foreground/70">Recommended Size</p>
-              <p className="text-3xl font-bold text-primary">{result.recommendedSize}</p>
-
-              <div className="mt-4 space-y-1 text-sm">
-                <p>
-                  <span className="text-foreground/60">Confidence:</span>{" "}
-                  <span className="font-semibold">{result.confidenceScore}%</span>
-                </p>
-                <p className="font-medium text-primary">{result.confidenceLabel}</p>
-                <p>
-                  <span className="text-foreground/60">Fit Type:</span>{" "}
-                  <span className="font-medium">{result.fitType}</span>
-                </p>
-              </div>
-
-              {result.spanningSizesNotice ? (
-                <div className="mt-4 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-left text-xs text-sky-900">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>{result.spanningSizesNotice}</p>
-                </div>
-              ) : null}
-
-              {result.showLowConfidenceWarning ? (
-                <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-left text-xs text-amber-900">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>
-                    We are less confident in this match. Consider re-measuring or trying a
-                    nearby size.
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="mx-auto mt-4 h-2 max-w-xs rounded-full bg-blush">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${result.confidenceScore}%` }}
-                />
-              </div>
-
-              <div className="mt-6 rounded-lg bg-blush/40 p-4 text-left text-sm">
-                <p className="font-semibold text-primary">Why this size?</p>
-                <ul className="mt-2 space-y-1 text-foreground/80">
-                  {result.explanations.map((line) => (
-                    <li key={line} className="flex gap-2">
-                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-4 flex flex-col gap-2">
-                <AuthSuccess
-                  message={saveState === "success" ? saveMessage : null}
-                />
-                <AuthError message={saveState === "error" ? saveMessage : null} />
-                <button
-                  type="button"
-                  onClick={handleSaveSize}
-                  disabled={saveState === "saving" || !isLoggedIn}
-                  className="btn-outline w-full text-sm disabled:opacity-60"
-                >
-                  {saveState === "saving" ? "Saving measurements..." : "Save Recommended Size"}
-                </button>
-                {!isLoggedIn ? (
-                  <p className="text-xs text-foreground/60">
-                    <Link href="/login?redirect=/ai-features/size-finder" className="text-primary underline">
-                      Sign in
-                    </Link>{" "}
-                    to save your size to your profile.
-                  </p>
-                ) : null}
-                <Link
-                  href={`/products?size=${encodeURIComponent(result.shopSizeSlug)}`}
-                  className="btn-primary inline-flex w-full justify-center"
-                >
-                  SHOP THIS SIZE
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <p className="py-12 text-center text-foreground/60">
-              Enter valid measurements to get your personalized size recommendation.
-            </p>
-          )}
+        <div className="h-full md:col-span-1 lg:col-span-1">
+          <SizeFinderRecommendationPanel
+            loading={loading}
+            result={result}
+            isLoggedIn={isLoggedIn}
+            saveState={saveState}
+            saveMessage={saveMessage}
+            onSave={handleSaveSize}
+            onEditMeasurements={handleEditMeasurements}
+            onTryAgain={handleTryAgain}
+          />
         </div>
 
-        <div className="card-store overflow-x-auto">
-          <p className="mb-3 text-sm font-semibold text-primary">Size Chart</p>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-primary">
-                <th className="py-2">Size</th>
-                <th>Bust</th>
-                <th>Underbust</th>
-                <th>Waist</th>
-                <th>Shoulder</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chartRows.map((s) => (
-                <tr
-                  key={s.label}
-                  className={
-                    result?.recommendedSize === s.label
-                      ? "bg-primary/10 font-bold text-primary"
-                      : "border-b"
-                  }
-                >
-                  <td className="py-2">{s.label}</td>
-                  <td>{s.bust}</td>
-                  <td>{s.underbust}</td>
-                  <td>{s.waist}</td>
-                  <td>{s.shoulder}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col gap-3 md:col-span-2 lg:col-span-1">
+          <SizeFinderSizeChart rows={chartRows} recommendedSize={result?.recommendedSize ?? null} />
+          <MeasurementHelpAccordion />
         </div>
       </div>
-
-      <MeasurementGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }

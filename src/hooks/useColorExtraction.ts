@@ -9,9 +9,14 @@ import {
 import {
   compressImageFile,
   extractColorsFromImages,
-  isAcceptedImageType,
   type DetectedColor
 } from "@/lib/color-analysis";
+import { COLOR_MATCH_LOW_CONFIDENCE_MESSAGE } from "@/lib/color-matcher";
+import {
+  COLOR_UPLOAD_MAX_IMAGES,
+  fileSignature,
+  validateColorUploadFile
+} from "@/lib/color-upload-validation";
 
 export type UploadedImage = {
   id: string;
@@ -23,7 +28,7 @@ export type UploadedImage = {
   progress: number;
 };
 
-const MAX_IMAGES = 5;
+const MAX_IMAGES = COLOR_UPLOAD_MAX_IMAGES;
 
 function createId() {
   return `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -52,17 +57,34 @@ export function useColorExtraction() {
       const remaining = MAX_IMAGES - images.length;
 
       if (remaining <= 0) {
-        setError(`You can upload up to ${MAX_IMAGES} images.`);
+        setError(`Too many images. You can upload up to ${MAX_IMAGES} photos.`);
         return;
       }
 
-      const accepted = list.filter((file) => {
-        if (!isAcceptedImageType(file.type)) {
-          setError("Only JPG, PNG, and WEBP images are supported.");
-          return false;
+      if (!list.length) {
+        setError("Please choose at least one image to upload.");
+        return;
+      }
+
+      const existingSignatures = new Set(images.map((img) => fileSignature(img.file)));
+      const accepted: File[] = [];
+
+      for (const file of list) {
+        const validation = validateColorUploadFile(file);
+        if (!validation.ok) {
+          setError(validation.message);
+          continue;
         }
-        return true;
-      });
+
+        const signature = fileSignature(file);
+        if (existingSignatures.has(signature)) {
+          setError("This image is already added. Choose a different photo.");
+          continue;
+        }
+
+        existingSignatures.add(signature);
+        accepted.push(file);
+      }
 
       const toAdd = accepted.slice(0, remaining);
       const next: UploadedImage[] = [];
@@ -84,15 +106,19 @@ export function useColorExtraction() {
             progress: 0
           });
         } catch {
-          setError("Could not process one of the images. Please try another photo.");
+          setError("Could not process one of the images. The file may be corrupted — try another photo.");
         }
+      }
+
+      if (toAdd.length > list.length && accepted.length > remaining) {
+        setError(`Too many images. Only ${remaining} more photo${remaining === 1 ? "" : "s"} can be added.`);
       }
 
       if (next.length) {
         setImages((prev) => [...prev, ...next]);
       }
     },
-    [images.length]
+    [images]
   );
 
   const removeImage = useCallback(
@@ -123,6 +149,61 @@ export function useColorExtraction() {
     setDetectedColors([]);
     cacheRef.current.clear();
   }, []);
+
+  const setImageSlot = useCallback((id: string, slot: ImageSlot) => {
+    setImages((prev) => prev.map((img) => (img.id === id ? { ...img, slot } : img)));
+    setDetectedColors([]);
+    cacheRef.current.clear();
+  }, []);
+
+  const replaceImage = useCallback(
+    async (id: string, file: File) => {
+      const validation = validateColorUploadFile(file);
+      if (!validation.ok) {
+        setError(validation.message);
+        return;
+      }
+
+      const signature = fileSignature(file);
+      const duplicate = images.some(
+        (img) => img.id !== id && fileSignature(img.file) === signature
+      );
+      if (duplicate) {
+        setError("This image is already added. Choose a different photo.");
+        return;
+      }
+
+      setError(null);
+
+      try {
+        const compressed = await compressImageFile(file);
+        const compressedFile = new File([compressed], file.name, {
+          type: compressed.type || file.type
+        });
+        const previewUrl = URL.createObjectURL(compressed);
+
+        setImages((prev) =>
+          prev.map((img) => {
+            if (img.id !== id) return img;
+            revokePreview(img.previewUrl);
+            return {
+              ...img,
+              file: compressedFile,
+              previewUrl,
+              remoteUrl: undefined,
+              status: "pending",
+              progress: 0
+            };
+          })
+        );
+        setDetectedColors([]);
+        cacheRef.current.clear();
+      } catch {
+        setError("Could not process this image. The file may be corrupted — try another photo.");
+      }
+    },
+    [images, revokePreview]
+  );
 
   const uploadImages = useCallback(async (): Promise<string[]> => {
     if (!images.length) return [];
@@ -200,7 +281,7 @@ export function useColorExtraction() {
         }))
       );
       if (!colors.length) {
-        throw new Error("Could not detect saree colors. Try clearer photos in natural light.");
+        throw new Error(COLOR_MATCH_LOW_CONFIDENCE_MESSAGE);
       }
 
       cacheRef.current.set(cacheKey, colors);
@@ -233,6 +314,8 @@ export function useColorExtraction() {
     addFiles,
     removeImage,
     moveImage,
+    setImageSlot,
+    replaceImage,
     uploadImages,
     extractColors,
     reset,
