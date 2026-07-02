@@ -20,7 +20,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <AnnouncementBar />
       <Navbar categories={categories} />
       {children}
-      <Footer />
+      <Footer categories={categories} />
       <StylistChatbotLazy />
     </>
   );

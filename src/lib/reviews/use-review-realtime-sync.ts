@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeReviewSyncBus } from "@/lib/reviews/review-sync-bus";
 
@@ -19,6 +19,15 @@ function shouldSyncForProduct(
   return eventProductId === filterProductId;
 }
 
+function createReviewSyncChannelName(productId: string | undefined): string {
+  const suffix =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+  return productId ? `reviews-sync-${productId}-${suffix}` : `reviews-sync-all-${suffix}`;
+}
+
 /**
  * Refetch review-driven UI when reviews change (Supabase realtime + cross-tab bus).
  */
@@ -26,12 +35,15 @@ export function useReviewRealtimeSync(
   onSync: () => void,
   { productId, enabled = true }: UseReviewRealtimeSyncOptions = {}
 ): void {
+  const onSyncRef = useRef(onSync);
+  onSyncRef.current = onSync;
+
   useEffect(() => {
     if (!enabled) return;
 
     const handleEvent = (eventProductId?: string | null) => {
       if (!shouldSyncForProduct(eventProductId, productId)) return;
-      onSync();
+      onSyncRef.current();
     };
 
     const unsubscribeBus = subscribeReviewSyncBus(({ productId: eventProductId }) => {
@@ -39,8 +51,9 @@ export function useReviewRealtimeSync(
     });
 
     const supabase = createClient();
+    const channelName = createReviewSyncChannelName(productId);
     const channel = supabase
-      .channel(productId ? `reviews-sync-${productId}` : "reviews-sync-all")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -60,5 +73,5 @@ export function useReviewRealtimeSync(
       unsubscribeBus();
       void supabase.removeChannel(channel);
     };
-  }, [enabled, onSync, productId]);
+  }, [enabled, productId]);
 }

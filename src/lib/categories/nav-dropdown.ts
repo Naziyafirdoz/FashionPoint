@@ -1,6 +1,5 @@
 import { getCategoryUrl } from "@/lib/categories/category-url";
 import { createServiceClient } from "@/lib/supabase";
-import { CATEGORIES } from "@/lib/mock-data";
 import {
   getActiveSubCategoriesByCategoryIds,
   getSubCategoryHref
@@ -55,29 +54,12 @@ function buildDropdownData(
   };
 }
 
-function buildMockDropdowns(slugs: string[]): NavDropdownMap {
-  const dropdowns: NavDropdownMap = {};
-  for (const slug of slugs) {
-    const category = CATEGORIES.find((item) => item.slug === slug && item.is_active);
-    if (!category) continue;
-    dropdowns[slug] = buildDropdownData(
-      category.slug,
-      category.name,
-      category.description,
-      category.image_url,
-      null,
-      []
-    );
-  }
-  return dropdowns;
-}
-
 export async function getNavDropdownsBySlugs(slugs: string[]): Promise<NavDropdownMap> {
   const uniqueSlugs = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
   if (uniqueSlugs.length === 0) return {};
 
   const db = createServiceClient();
-  if (!db) return buildMockDropdowns(uniqueSlugs);
+  if (!db) return {};
 
   const { data: categories, error } = await db
     .from("categories")
@@ -86,7 +68,7 @@ export async function getNavDropdownsBySlugs(slugs: string[]): Promise<NavDropdo
     .eq("is_active", true);
 
   if (error || !categories?.length) {
-    return buildMockDropdowns(uniqueSlugs);
+    return {};
   }
 
   const categoryIds = categories.map((category) => String(category.id));

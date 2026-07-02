@@ -8,8 +8,18 @@ import {
   SUPPORT_EMAIL
 } from "@/lib/site-config";
 import { BrandLockup } from "@/components/BrandLockup";
+import { getCategoryUrl } from "@/lib/categories/category-url";
+import type { Category } from "@/types";
 
-export function Footer() {
+type FooterProps = {
+  categories?: Category[];
+};
+
+export function Footer({ categories = [] }: FooterProps) {
+  const shopCategories = [...categories]
+    .filter((category) => category.slug !== "soon")
+    .sort((a, b) => a.sort_order - b.sort_order);
+
   return (
     <footer className="mt-0 border-t border-accent/20 bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4">
@@ -23,9 +33,11 @@ export function Footer() {
           <h4 className="font-semibold text-primary">Shop</h4>
           <ul className="mt-2 space-y-1 text-sm text-foreground/70">
             <li><Link href="/products">All Products</Link></li>
-            <li><Link href="/daily-wear">Daily Wear</Link></li>
-            <li><Link href="/designer-wear">Designer Wear</Link></li>
-            <li><Link href="/party-wear">Party Wear</Link></li>
+            {shopCategories.map((category) => (
+              <li key={category.id}>
+                <Link href={getCategoryUrl(category)}>{category.name}</Link>
+              </li>
+            ))}
           </ul>
         </div>
         <div>

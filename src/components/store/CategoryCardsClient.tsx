@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getCategoryUrlOrNull } from "@/lib/categories/category-url";
+import { EXPLORE_COLLECTIONS_ID } from "@/lib/navigation/explore-collections";
 
 const LEGACY_CARD_HEIGHT = 330;
 const BANNER_CARD_WIDTH = 380;
@@ -293,7 +294,7 @@ export function CategoryCardsClient({ categories }: CategoryCardsClientProps) {
 
   return (
     <section
-      id="explore-collections"
+      id={EXPLORE_COLLECTIONS_ID}
       className="relative w-full scroll-mt-20 overflow-hidden"
       aria-label="Shop collections"
     >

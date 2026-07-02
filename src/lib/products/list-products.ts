@@ -1,4 +1,5 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { getCategoryBySlug } from "@/lib/categories/get-category-by-slug";
 import { filterProductsByColor } from "@/lib/color-products";
 import { normalizeSizeFilter } from "@/config/size-chart";
 import {
@@ -76,16 +77,11 @@ export type ListProductsResult = {
 };
 
 async function resolveCategoryId(
-  db: SupabaseClient,
+  _db: SupabaseClient,
   categorySlug: string
 ): Promise<string | null> {
-  const { data } = await db
-    .from("categories")
-    .select("id")
-    .eq("slug", categorySlug)
-    .maybeSingle();
-
-  return data?.id ? String(data.id) : null;
+  const category = await getCategoryBySlug(categorySlug);
+  return category?.id ?? null;
 }
 
 async function resolveSubCategoryId(

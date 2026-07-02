@@ -94,7 +94,7 @@ export function SizeClient() {
             Open a product page and select the closest available size.
           </div>
           <div className="mt-4">
-            <Button href="/category/new">Browse New Arrivals</Button>
+            <Button href="/products">Browse Products</Button>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { getCategoryBySlug } from "@/lib/categories/get-category-by-slug";
 import { getActiveSubCategoriesByCategoryId } from "@/lib/sub-categories/get-sub-categories";
-import { createServiceClient } from "@/lib/supabase";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -16,18 +16,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ sub_categories });
   }
 
-  const db = createServiceClient();
-  if (!db) return NextResponse.json({ sub_categories: [] });
-
-  const { data: category } = await db
-    .from("categories")
-    .select("id")
-    .eq("slug", categorySlug!)
-    .eq("is_active", true)
-    .maybeSingle();
-
+  const category = await getCategoryBySlug(categorySlug!);
   if (!category) return NextResponse.json({ sub_categories: [] });
 
-  const sub_categories = await getActiveSubCategoriesByCategoryId(String(category.id));
+  const sub_categories = await getActiveSubCategoriesByCategoryId(category.id);
   return NextResponse.json({ sub_categories });
 }

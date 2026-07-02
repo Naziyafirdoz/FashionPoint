@@ -484,7 +484,7 @@ export function CheckoutForm({
         <p className="mt-4 text-sm text-foreground/70">
           Your Buy Now session expired. Please select a product again.
         </p>
-        <Link href="/daily-wear" className="btn-primary mt-6 inline-block">
+        <Link href="/products" className="btn-primary mt-6 inline-block">
           Continue Shopping
         </Link>
       </div>
@@ -496,7 +496,7 @@ export function CheckoutForm({
       <div className="mx-auto max-w-3xl px-4 py-10 text-center">
         <h1 className="font-display text-2xl font-bold text-primary">Checkout</h1>
         <p className="mt-4 text-sm text-foreground/70">Your cart is empty.</p>
-        <Link href="/daily-wear" className="btn-primary mt-6 inline-block">
+        <Link href="/products" className="btn-primary mt-6 inline-block">
           Shop Now
         </Link>
       </div>

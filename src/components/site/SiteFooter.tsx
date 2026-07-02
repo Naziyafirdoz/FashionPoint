@@ -1,8 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { BrandLockup } from "@/components/BrandLockup";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import { COPYRIGHT_NOTICE } from "@/lib/site-config";
+import type { Category } from "@/types";
 
 export function SiteFooter() {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    void fetch("/api/categories")
+      .then((res) => res.json())
+      .then((data: { categories?: Category[] }) => setCategories(data.categories ?? []))
+      .catch(() => setCategories([]));
+  }, []);
+
   return (
     <footer className="border-t border-blush-100 bg-white/60 backdrop-blur">
       <div className="mx-auto max-w-6xl px-4 py-10">
@@ -32,20 +46,17 @@ export function SiteFooter() {
             <div className="text-sm font-semibold text-maroon">Shop</div>
             <ul className="mt-3 space-y-2 text-sm text-maroon/70">
               <li>
-                <Link href="/category/daily" className="hover:text-maroon">
-                  Daily Blouses
+                <Link href="/products" className="hover:text-maroon">
+                  All Products
                 </Link>
               </li>
-              <li>
-                <Link href="/category/designer" className="hover:text-maroon">
-                  Designer Blouses
-                </Link>
-              </li>
-              <li>
-                <Link href="/category/new" className="hover:text-maroon">
-                  New Arrivals
-                </Link>
-              </li>
+              {categories.map((category) => (
+                <li key={category.id}>
+                  <Link href={getCategoryUrl(category)} className="hover:text-maroon">
+                    {category.name}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link href="/offers" className="hover:text-maroon">
                   Offers
@@ -93,4 +104,3 @@ export function SiteFooter() {
     </footer>
   );
 }
-

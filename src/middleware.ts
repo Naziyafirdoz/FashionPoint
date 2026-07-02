@@ -1,7 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
+import {
+  mightBeLegacyCategoryPath,
+  resolveLegacyCategoryRedirectPath
+} from "@/lib/categories/legacy-redirect";
 import { NextResponse, type NextRequest } from "next/server";
 
-const CUSTOMER_PROTECTED = ["/account", "/wishlist", "/orders"];
+const CUSTOMER_PROTECTED = ["/account", "/orders"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 function isCustomerProtected(pathname: string) {
@@ -45,6 +49,15 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  if (mightBeLegacyCategoryPath(pathname)) {
+    const legacyRedirect = await resolveLegacyCategoryRedirectPath(pathname);
+    if (legacyRedirect) {
+      const redirect = NextResponse.redirect(new URL(legacyRedirect, request.url));
+      supabaseResponse.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+      return redirect;
+    }
+  }
 
   if (isAuthPage(pathname) && user) {
     const redirect = NextResponse.redirect(new URL("/account/dashboard", request.url));
@@ -101,6 +114,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
     "/account",
     "/account/:path*",
     "/wishlist",

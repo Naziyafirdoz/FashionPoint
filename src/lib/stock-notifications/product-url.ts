@@ -22,7 +22,7 @@ export function buildAdminInventoryUrl(): string {
 export function buildBrowseProductsUrl(categorySlug?: string | null): string {
   const path = categorySlug?.trim()
     ? getCategoryUrl(categorySlug.trim())
-    : "/designer-wear";
+    : "/products";
   const url = emailAppUrl(path);
   return url === "#" ? path : url;
 }

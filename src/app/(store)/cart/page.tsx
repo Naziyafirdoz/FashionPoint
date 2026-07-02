@@ -5,6 +5,10 @@ import Image from "next/image";
 import { useCartStore } from "@/stores/cart";
 import { ShippingChargesInfo } from "@/components/store/ShippingChargesInfo";
 import { SHIPPING_BEFORE_ADDRESS_MESSAGE } from "@/lib/shipping/display";
+import {
+  EXPLORE_COLLECTIONS_HREF,
+  handleExploreCollectionsClick
+} from "@/lib/navigation/explore-collections";
 const STEPS = ["Cart", "Address", "Payment", "Review"];
 
 export default function CartPage() {
@@ -30,7 +34,11 @@ export default function CartPage() {
           {items.length === 0 ? (
             <p className="text-foreground/60">
               Your cart is empty.{" "}
-              <Link href="/daily-wear" className="text-primary underline">
+              <Link
+                href={EXPLORE_COLLECTIONS_HREF}
+                onClick={handleExploreCollectionsClick}
+                className="text-primary underline"
+              >
                 Shop now
               </Link>
             </p>

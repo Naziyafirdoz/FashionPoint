@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase";
 import type { CategoryPageData, RelatedCategory, SubCategory } from "@/types";
+import { getCategoryBySlug } from "@/lib/categories/get-category-by-slug";
 import { getActiveSubCategoriesByCategoryId } from "@/lib/sub-categories/get-sub-categories";
 
 const CATEGORY_PAGE_SELECT = `
@@ -82,13 +83,16 @@ function mapCategoryPageRow(row: DbCategoryPageRow): CategoryPageData {
 }
 
 export const getCategoryPageData = cache(async (slug: string): Promise<CategoryPageData | null> => {
+  const category = await getCategoryBySlug(slug);
+  if (!category) return null;
+
   const db = createServiceClient();
   if (!db) return null;
 
   const { data, error } = await db
     .from("categories")
     .select(CATEGORY_PAGE_SELECT)
-    .eq("slug", slug)
+    .eq("slug", category.slug)
     .eq("is_active", true)
     .maybeSingle();
 

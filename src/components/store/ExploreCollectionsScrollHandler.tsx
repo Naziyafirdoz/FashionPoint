@@ -22,6 +22,9 @@ export function ExploreCollectionsScrollHandler() {
     if (pathname !== "/") return;
 
     scrollToSectionIfHashPresent();
+    const timeoutId = window.setTimeout(scrollToSectionIfHashPresent, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [pathname]);
 
   useEffect(() => {

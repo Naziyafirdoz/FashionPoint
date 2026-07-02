@@ -19,7 +19,7 @@ export function TrendingCarousel({ products }: { products: Product[] }) {
           </div>
         </div>
         <Link
-          href="/category/new"
+          href="/products"
           className="text-sm text-maroon hover:text-maroon/80 inline-flex items-center gap-1"
         >
           See more <ChevronRight className="h-4 w-4" />

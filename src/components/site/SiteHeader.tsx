@@ -6,23 +6,43 @@ import { Heart, Search, ShoppingBag, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { BrandLockup } from "@/components/BrandLockup";
 import { cn } from "@/lib/cn";
+import { getCategoryUrl } from "@/lib/categories/category-url";
 import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
+import type { Category } from "@/types";
 
-const nav = [
+const STATIC_NAV = [
   { label: "Home", href: "/" },
-  { label: "Daily Blouses", href: "/category/daily" },
-  { label: "Designer Blouses", href: "/category/designer" },
-  { label: "New Arrivals", href: "/category/new" },
+  { label: "Shop", href: "/products" },
   { label: "Offers", href: "/offers" },
   { label: "About Us", href: "/about" },
   { label: "Contact Us", href: "/contact" }
-];
+] as const;
 
 export function SiteHeader() {
   const cartCount = useCartStore((s) => s.count());
   const wishCount = useWishlistStore((s) => s.ids.size);
   const [scrolled, setScrolled] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    void fetch("/api/categories")
+      .then((res) => res.json())
+      .then((data: { categories?: Category[] }) => setCategories(data.categories ?? []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  const nav = useMemo(
+    () => [
+      ...STATIC_NAV.slice(0, 2),
+      ...categories.map((category) => ({
+        label: category.name,
+        href: getCategoryUrl(category)
+      })),
+      ...STATIC_NAV.slice(2)
+    ],
+    [categories]
+  );
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);

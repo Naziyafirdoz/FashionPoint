@@ -127,7 +127,7 @@ export function ProductDetail({
   const attributeFields = buildAttributeFields(product);
   const categoryHref = product.category?.slug
     ? getCategoryUrl(product.category.slug)
-    : "/designer-wear";
+    : "/products";
   const categoryName = product.category?.name ?? "Category";
 
   useEffect(() => {

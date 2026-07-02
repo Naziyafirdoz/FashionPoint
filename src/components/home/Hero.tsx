@@ -48,18 +48,18 @@ export function Hero() {
               transition={{ duration: 0.7, delay: 0.18, ease: "easeOut" }}
               className="mt-7 flex flex-wrap gap-3"
             >
-              <Button href="/category/new" size="lg">
-                Shop Now
-              </Button>
+            <Button href="/products" size="lg">
+              Shop Now
+            </Button>
               <Button href="/ai" variant="ghost" size="lg">
                 Try AI features
               </Button>
             </motion.div>
 
             <div className="mt-8 grid grid-cols-3 gap-3">
-              <Pill title="Wedding" href="/collections/wedding" />
-              <Pill title="Diwali" href="/collections/diwali" />
-              <Pill title="Party wear" href="/collections/party" />
+              <Pill title="Collections" href="/products" />
+              <Pill title="AI Tools" href="/ai-features" />
+              <Pill title="Offers" href="/offers" />
             </div>
           </div>
 
@@ -87,7 +87,7 @@ export function Hero() {
                       Bridal & Festive Designer Series
                     </div>
                   </div>
-                  <Button href="/category/designer" size="sm">
+                  <Button href="/products" size="sm">
                     Explore
                   </Button>
                 </div>
