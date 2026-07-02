@@ -30,10 +30,28 @@ export function calculateInventoryStockValue(
   return total;
 }
 
+export const LOW_STOCK_THRESHOLD = 5;
+
 export function getInventoryStatus(stock: number): InventoryStatus {
   if (stock <= 0) return "out_of_stock";
-  if (stock <= 5) return "low_stock";
+  if (stock <= LOW_STOCK_THRESHOLD) return "low_stock";
   return "in_stock";
+}
+
+export function countInventoryStatusRows(rows: InventoryRow[]): {
+  inStock: number;
+  lowStock: number;
+  outOfStock: number;
+} {
+  const counts = { inStock: 0, lowStock: 0, outOfStock: 0 };
+
+  for (const row of rows) {
+    if (row.status === "out_of_stock") counts.outOfStock += 1;
+    else if (row.status === "low_stock") counts.lowStock += 1;
+    else counts.inStock += 1;
+  }
+
+  return counts;
 }
 
 type DbVariantRow = {

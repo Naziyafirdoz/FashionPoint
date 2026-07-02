@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAdminNotificationsOptional } from "@/contexts/AdminNotificationsProvider";
 import { devLog } from "@/lib/dev-log";
 import { customerName } from "@/lib/orders/admin-orders";
+import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import type { Order } from "@/types";
 
 export type AdminOrderQueueRow = {
@@ -18,13 +19,31 @@ export type AdminOrderQueueRow = {
 
 export type AdminOrderQueues = {
   pendingApproval: AdminOrderQueueRow[];
-  packingRequired: AdminOrderQueueRow[];
-  dispatchRequired: AdminOrderQueueRow[];
   pendingApprovalCount: number;
   packingRequiredCount: number;
   dispatchRequiredCount: number;
+  cancellationRequestsCount: number;
+  refundRequestsCount: number;
+  actionRequiredCount: number;
   loading: boolean;
   refresh: () => Promise<void>;
+};
+
+const EMPTY_STATS: AdminOrderStatsV2 = {
+  total: 0,
+  pending: 0,
+  processing: 0,
+  readyToShip: 0,
+  outForDelivery: 0,
+  delivered: 0,
+  cancelled: 0,
+  pendingCancellations: 0,
+  refundPending: 0,
+  refunded: 0,
+  customerCancellationRefunds: 0,
+  returnRequests: 0,
+  returnsApproved: 0,
+  overdueRefunds: 0
 };
 
 function toRow(order: Order): AdminOrderQueueRow {
@@ -39,8 +58,27 @@ function toRow(order: Order): AdminOrderQueueRow {
   };
 }
 
-async function fetchOrdersForQueues(): Promise<Order[]> {
-  const res = await fetch("/api/orders?tab=all&page=1&limit=20", { cache: "no-store" });
+async function fetchAdminStats(): Promise<AdminOrderStatsV2> {
+  const res = await fetch("/api/orders?stats_only=true&include_stats=true", { cache: "no-store" });
+  if (!res.ok) return EMPTY_STATS;
+  const data = (await res.json()) as { stats?: AdminOrderStatsV2 };
+  return data.stats ?? EMPTY_STATS;
+}
+
+async function fetchTabTotal(tab: string): Promise<number> {
+  const res = await fetch(`/api/orders?tab=${encodeURIComponent(tab)}&page=1&limit=1`, {
+    cache: "no-store"
+  });
+  if (!res.ok) return 0;
+  const data = (await res.json()) as { total?: number };
+  return typeof data.total === "number" ? data.total : 0;
+}
+
+async function fetchTabOrders(tab: string, limit: number): Promise<Order[]> {
+  const res = await fetch(
+    `/api/orders?tab=${encodeURIComponent(tab)}&page=1&limit=${limit}`,
+    { cache: "no-store" }
+  );
   if (!res.ok) return [];
   const data = (await res.json()) as { orders?: Order[] };
   return data.orders ?? [];
@@ -65,10 +103,13 @@ export function useAdminOrderQueuesContext(): AdminOrderQueues {
 
 function useAdminOrderQueues(): AdminOrderQueues {
   const ctx = useAdminNotificationsOptional();
-  const [queues, setQueues] = useState({
-    pendingApproval: [] as AdminOrderQueueRow[],
-    packingRequired: [] as AdminOrderQueueRow[],
-    dispatchRequired: [] as AdminOrderQueueRow[]
+  const [pendingApproval, setPendingApproval] = useState<AdminOrderQueueRow[]>([]);
+  const [counts, setCounts] = useState({
+    pendingApprovalCount: 0,
+    packingRequiredCount: 0,
+    dispatchRequiredCount: 0,
+    cancellationRequestsCount: 0,
+    refundRequestsCount: 0
   });
   const [loading, setLoading] = useState(true);
   const inFlightRef = useRef(false);
@@ -82,24 +123,33 @@ function useAdminOrderQueues(): AdminOrderQueues {
     inFlightRef.current = true;
 
     try {
-      const allOrders = await fetchOrdersForQueues();
-      const processingOrders = allOrders.filter((order) => order.status === "processing");
-      const confirmedOrders = allOrders.filter((order) => order.status === "confirmed");
-      const readyOrders = allOrders.filter((order) => order.status === "ready_to_ship");
+      const stats = await fetchAdminStats();
 
-      const pendingApproval = processingOrders
-        .map(toRow)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const [processingOrders, packingTotal, cancellationTotal] = await Promise.all([
+        stats.processing > 0 ? fetchTabOrders("processing", 10) : Promise.resolve([]),
+        fetchTabTotal("confirmed"),
+        fetchTabTotal("cancel_requested")
+      ]);
 
-      const packingRequired = confirmedOrders
-        .map(toRow)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const pendingApprovalCount = stats.processing;
+      const packingRequiredCount = packingTotal;
+      const dispatchRequiredCount = stats.readyToShip;
+      const cancellationRequestsCount = cancellationTotal;
+      const refundRequestsCount = stats.refundPending;
 
-      const dispatchRequired = readyOrders
-        .map(toRow)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setCounts({
+        pendingApprovalCount,
+        packingRequiredCount,
+        dispatchRequiredCount,
+        cancellationRequestsCount,
+        refundRequestsCount
+      });
 
-      setQueues({ pendingApproval, packingRequired, dispatchRequired });
+      setPendingApproval(
+        processingOrders
+          .map(toRow)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      );
     } finally {
       inFlightRef.current = false;
       setLoading(false);
@@ -117,11 +167,20 @@ function useAdminOrderQueues(): AdminOrderQueues {
     });
   }, [ctx, refresh]);
 
+  const actionRequiredCount = useMemo(() => {
+    return (
+      counts.pendingApprovalCount +
+      counts.packingRequiredCount +
+      counts.dispatchRequiredCount +
+      counts.cancellationRequestsCount +
+      counts.refundRequestsCount
+    );
+  }, [counts]);
+
   return {
-    ...queues,
-    pendingApprovalCount: queues.pendingApproval.length,
-    packingRequiredCount: queues.packingRequired.length,
-    dispatchRequiredCount: queues.dispatchRequired.length,
+    pendingApproval,
+    ...counts,
+    actionRequiredCount,
     loading,
     refresh
   };

@@ -124,6 +124,14 @@ export async function getAdminCategoriesSummary(
   };
 }
 
+/** Same resolution as the storefront: homepage banner, then category image. */
+export function getAdminCategoryBannerUrl(category: AdminCategoryRow): string | null {
+  const banner = category.homepage_banner_image_url?.trim();
+  if (banner) return banner;
+  const image = category.image_url?.trim();
+  return image || null;
+}
+
 export function filterAdminCategories(
   categories: AdminCategoryRow[],
   search: string,

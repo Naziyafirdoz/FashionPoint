@@ -127,7 +127,7 @@ export function AdminBackInStockRequestsClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <AdminHeader title="Back In Stock Requests" />
 
       <BackInStockImagePreviewModal
@@ -137,14 +137,14 @@ export function AdminBackInStockRequestsClient() {
         onClose={() => setImagePreview(null)}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard label="Total Requests" value={String(summary.total)} />
-        <StatsCard label="Pending" value={String(summary.pending)} />
-        <StatsCard label="Notified" value={String(summary.sent)} />
-        <StatsCard label="Cancelled" value={String(summary.cancelled)} />
-      </div>
+      <div className="space-y-6 p-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard label="Total Requests" value={String(summary.total)} />
+          <StatsCard label="Pending" value={String(summary.pending)} />
+          <StatsCard label="Notified" value={String(summary.sent)} />
+          <StatsCard label="Cancelled" value={String(summary.cancelled)} />
+        </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block text-sm">
@@ -190,7 +190,8 @@ export function AdminBackInStockRequestsClient() {
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-xs uppercase tracking-wide text-gray-500">
@@ -258,12 +259,6 @@ export function AdminBackInStockRequestsClient() {
                     <td className="px-3 py-3 text-gray-700">{row.current_stock}</td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          href="/admin/inventory"
-                          className="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          Inventory
-                        </Link>
                         {row.product_id ? (
                           <Link
                             href={`/admin/products/${row.product_id}/edit`}
@@ -298,7 +293,8 @@ export function AdminBackInStockRequestsClient() {
           totalItems={total}
           pageSize={PAGE_SIZE}
         />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

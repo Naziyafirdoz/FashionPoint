@@ -18,19 +18,19 @@ export type ReviewEligibility =
 export function resolveReviewEligibility(params: {
   isLoggedIn: boolean;
   authResolved: boolean;
-  userReview: UserReviewPreview | null;
+  userReviews: UserReviewPreview[];
   productId: string;
   orders: Order[] | null;
   ordersLoaded: boolean;
 }): ReviewEligibility {
-  const { isLoggedIn, authResolved, userReview, productId, orders, ordersLoaded } = params;
+  const { isLoggedIn, authResolved, userReviews, productId, orders, ordersLoaded } = params;
 
   if (!authResolved) return { kind: "loading" };
   if (!isLoggedIn) return { kind: "not_logged_in" };
-  if (userReview) return { kind: "already_reviewed" };
   if (!ordersLoaded) return { kind: "loading" };
 
   let hasPurchase = false;
+  let hasDeliveredPurchase = false;
 
   for (const order of orders ?? []) {
     const items = normalizeOrderItems(order.items);
@@ -39,16 +39,24 @@ export function resolveReviewEligibility(params: {
 
     hasPurchase = true;
 
-    if (order.status === "delivered") {
-      return {
-        kind: "can_write",
-        orderId: order.id,
-        sizePurchased: item.size,
-        colorPurchased: item.color
-      };
-    }
+    if (order.status !== "delivered") continue;
+
+    hasDeliveredPurchase = true;
+
+    const alreadyReviewed = userReviews.some(
+      (review) => review.product_id === productId && review.order_id === order.id
+    );
+    if (alreadyReviewed) continue;
+
+    return {
+      kind: "can_write",
+      orderId: order.id,
+      sizePurchased: item.size,
+      colorPurchased: item.color
+    };
   }
 
+  if (hasDeliveredPurchase) return { kind: "already_reviewed" };
   if (hasPurchase) return { kind: "pending_delivery" };
   return { kind: "not_purchased" };
 }

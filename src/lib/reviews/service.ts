@@ -152,6 +152,16 @@ export async function getUserReviewForProduct(
   userId: string,
   productId: string
 ): Promise<UserReviewPreview | null> {
+  const reviews = await listUserReviewsForProducts(db, userId, [productId]);
+  return reviews[0] ?? null;
+}
+
+export async function getUserReviewForOrder(
+  db: SupabaseClient,
+  userId: string,
+  productId: string,
+  orderId: string
+): Promise<UserReviewPreview | null> {
   const { data } = await db
     .from("reviews")
     .select(
@@ -159,6 +169,7 @@ export async function getUserReviewForProduct(
     )
     .eq("user_id", userId)
     .eq("product_id", productId)
+    .eq("order_id", orderId)
     .maybeSingle();
 
   if (!data) return null;
@@ -264,46 +275,42 @@ export async function createCustomerReview(
   const productId = input.product_id.trim();
   if (!productId) return { error: "Product is required" };
 
-  const orderId = input.order_id?.trim() || null;
-  if (orderId) {
-    const { data: orderReview } = await db
-      .from("reviews")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("product_id", productId)
-      .eq("order_id", orderId)
-      .maybeSingle();
-
-    if (orderReview) {
-      return { error: "You have already reviewed this product" };
-    }
-  } else {
-    const existing = await getUserReviewForProduct(db, userId, productId);
-    if (existing) return { error: "You have already reviewed this product" };
+  const orderId = input.order_id?.trim();
+  if (!orderId) {
+    return { error: "A delivered order is required to submit a review" };
   }
 
-  const verified = await findVerifiedPurchase(db, userId, productId, input.order_id ?? null);
+  const existing = await getUserReviewForOrder(db, userId, productId, orderId);
+  if (existing) {
+    return { error: "You have already reviewed this product" };
+  }
 
-  if (input.order_id && !verified) {
+  const verified = await findVerifiedPurchase(db, userId, productId, orderId);
+  if (!verified) {
     return { error: "This order does not include the selected product or is not delivered" };
   }
 
   const payload = {
     product_id: productId,
     user_id: userId,
-    order_id: verified?.order_id ?? input.order_id ?? null,
+    order_id: verified.order_id,
     rating: Number(input.rating),
     title: input.title.trim(),
     body: input.body.trim(),
     images: input.images ?? [],
-    size_purchased: input.size_purchased?.trim() || verified?.size_purchased || null,
-    color_purchased: input.color_purchased?.trim() || verified?.color_purchased || null,
-    is_verified_purchase: Boolean(verified)
+    size_purchased: input.size_purchased?.trim() || verified.size_purchased || null,
+    color_purchased: input.color_purchased?.trim() || verified.color_purchased || null,
+    is_verified_purchase: true
   };
 
   const { data, error } = await db.from("reviews").insert(payload).select().single();
 
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "You have already reviewed this product" };
+    }
+    return { error: error.message };
+  }
   return { review: mapUserReview(data as DbReviewRow) };
 }
 

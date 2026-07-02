@@ -1,4 +1,4 @@
-import type { Product, Review } from "@/lib/types";
+import type { Product } from "@/lib/types";
 
 const u = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`;
@@ -75,25 +75,6 @@ export const PRODUCTS: Product[] = [
     description:
       "A modern feminine blouse with subtle shimmer and smooth finishing. Designed to complement pastel sarees and festive drapes.",
     tags: ["New Arrival"]
-  }
-];
-
-export const REVIEWS: Review[] = [
-  {
-    id: "r1",
-    productId: "p_daily_rose_01",
-    name: "Ananya",
-    rating: 5,
-    comment: "Perfect fitting and looks very premium. Loved the fabric.",
-    createdAt: "2026-05-12"
-  },
-  {
-    id: "r2",
-    productId: "p_designer_maroon_01",
-    name: "Shruti",
-    rating: 5,
-    comment: "Stunning for weddings. The zari work is elegant, not loud.",
-    createdAt: "2026-05-04"
   }
 ];
 

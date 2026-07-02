@@ -7,7 +7,6 @@ import {
   getProductRatingBreakdown,
   getProductReviewSummariesBatch,
   getProductReviewSummary,
-  getUserReviewForProduct,
   listApprovedProductReviews,
   listUserReviews,
   listUserReviewsForProducts
@@ -83,12 +82,14 @@ export async function GET(req: Request) {
   } = await supabase.auth.getUser();
 
   let user_review = null;
+  let user_reviews: Awaited<ReturnType<typeof listUserReviewsForProducts>> = [];
   if (user) {
-    user_review = await getUserReviewForProduct(db, user.id, productId);
+    user_reviews = await listUserReviewsForProducts(db, user.id, [productId]);
+    user_review = user_reviews[0] ?? null;
   }
 
   devLog("[reviews] elapsed", performance.now() - start, { count: reviewsApiRequestCount, productId });
-  return NextResponse.json({ reviews, summary, breakdown, user_review });
+  return NextResponse.json({ reviews, summary, breakdown, user_review, user_reviews });
 }
 
 export async function POST(req: Request) {

@@ -18,7 +18,7 @@ export function RecentOrdersCard({ orders }: { orders: DashboardRecentOrder[] })
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-semibold text-primary">Recent Orders</h2>
-          <p className="text-xs text-foreground/50">Latest 10 orders</p>
+          <p className="text-xs text-foreground/50">Latest orders in the selected range</p>
         </div>
         <Link href="/admin/orders" className="text-xs font-medium text-primary hover:underline">
           View all

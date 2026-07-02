@@ -16,6 +16,8 @@ import {
   type AdminReviewsSummary,
   type ReviewStatus
 } from "@/lib/admin/reviews";
+import { broadcastReviewSync } from "@/lib/reviews/review-sync-bus";
+import { useReviewRealtimeSync } from "@/lib/reviews/use-review-realtime-sync";
 
 const STATUS_STYLES: Record<ReviewStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
@@ -73,10 +75,10 @@ export function AdminReviewsClient() {
   const [page, setPage] = useState(1);
   const [actionId, setActionId] = useState<string | null>(null);
 
-  const loadReviews = useCallback(async () => {
-    setLoading(true);
+  const loadReviews = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await fetch("/api/admin/reviews");
+      const res = await fetch("/api/admin/reviews", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Failed to load reviews");
@@ -91,13 +93,17 @@ export function AdminReviewsClient() {
       setReviews([]);
       setSummary(EMPTY_SUMMARY);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadReviews();
+    void loadReviews();
   }, [loadReviews]);
+
+  useReviewRealtimeSync(() => {
+    void loadReviews(true);
+  });
 
   useEffect(() => {
     setPage(1);
@@ -139,10 +145,10 @@ export function AdminReviewsClient() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const updateStatus = async (id: string, status: ReviewStatus) => {
-    setActionId(id);
+  const updateStatus = async (review: AdminReviewRow, status: ReviewStatus) => {
+    setActionId(review.id);
     try {
-      const res = await fetch(`/api/admin/reviews/${id}`, {
+      const res = await fetch(`/api/admin/reviews/${review.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status })
@@ -152,10 +158,12 @@ export function AdminReviewsClient() {
         toast.error(data.error ?? "Failed to update review");
         return;
       }
-      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-      setSummary(getAdminReviewsSummary(
-        reviews.map((r) => (r.id === id ? { ...r, status } : r))
-      ));
+      setReviews((prev) => {
+        const next = prev.map((r) => (r.id === review.id ? { ...r, status } : r));
+        setSummary(getAdminReviewsSummary(next));
+        return next;
+      });
+      broadcastReviewSync({ productId: review.product_id });
       toast.success(`Review ${status}`);
     } catch {
       toast.error("Failed to update review");
@@ -164,20 +172,23 @@ export function AdminReviewsClient() {
     }
   };
 
-  const deleteReview = async (id: string) => {
+  const deleteReview = async (review: AdminReviewRow) => {
     if (!window.confirm("Delete this review permanently?")) return;
 
-    setActionId(id);
+    setActionId(review.id);
     try {
-      const res = await fetch(`/api/admin/reviews/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/reviews/${review.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Failed to delete review");
         return;
       }
-      const next = reviews.filter((r) => r.id !== id);
-      setReviews(next);
-      setSummary(getAdminReviewsSummary(next));
+      setReviews((prev) => {
+        const next = prev.filter((r) => r.id !== review.id);
+        setSummary(getAdminReviewsSummary(next));
+        return next;
+      });
+      broadcastReviewSync({ productId: review.product_id });
       toast.success("Review deleted");
     } catch {
       toast.error("Failed to delete review");
@@ -345,7 +356,7 @@ export function AdminReviewsClient() {
                                 type="button"
                                 className="text-green-700 underline disabled:opacity-40"
                                 disabled={busy}
-                                onClick={() => updateStatus(review.id, "approved")}
+                                onClick={() => updateStatus(review, "approved")}
                               >
                                 Approve
                               </button>
@@ -355,7 +366,7 @@ export function AdminReviewsClient() {
                                 type="button"
                                 className="text-amber-700 underline disabled:opacity-40"
                                 disabled={busy}
-                                onClick={() => updateStatus(review.id, "rejected")}
+                                onClick={() => updateStatus(review, "rejected")}
                               >
                                 Reject
                               </button>
@@ -364,7 +375,7 @@ export function AdminReviewsClient() {
                               type="button"
                               className="text-red-600 underline disabled:opacity-40"
                               disabled={busy}
-                              onClick={() => deleteReview(review.id)}
+                              onClick={() => deleteReview(review)}
                             >
                               Delete
                             </button>

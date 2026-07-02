@@ -2,33 +2,79 @@
 
 import { useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
+import type { StylistProductResult, StylistSessionFilters } from "@/lib/stylist-assistant/types";
+import { StylistChatProductCard } from "@/components/ai/StylistChatProductCard";
+
+type ChatMessage = {
+  role: "user" | "assistant";
+  text: string;
+  products?: StylistProductResult[];
+};
+
+const QUICK_CHIPS = [
+  "Wedding blouse under ₹2,000",
+  "Blue embroidered blouse",
+  "Party wear blouse",
+  "Cotton daily wear blouse",
+  "Show new arrivals",
+  "Best selling blouses",
+  "Blouses below ₹1,500"
+] as const;
+
+const INITIAL_MESSAGE =
+  "Hi! I'm your Fashion Point Shopping Assistant. Tell me the occasion, color, fabric, or budget and I'll search our live catalog.";
 
 export function StylistChatbot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([
-    { role: "assistant", text: "Hi! I'm your Fashion Point stylist. Tell me about your saree or occasion!" }
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: "assistant", text: INITIAL_MESSAGE }
   ]);
+  const [sessionFilters, setSessionFilters] = useState<StylistSessionFilters>({ inStockOnly: true });
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const send = async () => {
-    if (!input.trim()) return;
-    const userMsg = input.trim();
-    setInput("");
-    setMessages((m) => [...m, { role: "user", text: userMsg }]);
+  const sendMessage = async (message: string, fromQuickChip = false) => {
+    const trimmed = message.trim();
+    if (!trimmed || loading) return;
+
+    setMessages((current) => [...current, { role: "user", text: trimmed }]);
     setLoading(true);
+
     try {
       const res = await fetch("/api/ai/stylist-chat", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsg })
+        body: JSON.stringify({ message: trimmed, sessionFilters, fromQuickChip })
       });
+
       const data = await res.json();
-      setMessages((m) => [...m, { role: "assistant", text: data.reply ?? "Browse our collections for matching blouses!" }]);
+      setSessionFilters((data.sessionFilters ?? {}) as StylistSessionFilters);
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: typeof data.reply === "string" ? data.reply : INITIAL_MESSAGE,
+          products: Array.isArray(data.products) ? data.products : []
+        }
+      ]);
+    } catch {
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: "I couldn't find a matching product in our current collection."
+        }
+      ]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const send = async () => {
+    const value = input;
+    setInput("");
+    await sendMessage(value);
   };
 
   return (
@@ -36,41 +82,91 @@ export function StylistChatbot() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-secondary hover:text-foreground"
-        aria-label="AI Stylist Chat"
+        className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        aria-label="Fashion Point Shopping Assistant"
       >
         <MessageCircle className="h-6 w-6" />
       </button>
-      {open && (
-        <div className="fixed bottom-24 right-6 z-50 flex h-[420px] w-[340px] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl">
+
+      {open ? (
+        <div
+          className="fixed bottom-24 right-6 z-50 flex h-[min(520px,calc(100vh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl"
+          role="dialog"
+          aria-label="Fashion Point Shopping Assistant"
+        >
           <div className="flex items-center justify-between bg-primary px-4 py-3 text-white">
-            <span className="font-semibold">AI Stylist</span>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close">
+            <span className="font-semibold">Fashion Point Assistant</span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close chat"
+              className="rounded-full p-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          <div className="border-b border-[#F2E4E8] px-2 py-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {QUICK_CHIPS.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void sendMessage(chip, true)}
+                  className="shrink-0 rounded-full border border-[#F2E4E8] bg-[#FFFBFC] px-2.5 py-1 text-[10px] font-medium text-primary transition hover:border-primary/30 disabled:opacity-60"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex-1 space-y-2 overflow-y-auto p-3 text-sm">
-            {messages.map((m, i) => (
-              <div key={i} className={`rounded-lg px-3 py-2 ${m.role === "user" ? "ml-8 bg-blush" : "mr-8 bg-gray-100"}`}>
-                {m.text}
+            {messages.map((message, index) => (
+              <div key={`${message.role}-${index}`}>
+                <div
+                  className={`rounded-lg px-3 py-2 ${
+                    message.role === "user" ? "ml-8 bg-blush" : "mr-2 bg-gray-100"
+                  }`}
+                >
+                  {message.text}
+                </div>
+                {message.products?.length ? (
+                  <div className="mr-2 mt-2 space-y-2">
+                    {message.products.map((result) => (
+                      <StylistChatProductCard key={result.product.id} result={result} />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
-            {loading && <p className="text-xs text-foreground/50">Typing...</p>}
+            {loading ? <p className="text-xs text-foreground/50">Searching our catalog…</p> : null}
           </div>
+
           <div className="flex gap-2 border-t p-2">
             <input
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void send();
+              }}
               placeholder="I need a blouse for..."
-              className="flex-1 rounded-full border px-3 py-2 text-sm outline-none"
+              aria-label="Chat message"
+              className="flex-1 rounded-full border px-3 py-2 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
             />
-            <button type="button" onClick={send} className="rounded-full bg-primary p-2 text-white">
+            <button
+              type="button"
+              onClick={() => void send()}
+              disabled={loading || !input.trim()}
+              aria-label="Send message"
+              className="rounded-full bg-primary p-2 text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
               <Send className="h-4 w-4" />
             </button>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }

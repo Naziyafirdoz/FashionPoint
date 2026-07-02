@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isValidReviewStatus } from "@/lib/admin/reviews";
+import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import { requireAdmin } from "@/lib/admin/require-admin";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -25,6 +26,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   if (!data) return NextResponse.json({ error: "Review not found" }, { status: 404 });
 
+  invalidateAdminDataCaches();
+
   return NextResponse.json({ review: data });
 }
 
@@ -37,6 +40,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
   const { error } = await auth.ctx.db.from("reviews").delete().eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  invalidateAdminDataCaches();
 
   return NextResponse.json({ success: true });
 }

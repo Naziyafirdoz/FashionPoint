@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -57,6 +58,21 @@ const STATUS_LABELS: Record<InventoryStatus, string> = {
 
 const PAGE_SIZE = 12;
 
+const INVENTORY_STATUS_FILTERS = new Set<InventoryStatus>([
+  "in_stock",
+  "low_stock",
+  "out_of_stock"
+]);
+
+function parseInventoryStatusFilter(
+  param: string | null
+): "all" | InventoryStatus {
+  if (!param || param === "all") return "all";
+  return INVENTORY_STATUS_FILTERS.has(param as InventoryStatus)
+    ? (param as InventoryStatus)
+    : "all";
+}
+
 function formatLastUpdated(iso: string | null | undefined) {
   if (!iso) return null;
 
@@ -74,6 +90,8 @@ function formatLastUpdated(iso: string | null | undefined) {
 }
 
 export function AdminInventoryClient() {
+  const searchParams = useSearchParams();
+  const urlStatus = searchParams.get("status");
 
   const [rows, setRows] = useState<InventoryRow[]>([]);
 
@@ -83,7 +101,9 @@ export function AdminInventoryClient() {
 
   const [search, setSearch] = useState("");
 
-  const [statusFilter, setStatusFilter] = useState<"all" | InventoryStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | InventoryStatus>(() =>
+    parseInventoryStatusFilter(urlStatus)
+  );
 
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -91,6 +111,10 @@ export function AdminInventoryClient() {
   const [exporting, setExporting] = useState(false);
 
 
+
+  useEffect(() => {
+    setStatusFilter(parseInventoryStatusFilter(urlStatus));
+  }, [urlStatus]);
 
   useEffect(() => {
 

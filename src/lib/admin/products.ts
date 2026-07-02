@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getInventoryStatus, type InventoryStatus } from "@/lib/admin/inventory";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import { processBackInStockNotifications } from "@/lib/stock-notifications/process-restocks";
 import {
@@ -38,8 +39,22 @@ export type AdminProductRow = {
 
 export type AdminProductStatus = ProductStatus;
 
+export type ProductPublicationStatus = "draft" | "active" | "archived";
+
 export function getProductStatus(product: AdminProductRow): AdminProductStatus {
   return product.status;
+}
+
+/** Publication lifecycle only — inventory is reported separately. */
+export function getProductPublicationStatus(product: AdminProductRow): ProductPublicationStatus {
+  if (product.status === "draft") return "draft";
+  if (product.status === "archived") return "archived";
+  return "active";
+}
+
+/** Derived from aggregated variant stock; never stored as product status. */
+export function getProductInventoryStatus(product: AdminProductRow): InventoryStatus {
+  return getInventoryStatus(product.total_stock);
 }
 
 type DbProduct = {

@@ -25,6 +25,7 @@ import {
 import {
   categoryDescriptionPreview,
   filterAdminCategories,
+  getAdminCategoryBannerUrl,
   getCategoryDescriptionValidationError,
   getHomepageFieldsValidationError,
   getNavbarPositionValidationError,
@@ -723,7 +724,7 @@ export function AdminCategoriesClient() {
 
                         <AdminCategoryThumbnail
 
-                          src={c.image_url ?? categoryProductImages.get(c.id)}
+                          src={getAdminCategoryBannerUrl(c) ?? categoryProductImages.get(c.id)}
 
                           alt={c.name}
 

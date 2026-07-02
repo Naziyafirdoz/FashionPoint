@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProductReviewSummary } from "@/lib/reviews/types";
+import { useReviewRealtimeSync } from "@/lib/reviews/use-review-realtime-sync";
 
 export function useProductReviewSummaries(productIds: string[]) {
   const [summaries, setSummaries] = useState<Record<string, ProductReviewSummary>>({});
@@ -12,34 +13,34 @@ export function useProductReviewSummaries(productIds: string[]) {
     [productIds]
   );
 
-  useEffect(() => {
+  const loadSummaries = useCallback(async (silent = false) => {
     const ids = idsKey ? idsKey.split(",") : [];
     if (ids.length === 0) {
       setSummaries({});
       return;
     }
 
-    let cancelled = false;
-    setLoading(true);
-
-    fetch(`/api/reviews?product_ids=${encodeURIComponent(idsKey)}`, { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) {
-          setSummaries(data.summaries ?? {});
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setSummaries({});
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    if (!silent) setLoading(true);
+    try {
+      const res = await fetch(`/api/reviews?product_ids=${encodeURIComponent(idsKey)}`, {
+        cache: "no-store"
       });
-
-    return () => {
-      cancelled = true;
-    };
+      const data = await res.json();
+      setSummaries(data.summaries ?? {});
+    } catch {
+      setSummaries({});
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, [idsKey]);
+
+  useEffect(() => {
+    void loadSummaries();
+  }, [loadSummaries]);
+
+  useReviewRealtimeSync(() => {
+    void loadSummaries(true);
+  }, { enabled: Boolean(idsKey) });
 
   return { summaries, loading };
 }

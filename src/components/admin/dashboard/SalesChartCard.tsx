@@ -11,14 +11,8 @@ import {
   YAxis
 } from "recharts";
 import { BarChart3 } from "lucide-react";
-import type { DashboardPeriod, DashboardRevenuePoint } from "@/lib/admin/dashboard";
+import type { DashboardRevenuePoint } from "@/lib/admin/dashboard";
 import { EmptyState } from "./EmptyState";
-
-const PERIODS: { value: DashboardPeriod; label: string }[] = [
-  { value: "7", label: "7 Days" },
-  { value: "30", label: "30 Days" },
-  { value: "90", label: "90 Days" }
-];
 
 function formatAxisDate(date: string) {
   return new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
@@ -28,39 +22,14 @@ function formatCurrency(value: number) {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export function SalesChartCard({
-  revenueTrend
-}: {
-  revenueTrend: Record<DashboardPeriod, DashboardRevenuePoint[]>;
-}) {
-  const [period, setPeriod] = useState<DashboardPeriod>("30");
-  const data = revenueTrend[period];
-
-  const hasRevenue = useMemo(() => data.some((d) => d.revenue > 0), [data]);
+export function SalesChartCard({ data }: { data: DashboardRevenuePoint[] }) {
+  const hasRevenue = useMemo(() => data.some((point) => point.revenue > 0), [data]);
 
   return (
     <div className="rounded-2xl border border-accent/20 bg-white p-6 shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold text-primary">Sales Overview</h2>
-          <p className="text-xs text-foreground/50">Revenue trend from completed orders</p>
-        </div>
-        <div className="flex rounded-full border bg-blush/30 p-1">
-          {PERIODS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setPeriod(value)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                period === value
-                  ? "bg-white text-primary shadow-sm"
-                  : "text-foreground/60 hover:text-primary"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h2 className="font-semibold text-primary">Sales Overview</h2>
+        <p className="text-xs text-foreground/50">Revenue trend from completed orders</p>
       </div>
 
       <div className="mt-6 h-72">
@@ -68,7 +37,7 @@ export function SalesChartCard({
           <EmptyState
             icon={BarChart3}
             title="No sales data yet"
-            description="Revenue will appear here once orders are placed."
+            description="Revenue will appear here once orders are placed in the selected range."
           />
         ) : (
           <ResponsiveContainer width="100%" height="100%">

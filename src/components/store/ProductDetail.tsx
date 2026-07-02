@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -17,6 +17,7 @@ import { ProductDetailTabs } from "@/components/store/product-detail/ProductDeta
 import { ProductColorSwatch } from "@/components/store/ProductColorSwatch";
 import { ReviewStars } from "@/components/reviews/ReviewStars";
 import type { ProductReviewSummary } from "@/lib/reviews/types";
+import { useReviewRealtimeSync } from "@/lib/reviews/use-review-realtime-sync";
 import {
   discountPercent,
   isSizeUnavailableForColor,
@@ -137,22 +138,27 @@ export function ProductDetail({
     }
   }, [color, product, size, sizeOptions]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch(`/api/reviews?product_id=${encodeURIComponent(product.id)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.summary) {
-          setReviewSummary(data.summary);
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
+  const loadReviewSummary = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reviews?product_id=${encodeURIComponent(product.id)}`, {
+        cache: "no-store"
+      });
+      const data = await res.json();
+      if (data.summary) {
+        setReviewSummary(data.summary);
+      }
+    } catch {
+      // ignore summary refresh errors
+    }
   }, [product.id]);
+
+  useEffect(() => {
+    void loadReviewSummary();
+  }, [loadReviewSummary]);
+
+  useReviewRealtimeSync(() => {
+    void loadReviewSummary();
+  }, { productId: product.id });
 
   const handleAdd = () => {
     if (outOfStock) {

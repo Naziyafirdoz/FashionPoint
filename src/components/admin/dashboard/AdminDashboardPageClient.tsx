@@ -25,9 +25,12 @@ export function AdminDashboardPageClient() {
     }
   }, [
     orderQueues.loading,
+    orderQueues.actionRequiredCount,
     orderQueues.pendingApprovalCount,
     orderQueues.packingRequiredCount,
     orderQueues.dispatchRequiredCount,
+    orderQueues.cancellationRequestsCount,
+    orderQueues.refundRequestsCount,
     touch
   ]);
 

@@ -13,6 +13,7 @@ import {
   reviewEligibilityMessage
 } from "@/lib/reviews/resolve-review-eligibility";
 import { sortStoreReviews } from "@/lib/reviews/sort-reviews";
+import { useReviewRealtimeSync } from "@/lib/reviews/use-review-realtime-sync";
 import { createClient } from "@/lib/supabase/client";
 import type {
   ProductReviewSummary,
@@ -72,7 +73,7 @@ export function ProductReviewsPanel({
   const [reviews, setReviews] = useState<StoreReview[]>([]);
   const [summary, setSummary] = useState<ProductReviewSummary>({ average_rating: 0, review_count: 0 });
   const [breakdown, setBreakdown] = useState<RatingBreakdown>(EMPTY_BREAKDOWN);
-  const [userReview, setUserReview] = useState<UserReviewPreview | null>(null);
+  const [userReviews, setUserReviews] = useState<UserReviewPreview[]>([]);
   const [sort, setSort] = useState<ReviewSortOption>("newest");
   const [visibleCount, setVisibleCount] = useState(REVIEWS_PER_PAGE);
   const [loading, setLoading] = useState(true);
@@ -81,8 +82,8 @@ export function ProductReviewsPanel({
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
 
-  const loadReviews = useCallback(async () => {
-    setLoading(true);
+  const loadReviews = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}`, {
         cache: "no-store"
@@ -94,17 +95,21 @@ export function ProductReviewsPanel({
       setReviews(data.reviews ?? []);
       setSummary(nextSummary);
       setBreakdown(data.breakdown ?? EMPTY_BREAKDOWN);
-      setUserReview(data.user_review ?? null);
+      setUserReviews(data.user_reviews ?? []);
       setVisibleCount(REVIEWS_PER_PAGE);
       onSummaryChange?.(nextSummary);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [productId, onSummaryChange]);
 
   useEffect(() => {
-    loadReviews();
+    void loadReviews();
   }, [loadReviews]);
+
+  useReviewRealtimeSync(() => {
+    void loadReviews(true);
+  }, { productId });
 
   useEffect(() => {
     const supabase = createClient();
@@ -176,12 +181,12 @@ export function ProductReviewsPanel({
       resolveReviewEligibility({
         isLoggedIn: Boolean(authUserId),
         authResolved: authUserId !== undefined,
-        userReview,
+        userReviews,
         productId,
         orders,
         ordersLoaded
       }),
-    [authUserId, userReview, productId, orders, ordersLoaded]
+    [authUserId, userReviews, productId, orders, ordersLoaded]
   );
 
   const eligibilityMessage = reviewEligibilityMessage(eligibility);
@@ -355,7 +360,7 @@ export function ProductReviewsPanel({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         defaults={reviewDefaults}
-        onSuccess={loadReviews}
+        onSuccess={() => loadReviews()}
       />
     </div>
   );

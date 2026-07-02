@@ -8,24 +8,36 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminProductThumbnail } from "@/components/admin/AdminProductThumbnail";
 import {
   filterAdminProducts,
-  getProductStatus,
+  getProductInventoryStatus,
+  getProductPublicationStatus,
   type AdminProductRow
 } from "@/lib/admin/products";
+import type { InventoryStatus } from "@/lib/admin/inventory";
 import type { Category } from "@/types";
 
-const STATUS_STYLES = {
+const PRODUCT_STATUS_STYLES = {
   active: "bg-green-100 text-green-800",
-  out_of_stock: "bg-orange-100 text-orange-800",
   draft: "bg-gray-100 text-gray-700",
   archived: "bg-red-100 text-red-800"
 } as const;
 
-const STATUS_LABELS = {
+const PRODUCT_STATUS_LABELS = {
   active: "Active",
-  out_of_stock: "Out of Stock",
   draft: "Draft",
   archived: "Archived"
 } as const;
+
+const INVENTORY_STATUS_STYLES: Record<InventoryStatus, string> = {
+  in_stock: "bg-green-100 text-green-800",
+  low_stock: "bg-amber-100 text-amber-800",
+  out_of_stock: "bg-red-100 text-red-800"
+};
+
+const INVENTORY_STATUS_LABELS: Record<InventoryStatus, string> = {
+  in_stock: "In Stock",
+  low_stock: "Low Stock",
+  out_of_stock: "Out of Stock"
+};
 
 function formatDate(iso: string) {
   try {
@@ -166,7 +178,7 @@ function AdminProductsContent() {
         </div>
 
         <div className="mt-6 overflow-x-auto rounded-xl border bg-white">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[880px] text-sm">
             <thead>
               <tr className="border-b bg-blush/50 text-left text-foreground/70">
                 <th className="p-3 pr-4">Product</th>
@@ -174,7 +186,8 @@ function AdminProductsContent() {
                 <th className="p-3 pr-4">Sub Category</th>
                 <th className="p-3 pr-4">Price</th>
                 <th className="p-3 pr-4">Stock</th>
-                <th className="p-3 pr-4">Status</th>
+                <th className="p-3 pr-4">Inventory Status</th>
+                <th className="p-3 pr-4">Product Status</th>
                 <th className="p-3 pr-4">Created</th>
                 <th className="p-3">Actions</th>
               </tr>
@@ -182,13 +195,13 @@ function AdminProductsContent() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-foreground/60">
+                  <td colSpan={9} className="py-8 text-center text-foreground/60">
                     Loading products…
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-foreground/60">
+                  <td colSpan={9} className="py-8 text-center text-foreground/60">
                     {scopedProducts.length === 0
                       ? featuredOnly
                         ? "No featured products yet. Mark products as featured when editing."
@@ -198,7 +211,8 @@ function AdminProductsContent() {
                 </tr>
               ) : (
                 filtered.map((p) => {
-                  const status = getProductStatus(p);
+                  const publicationStatus = getProductPublicationStatus(p);
+                  const inventoryStatus = getProductInventoryStatus(p);
                   return (
                     <tr key={p.id} className="border-b border-accent/10">
                       <td className="p-3 pr-4">
@@ -213,9 +227,16 @@ function AdminProductsContent() {
                       <td className="p-3 pr-4">{p.total_stock}</td>
                       <td className="p-3 pr-4">
                         <span
-                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status] ?? STATUS_STYLES.draft}`}
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${INVENTORY_STATUS_STYLES[inventoryStatus]}`}
                         >
-                          {STATUS_LABELS[status] ?? status}
+                          {INVENTORY_STATUS_LABELS[inventoryStatus]}
+                        </span>
+                      </td>
+                      <td className="p-3 pr-4">
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${PRODUCT_STATUS_STYLES[publicationStatus]}`}
+                        >
+                          {PRODUCT_STATUS_LABELS[publicationStatus]}
                         </span>
                       </td>
                       <td className="p-3 pr-4 whitespace-nowrap">{formatDate(p.created_at)}</td>
