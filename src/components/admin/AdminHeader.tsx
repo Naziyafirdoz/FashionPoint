@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Search } from "lucide-react";
 import { NotificationCenter } from "@/components/admin/NotificationCenter";
+import { AdminProfileMenu } from "@/components/admin/AdminProfileMenu";
 import { useAdminOrderQueuesContext } from "@/lib/admin/use-admin-order-queues";
 
 export function AdminHeader({ title, action }: { title: string; action?: ReactNode }) {
@@ -18,7 +19,7 @@ export function AdminHeader({ title, action }: { title: string; action?: ReactNo
           <input placeholder="Search..." className="w-40 bg-transparent text-sm outline-none" />
         </div>
         <NotificationCenter pendingApprovalCount={pendingApprovalCount} />
-        <div className="h-8 w-8 rounded-full bg-primary text-center text-xs leading-8 text-white">A</div>
+        <AdminProfileMenu />
       </div>
     </header>
   );

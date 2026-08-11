@@ -26,6 +26,7 @@ type OrdersTableProps = {
   onDownloadInvoice?: (order: OrderListRow) => void;
   onStartProcessing?: (order: OrderListRow) => void;
   onApproveOrder?: (order: OrderListRow) => void;
+  onStartPacking?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
@@ -52,6 +53,7 @@ export function OrdersTable({
   onDownloadInvoice,
   onStartProcessing,
   onApproveOrder,
+  onStartPacking,
   onReadyForShipping,
   onMarkShipped,
   onMarkDelivered,
@@ -138,6 +140,7 @@ export function OrdersTable({
                     busy={busy}
                     onStartProcessing={onStartProcessing}
                     onApproveOrder={onApproveOrder}
+                    onStartPacking={onStartPacking}
                     onReadyForShipping={onReadyForShipping}
                     onMarkShipped={onMarkShipped}
                     onMarkDelivered={onMarkDelivered}

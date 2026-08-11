@@ -69,7 +69,7 @@ export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
     case "processing":
       return { type: "approve_order", label: "Approve Order" };
     case "confirmed":
-      return { type: "view", label: "View" };
+      return { type: "start_packing", label: "Assign Worker" };
     case "packing_assigned":
       return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
     case "packed":

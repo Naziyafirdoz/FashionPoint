@@ -13,7 +13,11 @@ import {
 } from "@/lib/orders/rapido-delivery-metadata";
 import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
 import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
-import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
+import {
+  adminDashboardEmailUrl,
+  adminOrderEmailUrl,
+  emailAppUrl
+} from "@/lib/server/notifications/email-app-url";
 import { STORE_TIMEZONE } from "@/lib/site-config";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
@@ -261,12 +265,13 @@ function customerOrderSummaryCardHtml(
 }
 
 
-function adminActionButtonsHtml(actionUrls: OrderEmailActionUrls): string {
-  const dashboardUrl = emailAppUrl("/admin/dashboard");
+function adminActionButtonsHtml(order: Order): string {
+  const approveUrl = adminOrderEmailUrl(order.id);
+  const dashboardUrl = adminDashboardEmailUrl();
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;">
     <tr>
       <td class="fp-btn-col" align="center" width="50%" style="padding:0 6px 0 0;">
-        <a href="${actionUrls.approveUrl}" target="_blank" rel="noopener noreferrer" style="display:block;height:54px;line-height:54px;background-color:${MAROON};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;text-align:center;">✓ Approve Order</a>
+        <a href="${escapeHtml(approveUrl)}" target="_blank" rel="noopener noreferrer" style="display:block;height:54px;line-height:54px;background-color:${MAROON};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;text-align:center;">✓ Approve Order</a>
       </td>
       <td class="fp-btn-col" align="center" width="50%" style="padding:0 0 0 6px;">
         <a href="${escapeHtml(dashboardUrl)}" target="_blank" rel="noopener noreferrer" style="display:block;height:54px;line-height:54px;background-color:#FFFFFF;color:${MAROON};font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;text-align:center;border:1px solid ${MAROON};">📋 Open Dashboard</a>
@@ -414,7 +419,7 @@ export function buildPendingOrderReminderEmail(
     ${orderSummaryCardHtml(order, { totalAmountLabel: true })}
     ${adminCustomerDetailsCardHtml(order)}
     ${adminShippingAddressStructuredCardHtml(order)}
-    ${adminActionButtonsHtml(actionUrls)}`;
+    ${adminActionButtonsHtml(order)}`;
   return {
     subject: `🔔 Pending Order Reminder — ${order.order_number}`,
     html: emailShell(`Pending Order Reminder — ${order.order_number}`, body, {

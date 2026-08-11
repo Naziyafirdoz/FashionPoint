@@ -7,7 +7,10 @@ import {
 } from "@/lib/orders/admin-orders";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 import { AdminNewOrderEmail, type AdminNewOrderEmailProps } from "@/emails/AdminNewOrderEmail";
-import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
+import {
+  adminDashboardEmailUrl,
+  adminOrderEmailUrl
+} from "@/lib/server/notifications/email-app-url";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { Order } from "@/types";
 
@@ -41,7 +44,7 @@ function formatShippingAddressLines(order: Order): string {
 
 export function mapOrderToAdminNewOrderEmailProps(
   order: Order,
-  actionUrls: OrderEmailActionUrls
+  _actionUrls: OrderEmailActionUrls
 ): AdminNewOrderEmailProps {
   const lines = normalizeOrderItems(order.items);
   const line = lines[0];
@@ -66,8 +69,8 @@ export function mapOrderToAdminNewOrderEmailProps(
     customerPhone: customerPhone(order),
     customerEmail: customerEmail(order),
     shippingAddressText: formatShippingAddressLines(order),
-    approveUrl: actionUrls.approveUrl,
-    dashboardUrl: emailAppUrl("/admin/dashboard")
+    approveUrl: adminOrderEmailUrl(order.id),
+    dashboardUrl: adminDashboardEmailUrl()
   };
 }
 

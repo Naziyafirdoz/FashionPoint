@@ -11,6 +11,7 @@ type OrderRowActionsProps = {
   busy: boolean;
   onStartProcessing?: (order: OrderListRow) => void;
   onApproveOrder?: (order: OrderListRow) => void;
+  onStartPacking?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
@@ -25,6 +26,7 @@ export function OrderRowActions({
   busy,
   onStartProcessing,
   onApproveOrder,
+  onStartPacking,
   onReadyForShipping,
   onMarkShipped,
   onMarkDelivered,
@@ -51,6 +53,9 @@ export function OrderRowActions({
         break;
       case "approve_order":
         onApproveOrder?.(order);
+        break;
+      case "start_packing":
+        onStartPacking?.(order);
         break;
       case "ready_for_shipping":
         onReadyForShipping?.(order);

@@ -376,6 +376,18 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
       case "start_processing":
         void startProcessing();
         break;
+      case "start_packing":
+        if (!order) break;
+        setUpdating(true);
+        void persistAutoStartPacking(order.id, order.status).then((freshOrder) => {
+          if (freshOrder) {
+            applyFreshOrder(freshOrder, order);
+            if (normalizeLegacyStatus(freshOrder.status) === "packing_assigned") {
+              toast.success("Packing started");
+            }
+          }
+        }).finally(() => setUpdating(false));
+        break;
       case "ready_for_shipping":
         void runFulfillmentAction("ready-for-shipping", "Order marked ready for shipping");
         break;

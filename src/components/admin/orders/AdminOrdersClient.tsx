@@ -318,6 +318,28 @@ export function AdminOrdersClient() {
     }
   };
 
+  const startPacking = async (order: OrderListRow) => {
+    setUpdatingOrderId(order.id);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/start-packing`, {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Unable to start packing");
+        return;
+      }
+      if (data.order) {
+        applyOrderUpdate(data.order);
+      }
+      toast.success(data.message ?? "Packing started");
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   const readyForShipping = (order: OrderListRow) =>
     void runFulfillmentAction(order, "ready-for-shipping", "Order marked ready for shipping", "pack");
 
@@ -520,6 +542,7 @@ export function AdminOrdersClient() {
               }}
               onStartProcessing={startProcessing}
               onApproveOrder={approveOrder}
+              onStartPacking={startPacking}
               onReadyForShipping={readyForShipping}
               onMarkShipped={markShipped}
               onMarkDelivered={markDelivered}
