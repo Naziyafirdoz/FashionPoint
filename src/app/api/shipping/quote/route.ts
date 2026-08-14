@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildShippingQuote } from "@/lib/shipping/rates";
+import { hydrateBranches } from "@/lib/shipping/branch-store";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
 
 export async function POST(req: Request) {
-  await hydrateShippingSettings();
+  await Promise.all([hydrateShippingSettings(), hydrateBranches()]);
 
   const body = await req.json().catch(() => ({}));
   const address = {

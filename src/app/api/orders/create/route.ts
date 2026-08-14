@@ -7,13 +7,14 @@ import { validateOrderItems } from "@/lib/checkout/validation";
 import { itemsSubtotal } from "@/lib/checkout/totals";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
+import { hydrateBranches } from "@/lib/shipping/branch-store";
 import { assertClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
 import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
 import { resolveShippingZone } from "@/lib/shipping/city-detection";
 
 export async function POST(req: Request) {
-  await hydrateShippingSettings();
+  await Promise.all([hydrateShippingSettings(), hydrateBranches()]);
 
   const supabase = await createClient();
   const {
@@ -58,6 +59,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: shippingCheck.error }, { status: 400 });
   }
   const shippingAmount = shippingCheck.shippingAmount;
+  const branchId = shippingCheck.branchId;
   const total = Math.max(0, subtotal + shippingAmount - discountAmount);
   const amountPaise = Math.round(total * 100);
 
@@ -106,6 +108,7 @@ export async function POST(req: Request) {
       items,
       subtotal,
       shipping_amount: shippingAmount,
+      branch_id: branchId.startsWith("legacy-") ? null : branchId,
       discount_amount: discountAmount,
       total,
       status: "pending",

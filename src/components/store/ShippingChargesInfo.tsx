@@ -1,20 +1,31 @@
 import type { ShippingQuote } from "@/lib/shipping/rates";
-import type { ShippingLocationTier } from "@/lib/shipping/city-detection";
+import type { ShippingTier } from "@/lib/shipping/branch-types";
 import {
   SHIPPING_FEES_FOOTNOTE,
   formatShippingCharge,
-  getShippingRateCard
+  getShippingRateCardForAddress,
+  getShippingRateCardForBranch
 } from "@/lib/shipping/display";
+import type { ShippingAddressInput } from "@/lib/shipping/city-detection";
 
 type ShippingChargesInfoProps = {
-  /** When set, highlights the applicable tier and shows the calculated charge. */
-  quote?: Pick<ShippingQuote, "shippingAmount" | "locationTier" | "chargeReason"> | null;
+  quote?: Pick<
+    ShippingQuote,
+    "shippingAmount" | "tier" | "chargeReason" | "branchName" | "branchId"
+  > | null;
+  address?: ShippingAddressInput | null;
   className?: string;
 };
 
-export function ShippingChargesInfo({ quote, className = "" }: ShippingChargesInfoProps) {
-  const rates = getShippingRateCard();
-  const activeTier: ShippingLocationTier | null = quote?.locationTier ?? null;
+export function ShippingChargesInfo({ quote, address, className = "" }: ShippingChargesInfoProps) {
+  const card = quote?.branchId
+    ? {
+        branchName: quote.branchName,
+        rates: getShippingRateCardForBranch(quote.branchId)
+      }
+    : getShippingRateCardForAddress(address);
+
+  const activeTier: ShippingTier | null = quote?.tier ?? null;
 
   return (
     <div
@@ -23,9 +34,10 @@ export function ShippingChargesInfo({ quote, className = "" }: ShippingChargesIn
       aria-label="Shipping charges information"
     >
       <p className="font-semibold text-primary">Shipping Charges</p>
+      <p className="mt-1 text-xs text-foreground/60">{card.branchName} Branch</p>
 
       <ul className="mt-3 space-y-1.5 text-foreground/80">
-        {rates.map((row) => {
+        {card.rates.map((row) => {
           const isActive = activeTier === row.tier;
           return (
             <li
