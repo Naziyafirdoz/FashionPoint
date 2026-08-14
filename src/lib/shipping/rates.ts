@@ -1,7 +1,7 @@
 import { resolveBranchShipping } from "@/lib/shipping/branch-resolver";
 import { getShippingSettings } from "@/lib/shipping/settings";
 import { shippingChargeReasonForBranch } from "@/lib/shipping/display";
-import type { ShippingTier } from "@/lib/shipping/branch-types";
+import type { BranchShippingResolution, ShippingTier } from "@/lib/shipping/branch-types";
 import type { ShippingAddressInput, ShippingLocationTier, ShippingZone } from "@/lib/shipping/city-detection";
 
 export type ShippingQuote = {
@@ -24,8 +24,10 @@ export function computeShippingChargeForAddress(address: ShippingAddressInput): 
   return resolveBranchShipping(address).shippingAmount;
 }
 
-export function buildShippingQuote(address: ShippingAddressInput): ShippingQuote {
-  const resolution = resolveBranchShipping(address);
+export function buildShippingQuote(
+  address: ShippingAddressInput,
+  resolution: BranchShippingResolution = resolveBranchShipping(address)
+): ShippingQuote {
   const { branch, tier, shippingAmount, usedDefaultBranch } = resolution;
   const zone: ShippingZone = tier === "local" ? "local" : "outstation";
   const locationTier: ShippingLocationTier =

@@ -162,6 +162,7 @@ export type Order = {
   items: CartItem[];
   subtotal: number;
   shipping_amount: number;
+  branch_id?: string | null;
   discount_amount: number;
   total: number;
   status: OrderStatus;

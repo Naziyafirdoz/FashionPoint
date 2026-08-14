@@ -60,6 +60,15 @@ export async function loadBranchesFromDb(): Promise<BranchWithAreas[]> {
   );
 }
 
+/**
+ * Resolves an authoritative shipping request from a database snapshot.
+ * Callers that calculate customer-facing prices must use this rather than the
+ * process-local cache, which is only retained for legacy display helpers.
+ */
+export async function loadActiveBranchesFromDb(): Promise<BranchWithAreas[]> {
+  return (await loadBranchesFromDb()).filter((branch) => branch.is_active);
+}
+
 export function getCachedBranches(): BranchWithAreas[] {
   return cachedBranches ?? [];
 }

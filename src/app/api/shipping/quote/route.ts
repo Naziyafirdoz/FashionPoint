@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildShippingQuote } from "@/lib/shipping/rates";
-import { hydrateBranches } from "@/lib/shipping/branch-store";
-import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
+import { resolveAuthoritativeShipping } from "@/lib/shipping/order-shipping";
 
 export async function POST(req: Request) {
-  await Promise.all([hydrateShippingSettings(), hydrateBranches()]);
-
   const body = await req.json().catch(() => ({}));
   const address = {
     city: typeof body.city === "string" ? body.city : undefined,
@@ -19,6 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Address is required for shipping quote" }, { status: 400 });
   }
 
-  const quote = buildShippingQuote(address);
+  const resolution = await resolveAuthoritativeShipping(address);
+  const quote = buildShippingQuote(address, resolution);
   return NextResponse.json({ quote });
 }

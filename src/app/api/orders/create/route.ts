@@ -6,16 +6,12 @@ import { generateOrderNumber } from "@/lib/orders";
 import { validateOrderItems } from "@/lib/checkout/validation";
 import { itemsSubtotal } from "@/lib/checkout/totals";
 import { validateOrderStock } from "@/lib/inventory/stock";
-import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
-import { hydrateBranches } from "@/lib/shipping/branch-store";
-import { assertClientShippingAmount } from "@/lib/shipping/order-shipping";
+import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
 import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
 import { resolveShippingZone } from "@/lib/shipping/city-detection";
 
 export async function POST(req: Request) {
-  await Promise.all([hydrateShippingSettings(), hydrateBranches()]);
-
   const supabase = await createClient();
   const {
     data: { user }
@@ -51,7 +47,7 @@ export async function POST(req: Request) {
   }
   const orderAddress = addressValidation.address;
 
-  const shippingCheck = assertClientShippingAmount(
+  const shippingCheck = await assertAuthoritativeClientShippingAmount(
     Number(body.shipping_amount ?? 0),
     orderAddress
   );

@@ -9,7 +9,7 @@ import type {
 import type { ShippingAddressInput } from "@/lib/shipping/city-detection";
 
 /** Fallback when DB branches are unavailable (dev / pre-migration). */
-function legacyFallbackBranches(): BranchWithAreas[] {
+export function legacyFallbackBranches(): BranchWithAreas[] {
   return [
     {
       id: "legacy-vijayawada",
