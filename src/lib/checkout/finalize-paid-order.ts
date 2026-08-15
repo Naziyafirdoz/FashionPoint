@@ -1,9 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deductOrderStock } from "@/lib/inventory/stock";
 import { createShipmentForOrder } from "@/lib/delivery/shipment-service";
-import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
+import { computeEstimatedDeliveryDate, resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
 import {
   notifyCustomerOrderReceived,
@@ -31,8 +30,7 @@ export async function finalizePaidOrder(
     fromPaymentStatus: order.payment_status
   });
 
-  const shippingAddress = order.shipping_address;
-  const zone = shippingAddress ? resolveShippingZone(shippingAddress) : "outstation";
+  const zone = await resolveOrderEtaZone(order, db);
   const etaZone = zone === "outskirts" ? "outstation" : (zone as "local" | "outstation");
   const estimatedDeliveryDate = computeEstimatedDeliveryDate(new Date(), etaZone);
   const now = new Date().toISOString();

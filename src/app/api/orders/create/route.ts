@@ -8,8 +8,7 @@ import { itemsSubtotal } from "@/lib/checkout/totals";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
-import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { computeEstimatedDeliveryDate, resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -72,7 +71,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const zone = resolveShippingZone(orderAddress);
+  const persistedBranchId = branchId.startsWith("legacy-") ? null : branchId;
+  const zone = await resolveOrderEtaZone(
+    {
+      branch_id: persistedBranchId,
+      shipping_address: orderAddress as Record<string, string>
+    },
+    db
+  );
   const etaZone = zone === "outskirts" ? "outstation" : (zone as "local" | "outstation");
   const estimatedDeliveryDate = computeEstimatedDeliveryDate(new Date(), etaZone);
   const orderNumber = generateOrderNumber();
