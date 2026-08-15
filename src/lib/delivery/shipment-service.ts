@@ -2,7 +2,7 @@ import { getDeliveryProvider } from "@/lib/delivery";
 import type { DeliveryAddress, DeliveryStatus } from "@/lib/delivery/types";
 import { getShippingSettings } from "@/lib/shipping/settings";
 import { estimateDeliveryWindow } from "@/lib/shipping/rates";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
 import { resolveOrderBranch } from "@/lib/shipping/order-branch";
 import type { Order } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -35,10 +35,13 @@ function orderAddressToDelivery(order: Order): DeliveryAddress | null {
   };
 }
 
-export function computeEstimatedDeliveryDateForOrder(order: Order): string | null {
+export async function computeEstimatedDeliveryDateForOrder(
+  order: Order,
+  db?: SupabaseClient | null
+): Promise<string | null> {
   const addr = order.shipping_address;
   if (!addr) return null;
-  const zone = resolveShippingZone(addr);
+  const zone = await resolveOrderEtaZone(order, db);
   const eta = estimateDeliveryWindow(zone);
   return addBusinessDays(new Date(order.created_at), eta.maxDays);
 }
