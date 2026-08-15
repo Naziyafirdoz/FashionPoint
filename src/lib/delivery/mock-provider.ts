@@ -22,6 +22,15 @@ export class MockDeliveryProvider implements DeliveryProvider {
   readonly displayName = "Mock Courier (Dev)";
 
   async getQuote(input: ShipmentQuoteInput): Promise<ShipmentQuote> {
+    if (typeof input.shippingAmount === "number") {
+      return {
+        provider: this.id,
+        estimatedAmount: input.shippingAmount,
+        currency: "INR",
+        estimatedDeliveryLabel: ""
+      };
+    }
+
     const quote = buildShippingQuote({
       city: input.delivery.city,
       pincode: input.delivery.pincode,
@@ -47,7 +56,7 @@ export class MockDeliveryProvider implements DeliveryProvider {
       trackingNumber: mockTrackingNumber(input.orderNumber),
       status: "booked",
       estimatedDeliveryLabel: "",
-      raw: { mode: "mock", orderNumber: input.orderNumber }
+      raw: { mode: "mock", orderNumber: input.orderNumber, shippingAmount: input.shippingAmount }
     };
   }
 
