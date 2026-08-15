@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/stores/cart";
@@ -13,9 +14,16 @@ const STEPS = ["Cart", "Address", "Payment", "Review"];
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, subtotal: getSubtotal, discount } = useCartStore();
+  const [hasHydrated, setHasHydrated] = useState(false);
 
-  const productsTotal = getSubtotal();
-  const total = Math.max(0, productsTotal - discount);
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  const visibleItems = hasHydrated ? items : [];
+  const productsTotal = hasHydrated ? getSubtotal() : 0;
+  const visibleDiscount = hasHydrated ? discount : 0;
+  const total = Math.max(0, productsTotal - visibleDiscount);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -31,7 +39,7 @@ export default function CartPage() {
       </div>
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          {items.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <p className="text-foreground/60">
               Your cart is empty.{" "}
               <Link
@@ -54,7 +62,7 @@ export default function CartPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {visibleItems.map((item) => (
                   <tr key={`${item.productId}-${item.size}-${item.color}`} className="border-b">
                     <td className="flex items-center gap-3 py-4">
                       <div className="relative h-16 w-12 overflow-hidden rounded bg-blush">
@@ -106,10 +114,10 @@ export default function CartPage() {
                 {SHIPPING_BEFORE_ADDRESS_MESSAGE}
               </dd>
             </div>
-            {discount > 0 && (
+            {visibleDiscount > 0 && (
               <div className="flex justify-between text-green-700">
                 <dt>Discount</dt>
-                <dd>-₹{discount.toLocaleString("en-IN")}</dd>
+                <dd>-₹{visibleDiscount.toLocaleString("en-IN")}</dd>
               </div>
             )}
             <div className="flex justify-between border-t pt-2 font-bold">
