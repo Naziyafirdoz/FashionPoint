@@ -5,8 +5,8 @@ import type { Order } from "@/types";
 
 export const DELIVERY_CONFIRMATION_EMAIL_EVENT = "delivery_confirmation_email";
 
-export function buildDeliveryConfirmationEmailHtml(order: Order): string {
-  return buildCustomerOrderDeliveredEmail(order).html;
+export async function buildDeliveryConfirmationEmailHtml(order: Order): Promise<string> {
+  return (await buildCustomerOrderDeliveredEmail(order)).html;
 }
 
 async function wasDeliveryConfirmationSent(db: SupabaseClient, orderId: string): Promise<boolean> {
@@ -55,7 +55,7 @@ export async function sendDeliveryConfirmationEmail(
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const template = buildCustomerOrderDeliveredEmail(order);
+    const template = await buildCustomerOrderDeliveredEmail(order);
     await resend.emails.send({
       from: RESEND_FROM_ORDERS,
       to: email,

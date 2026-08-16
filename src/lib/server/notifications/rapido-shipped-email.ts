@@ -11,8 +11,8 @@ import type { Order } from "@/types";
 export const RAPIDO_SHIPPED_EMAIL_EVENT = "rapido_shipped_email";
 
 /** Customer Rapido shipped email HTML (layout only — same template as standard shipped email). */
-export function buildRapidoShippedEmailHtml(order: Order): string {
-  return buildCustomerOrderShippedEmail(order).html;
+export async function buildRapidoShippedEmailHtml(order: Order): Promise<string> {
+  return (await buildCustomerOrderShippedEmail(order)).html;
 }
 
 export async function sendRapidoShippedCustomerEmail(
@@ -45,7 +45,7 @@ export async function sendRapidoShippedCustomerEmail(
     return "failed";
   }
 
-  const template = buildCustomerOrderShippedEmail(order);
+  const template = await buildCustomerOrderShippedEmail(order);
 
   try {
     const { Resend } = await import("resend");
