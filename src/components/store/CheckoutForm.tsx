@@ -905,7 +905,7 @@ export function CheckoutForm({
                   <dd>{address.pincode || "—"}</dd>
                 </div>
               </dl>
-              {totals.quote?.locationTier === "vijayawada_city" ? (
+              {totals.quote?.tier === "local" ? (
                 <p className="mt-3 text-sm text-foreground/70">
                   <span className="font-medium text-foreground">Estimated Delivery:</span>{" "}
                   Approximately 2 days
