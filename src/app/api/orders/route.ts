@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
+import { LEGACY_BRANCH_FILTER } from "@/lib/orders/admin-orders";
 import { orderMatchesPaymentFilter, orderMatchesSearch } from "@/lib/admin/notifications/orders-view";
 import { fetchAdminOrderStats } from "@/lib/orders/admin-stats";
 import { matchesOrderListFilter, resolveOrderListFilter } from "@/lib/orders/order-list-filter";
@@ -12,8 +13,102 @@ import { normalizeCustomerOrderRow } from "@/lib/orders/normalize-order";
 import { fetchCustomerOrdersForUser } from "@/lib/orders/customer-order-retrieval";
 import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import { isRefundSchemaReady } from "@/lib/orders/refund-schema";
+import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { devLog, devInfo, devTime, devTimeEnd } from "@/lib/dev-log";
 import type { Order } from "@/types";
+
+type FulfillmentZone = NonNullable<Order["fulfillment_zone"]>;
+
+function persistedFulfillmentBranchId(branchId: string | null | undefined): string | null {
+  const id = branchId?.trim() ?? "";
+  if (!id || id.startsWith("legacy-")) return null;
+  return id;
+}
+
+function orderDeliveryPincode(address: Order["shipping_address"]): string {
+  if (!address) return "";
+  return normalizePincode(address.pincode ?? address.postal_code ?? "");
+}
+
+function legacyFulfillmentZone(address: Order["shipping_address"]): FulfillmentZone {
+  if (!address) return "outstation";
+  const zone = resolveShippingZone(address);
+  return zone === "outskirts" ? "outstation" : zone;
+}
+
+async function attachFulfillmentZonesSafely(
+  db: SupabaseClient,
+  orders: Order[]
+): Promise<Order[]> {
+  if (orders.length === 0) return orders;
+
+  const assignedIds = [
+    ...new Set(
+      orders
+        .map((order) => persistedFulfillmentBranchId(order.branch_id))
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
+  const existingBranchIds = new Set<string>();
+  const areasByBranch = new Map<string, Array<{ pincode: string; is_local: boolean }>>();
+
+  if (assignedIds.length > 0) {
+    try {
+      const { data: branchRows, error: branchError } = await db
+        .from("branches")
+        .select("id")
+        .in("id", assignedIds);
+      if (branchError) throw branchError;
+      for (const row of branchRows ?? []) {
+        if (row.id) existingBranchIds.add(String(row.id));
+      }
+
+      const existingIds = [...existingBranchIds];
+      if (existingIds.length > 0) {
+        const { data: areaRows, error: areaError } = await db
+          .from("branch_service_areas")
+          .select("branch_id, pincode, is_local")
+          .in("branch_id", existingIds);
+        if (areaError) throw areaError;
+        for (const row of areaRows ?? []) {
+          const branchId = String((row as { branch_id: string }).branch_id);
+          const list = areasByBranch.get(branchId) ?? [];
+          list.push({
+            pincode: String((row as { pincode: string }).pincode),
+            is_local: Boolean((row as { is_local: boolean }).is_local)
+          });
+          areasByBranch.set(branchId, list);
+        }
+      }
+    } catch (error) {
+      console.error("[orders] fulfillment zones error:", error);
+      return orders.map((order) => ({
+        ...order,
+        fulfillment_zone: legacyFulfillmentZone(order.shipping_address)
+      }));
+    }
+  }
+
+  return orders.map((order) => {
+    const branchId = persistedFulfillmentBranchId(order.branch_id);
+    if (!branchId || !existingBranchIds.has(branchId)) {
+      return { ...order, fulfillment_zone: legacyFulfillmentZone(order.shipping_address) };
+    }
+
+    const areas = areasByBranch.get(branchId) ?? [];
+    const pincode = orderDeliveryPincode(order.shipping_address);
+    if (pincode.length === 6) {
+      const match = areas.find((area) => area.pincode === pincode);
+      if (match) {
+        return { ...order, fulfillment_zone: match.is_local ? "local" : "outstation" };
+      }
+    }
+
+    return { ...order, fulfillment_zone: "outstation" };
+  });
+}
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -75,6 +170,60 @@ async function loadAdminStatsSafely(db: SupabaseClient): Promise<AdminOrderStats
     return FALLBACK_ADMIN_STATS;
   } finally {
     devTimeEnd("[orders] stats");
+  }
+}
+
+function applyPersistedBranchFilter<
+  Q extends {
+    is: (column: string, value: null) => Q;
+    eq: (column: string, value: string) => Q;
+  }
+>(query: Q, branchIdParam: string | null): Q {
+  if (!branchIdParam || branchIdParam === "all") return query;
+  if (branchIdParam === LEGACY_BRANCH_FILTER) {
+    return query.is("branch_id", null);
+  }
+  return query.eq("branch_id", branchIdParam);
+}
+
+async function attachBranchNamesSafely(
+  db: SupabaseClient,
+  orders: Order[]
+): Promise<Order[]> {
+  if (orders.length === 0) return orders;
+
+  const branchIds = [
+    ...new Set(
+      orders
+        .map((order) => order.branch_id?.trim() ?? "")
+        .filter((id) => id.length > 0 && !id.startsWith("legacy-"))
+    )
+  ];
+
+  if (branchIds.length === 0) {
+    return orders.map((order) => ({ ...order, branch_name: order.branch_name ?? null }));
+  }
+
+  try {
+    const { data, error } = await db.from("branches").select("id, name").in("id", branchIds);
+    if (error) throw error;
+
+    const nameById = new Map<string, string>();
+    for (const row of data ?? []) {
+      const record = row as { id?: string; name?: string };
+      if (record.id && record.name) nameById.set(record.id, record.name);
+    }
+
+    return orders.map((order) => {
+      const id = order.branch_id?.trim() ?? "";
+      return {
+        ...order,
+        branch_name: id ? nameById.get(id) ?? null : null
+      };
+    });
+  } catch (error) {
+    console.error("[orders] branch names error:", error);
+    return orders;
   }
 }
 
@@ -142,6 +291,7 @@ export async function GET(req: Request) {
   const listFilter = resolveOrderListFilter(tabParam);
   const paymentMethod = url.searchParams.get("payment_method");
   const search = url.searchParams.get("search")?.trim();
+  const branchIdParam = url.searchParams.get("branch_id")?.trim() || null;
   const includeReviewCounts = url.searchParams.get("include_review_counts") === "true";
   const includeStats = url.searchParams.get("include_stats") === "true";
   const statsOnly = url.searchParams.get("stats_only") === "true";
@@ -227,6 +377,8 @@ export async function GET(req: Request) {
       );
     }
 
+    query = applyPersistedBranchFilter(query, branchIdParam);
+
     query = query.range(offset, offset + limit - 1);
 
     const adminQueryMeta: OrderQueryDebugMeta = {
@@ -239,7 +391,8 @@ export async function GET(req: Request) {
       filters: {
         listFilter,
         paymentMethod: paymentMethod ?? null,
-        search: search ?? null
+        search: search ?? null,
+        branchId: branchIdParam
       },
       nestedJoins: false
     };
@@ -335,6 +488,8 @@ export async function GET(req: Request) {
       );
     }
 
+    query = applyPersistedBranchFilter(query, branchIdParam);
+
     if (listFilter.kind === "returns") {
       const returnsMeta: OrderQueryDebugMeta = {
         source: "admin-returns-order-ids",
@@ -384,7 +539,8 @@ export async function GET(req: Request) {
       filters: {
         listFilter,
         paymentMethod: paymentMethod ?? null,
-        search: search ?? null
+        search: search ?? null,
+        branchId: branchIdParam
       },
       nestedJoins: false
     };
@@ -423,6 +579,14 @@ export async function GET(req: Request) {
 
   if (orders.length > 0) {
     orders = orders.map(normalizeCustomerOrderRow);
+  }
+
+  if (admin && orders.length > 0) {
+    orders = await attachBranchNamesSafely(db, orders);
+  }
+
+  if (orders.length > 0) {
+    orders = await attachFulfillmentZonesSafely(db, orders);
   }
 
   let refund_tracking_available: boolean | undefined;

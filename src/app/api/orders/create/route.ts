@@ -6,15 +6,11 @@ import { generateOrderNumber } from "@/lib/orders";
 import { validateOrderItems } from "@/lib/checkout/validation";
 import { itemsSubtotal } from "@/lib/checkout/totals";
 import { validateOrderStock } from "@/lib/inventory/stock";
-import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
-import { assertClientShippingAmount } from "@/lib/shipping/order-shipping";
+import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
-import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { computeEstimatedDeliveryDate, resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
 
 export async function POST(req: Request) {
-  await hydrateShippingSettings();
-
   const supabase = await createClient();
   const {
     data: { user }
@@ -50,7 +46,7 @@ export async function POST(req: Request) {
   }
   const orderAddress = addressValidation.address;
 
-  const shippingCheck = assertClientShippingAmount(
+  const shippingCheck = await assertAuthoritativeClientShippingAmount(
     Number(body.shipping_amount ?? 0),
     orderAddress
   );
@@ -58,6 +54,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: shippingCheck.error }, { status: 400 });
   }
   const shippingAmount = shippingCheck.shippingAmount;
+  const branchId = shippingCheck.branchId;
   const total = Math.max(0, subtotal + shippingAmount - discountAmount);
   const amountPaise = Math.round(total * 100);
 
@@ -74,7 +71,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const zone = resolveShippingZone(orderAddress);
+  const persistedBranchId = branchId.startsWith("legacy-") ? null : branchId;
+  const zone = await resolveOrderEtaZone(
+    {
+      branch_id: persistedBranchId,
+      shipping_address: orderAddress as Record<string, string>
+    },
+    db
+  );
   const etaZone = zone === "outskirts" ? "outstation" : (zone as "local" | "outstation");
   const estimatedDeliveryDate = computeEstimatedDeliveryDate(new Date(), etaZone);
   const orderNumber = generateOrderNumber();
@@ -106,6 +110,7 @@ export async function POST(req: Request) {
       items,
       subtotal,
       shipping_amount: shippingAmount,
+      branch_id: branchId.startsWith("legacy-") ? null : branchId,
       discount_amount: discountAmount,
       total,
       status: "pending",

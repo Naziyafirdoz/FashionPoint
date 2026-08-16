@@ -1,6 +1,92 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Order } from "@/types";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { createServiceClient } from "@/lib/supabase";
+import { resolveShippingZone, type ShippingZone } from "@/lib/shipping/city-detection";
+import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { estimateDeliveryWindow } from "@/lib/shipping/rates";
+
+type OrderEtaInput = Pick<Order, "branch_id" | "shipping_address">;
+
+type BranchServiceAreaRow = {
+  pincode: string;
+  is_local: boolean;
+};
+
+function persistedBranchId(branchId: string | null | undefined): string | null {
+  const id = branchId?.trim() ?? "";
+  if (!id || id.startsWith("legacy-")) return null;
+  return id;
+}
+
+function deliveryPincode(address: Order["shipping_address"]): string {
+  if (!address) return "";
+  return normalizePincode(address.pincode ?? address.postal_code ?? "");
+}
+
+function legacyEtaZone(address: Order["shipping_address"]): ShippingZone {
+  if (!address) return "outstation";
+  return resolveShippingZone(address);
+}
+
+async function loadAssignedBranchServiceAreas(
+  db: SupabaseClient,
+  branchId: string
+): Promise<BranchServiceAreaRow[] | null> {
+  const { data: branch, error: branchError } = await db
+    .from("branches")
+    .select("id")
+    .eq("id", branchId)
+    .maybeSingle();
+
+  if (branchError || !branch) return null;
+
+  const { data: areas, error: areaError } = await db
+    .from("branch_service_areas")
+    .select("pincode, is_local")
+    .eq("branch_id", branchId);
+
+  if (areaError) return null;
+
+  return (areas ?? []).map((area) => ({
+    pincode: String(area.pincode),
+    is_local: Boolean(area.is_local)
+  }));
+}
+
+/**
+ * Existing-order ETA zone from persisted `order.branch_id` and THAT branch's
+ * service areas only. Does not reassign a branch from the delivery PIN.
+ * Does not calculate shipping amounts.
+ */
+export async function resolveOrderEtaZone(
+  order: OrderEtaInput,
+  db?: SupabaseClient | null
+): Promise<ShippingZone> {
+  const branchId = persistedBranchId(order.branch_id);
+  if (!branchId) {
+    return legacyEtaZone(order.shipping_address);
+  }
+
+  const client = db ?? createServiceClient();
+  if (!client) {
+    return legacyEtaZone(order.shipping_address);
+  }
+
+  const areas = await loadAssignedBranchServiceAreas(client, branchId);
+  if (!areas) {
+    return legacyEtaZone(order.shipping_address);
+  }
+
+  const pincode = deliveryPincode(order.shipping_address);
+  if (pincode.length === 6) {
+    const match = areas.find((area) => area.pincode === pincode);
+    if (match) {
+      return match.is_local ? "local" : "outstation";
+    }
+  }
+
+  return "outstation";
+}
 
 function addBusinessDays(start: Date, businessDays: number): Date {
   const result = new Date(start);

@@ -14,7 +14,6 @@ import type { CartItem } from "@/types";
 import { FinalSalePolicyNotice } from "@/components/store/FinalSalePolicyNotice";
 import { AddressValidationModal } from "@/components/store/AddressValidationModal";
 import { ShippingChargesInfo } from "@/components/store/ShippingChargesInfo";
-import { SHIPPING_BEFORE_ADDRESS_MESSAGE } from "@/lib/shipping/display";
 import {
   validateCheckoutStep1,
   type CheckoutStep1Field
@@ -24,6 +23,7 @@ import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { buildOrderAddressPayload, composeAddressLine } from "@/lib/delivery/location";
 import { addressToCheckoutAddress } from "@/lib/checkout/saved-addresses";
 import { saveCheckoutAddressAction } from "@/app/(store)/checkout/actions";
+import type { ShippingQuote } from "@/lib/shipping/rates";
 import type { Address } from "@/types";
 
 export type CheckoutAddress = {
@@ -90,6 +90,28 @@ function readOnlyClassName() {
   return "w-full rounded-lg border border-primary/10 bg-blush/40 px-3 py-2 text-sm text-foreground/80";
 }
 
+async function fetchAuthoritativeShippingQuote(input: {
+  city: string;
+  state: string;
+  pincode: string;
+  line: string;
+}): Promise<ShippingQuote> {
+  const response = await fetch("/api/shipping/quote", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    quote?: ShippingQuote;
+    error?: string;
+  };
+  if (!response.ok || !data.quote) {
+    throw new Error(data.error ?? "Could not calculate shipping for this address");
+  }
+  return data.quote;
+}
+
 function InlineFieldError({ message }: { message: string }) {
   return <p className="mt-1 text-xs text-red-600">⚠ {message}</p>;
 }
@@ -150,6 +172,7 @@ export function CheckoutForm({
   const [payment, setPayment] = useState<PaymentMethodId>("upi");
   const [pincodeValidated, setPincodeValidated] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
   const [continuing, setContinuing] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [showStep1Errors, setShowStep1Errors] = useState(false);
@@ -187,18 +210,6 @@ export function CheckoutForm({
     fieldRefs.current[field] = el;
   };
 
-  const shippingInput = useMemo(
-    () => ({
-      ...address,
-      line: composeAddressLine({
-        house_flat: address.house_flat,
-        street: address.street,
-        landmark: address.landmark
-      })
-    }),
-    [address]
-  );
-
   const addressReady = hasMinimumAddress(address, pincodeValidated);
   const orderAddress = useMemo(
     () =>
@@ -215,14 +226,15 @@ export function CheckoutForm({
   );
 
   const totals = useMemo(
-    () => computeCheckoutTotals(items, discount, addressReady ? shippingInput : null),
-    [items, discount, shippingInput, addressReady]
+    () => computeCheckoutTotals(items, discount, addressReady ? shippingQuote : null),
+    [items, discount, addressReady, shippingQuote]
   );
 
   useEffect(() => {
     const pincode = normalizePincode(address.pincode);
     if (pincode.length !== 6) {
       setPincodeValidated(false);
+      setShippingQuote(null);
       setAddress((prev) => ({ ...prev, city: "", state: "" }));
       return;
     }
@@ -235,6 +247,7 @@ export function CheckoutForm({
         if (cancelled) return;
         if (!res.ok) {
           setPincodeValidated(false);
+          setShippingQuote(null);
           setAddress((prev) => ({ ...prev, city: "", state: "" }));
           return;
         }
@@ -250,6 +263,7 @@ export function CheckoutForm({
       .catch(() => {
         if (!cancelled) {
           setPincodeValidated(false);
+          setShippingQuote(null);
           setAddress((prev) => ({ ...prev, city: "", state: "" }));
         }
       })
@@ -297,14 +311,28 @@ export function CheckoutForm({
         return;
       }
 
-      setAddress((prev) => ({
-        ...prev,
+      const validatedAddress = {
+        ...address,
         city: validation.city,
         state: validation.state,
         pincode: validation.pincode
-      }));
+      };
+      const quote = await fetchAuthoritativeShippingQuote({
+        city: validatedAddress.city,
+        state: validatedAddress.state,
+        pincode: validatedAddress.pincode,
+        line: composeAddressLine({
+          house_flat: validatedAddress.house_flat,
+          street: validatedAddress.street,
+          landmark: validatedAddress.landmark
+        })
+      });
+      setAddress(validatedAddress);
       setPincodeValidated(true);
+      setShippingQuote(quote);
       setStep(2);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not calculate shipping");
     } finally {
       setContinuing(false);
     }
@@ -315,6 +343,7 @@ export function CheckoutForm({
     const saved = savedAddresses.find((item) => item.id === addressId);
     if (!saved) return;
     setAddress(addressToCheckoutAddress(saved, address.email || initialAddress?.email || ""));
+    setShippingQuote(null);
     setShowStep1Errors(false);
   };
 
@@ -324,6 +353,7 @@ export function CheckoutForm({
       ...emptyAddress(initialAddress),
       email: prev.email || initialAddress?.email || ""
     }));
+    setShippingQuote(null);
     setShowStep1Errors(false);
   };
 
@@ -338,6 +368,10 @@ export function CheckoutForm({
     }
     if (totals.subtotal <= 0) {
       toast.error("Order subtotal must be greater than zero");
+      return;
+    }
+    if (!shippingQuote) {
+      toast.error("Please continue to confirm shipping for this address");
       return;
     }
 
@@ -743,13 +777,10 @@ export function CheckoutForm({
               </div>
             </div>
 
-            {addressReady ? (
+            {totals.quote ? (
               <ShippingChargesInfo quote={totals.quote} />
             ) : (
-              <>
-                <ShippingChargesInfo />
-                <p className="text-xs text-foreground/50">{SHIPPING_BEFORE_ADDRESS_MESSAGE}</p>
-              </>
+              <ShippingChargesInfo />
             )}
 
             <Step1ErrorSummary errors={step1Errors} />
@@ -874,7 +905,7 @@ export function CheckoutForm({
                   <dd>{address.pincode || "—"}</dd>
                 </div>
               </dl>
-              {totals.quote.locationTier === "vijayawada_city" ? (
+              {totals.quote?.tier === "local" ? (
                 <p className="mt-3 text-sm text-foreground/70">
                   <span className="font-medium text-foreground">Estimated Delivery:</span>{" "}
                   Approximately 2 days

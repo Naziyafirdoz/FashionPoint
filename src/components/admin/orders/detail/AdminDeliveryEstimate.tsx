@@ -7,7 +7,10 @@ import {
 import type { Order } from "@/types";
 
 type AdminDeliveryEstimateProps = {
-  order: Pick<Order, "status" | "shipping_address" | "delivery_confirmed_at" | "otp_verified_at">;
+  order: Pick<
+    Order,
+    "status" | "shipping_address" | "delivery_confirmed_at" | "otp_verified_at" | "fulfillment_zone"
+  >;
   className?: string;
 };
 
@@ -19,7 +22,7 @@ export function AdminDeliveryEstimate({ order, className = "mt-2 text-xs text-gr
     return null;
   }
 
-  if (display.kind === "vijayawada_estimate") {
+  if (display.kind === "local_estimate" || display.kind === "vijayawada_estimate") {
     return (
       <p className={className}>
         Estimated Delivery:{" "}

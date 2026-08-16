@@ -7,6 +7,7 @@ import {
   customerEmail,
   customerName,
   customerPhone,
+  formatAssignedBranchName,
   formatCurrency,
   formatOrderDate,
   formatOrderTime,
@@ -63,13 +64,14 @@ export function OrdersTable({
     <table className="w-full table-fixed text-sm">
       <thead className="border-b border-gray-200 bg-gray-50">
         <tr>
-          <th className={`${thClass} w-[13%]`}>Order ID</th>
-          <th className={`${thClass} w-[22%]`}>Customer</th>
-          <th className={`${thClass} w-[11%]`}>Total</th>
-          <th className={`${thClass} w-[13%]`}>Payment</th>
-          <th className={`${thClass} w-[15%]`}>Status</th>
-          <th className={`${thClass} hidden w-[10%] lg:table-cell`}>Items</th>
-          <th className={`${thClass} w-[27%] lg:w-[17%]`}>Actions</th>
+          <th className={`${thClass} w-[12%]`}>Order ID</th>
+          <th className={`${thClass} w-[18%]`}>Customer</th>
+          <th className={`${thClass} w-[10%]`}>Total</th>
+          <th className={`${thClass} w-[12%]`}>Payment</th>
+          <th className={`${thClass} w-[13%]`}>Status</th>
+          <th className={`${thClass} w-[11%]`}>Branch</th>
+          <th className={`${thClass} hidden w-[9%] lg:table-cell`}>Items</th>
+          <th className={`${thClass} w-[15%] lg:w-[15%]`}>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -128,6 +130,11 @@ export function OrdersTable({
               </td>
               <td className={tdClass}>
                 <StatusPill order={row} />
+              </td>
+              <td className={tdClass}>
+                <p className="truncate font-medium text-gray-800">
+                  {formatAssignedBranchName(row.branch_id, row.branch_name)}
+                </p>
               </td>
               <td className={`${tdClass} hidden lg:table-cell`}>
                 <OrderItemThumbnails items={row.items} orderId={row.id} />

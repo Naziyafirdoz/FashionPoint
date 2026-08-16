@@ -43,24 +43,6 @@ export async function PATCH(req: Request) {
   const body = await req.json().catch(() => ({}));
   const patch: Partial<ShippingSettings> = {};
 
-  if (typeof body.localShippingCharge === "number") {
-    patch.localShippingCharge = body.localShippingCharge;
-  }
-  if (typeof body.outstationShippingCharge === "number") {
-    patch.outstationShippingCharge = body.outstationShippingCharge;
-  }
-  if (typeof body.storePickupAddress === "string") {
-    patch.storePickupAddress = body.storePickupAddress;
-  }
-  if (typeof body.storePickupCity === "string") {
-    patch.storePickupCity = body.storePickupCity;
-  }
-  if (typeof body.storePickupPincode === "string") {
-    patch.storePickupPincode = body.storePickupPincode;
-  }
-  if (typeof body.storePickupPhone === "string") {
-    patch.storePickupPhone = body.storePickupPhone;
-  }
   if (typeof body.defaultPackageWeightKg === "number") {
     patch.defaultPackageWeightKg = body.defaultPackageWeightKg;
   }

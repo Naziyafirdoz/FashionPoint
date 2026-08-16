@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   customerName,
   customerPhone,
+  formatAssignedBranchName,
   formatCurrency,
   formatOrderDate,
   formatOrderTime,
@@ -41,6 +42,9 @@ export function OrderDetailHeader({
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             {formatOrderDate(order.created_at)} · {formatOrderTime(order.created_at)}
+          </p>
+          <p className="mt-1 text-sm text-gray-700">
+            Assigned Branch: {formatAssignedBranchName(order.branch_id, order.branch_name)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

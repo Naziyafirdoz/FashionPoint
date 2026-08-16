@@ -37,6 +37,8 @@ export type CreateShipmentInput = {
   pickup: DeliveryAddress;
   delivery: DeliveryAddress;
   package: ShipmentPackage;
+  /** Persisted order.shipping_amount — do not recalculate checkout shipping. */
+  shippingAmount?: number;
 };
 
 export type ShipmentQuoteInput = CreateShipmentInput;

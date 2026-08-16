@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { formatOrderDateTime } from "@/lib/orders/admin-orders";
+import { formatAssignedBranchName, formatOrderDateTime } from "@/lib/orders/admin-orders";
 import {
   formatAdminDeliveredText,
   resolveAdminDeliveryDisplay
@@ -74,6 +74,10 @@ export function ShippingCard({
         Shipping Information
       </h2>
       <p className="mt-2 text-sm text-gray-700">
+        <span className="font-medium">Assigned Branch:</span>{" "}
+        {formatAssignedBranchName(order.branch_id, order.branch_name)}
+      </p>
+      <p className="mt-2 text-sm text-gray-700">
         <span className="font-medium">Delivery status:</span> {deliveryStatus}
       </p>
       {order.shipment_id ? (
@@ -128,7 +132,7 @@ export function ShippingCard({
             {order.shipping_date ? formatOrderDateTime(order.shipping_date) : "—"}
           </dd>
         </div>
-        {deliveryDisplay.kind === "vijayawada_estimate" ? (
+        {deliveryDisplay.kind === "local_estimate" ? (
           <div>
             <dt className="text-xs text-gray-500">Estimated Delivery</dt>
             <dd className="mt-0.5 text-gray-900">{deliveryDisplay.label}</dd>

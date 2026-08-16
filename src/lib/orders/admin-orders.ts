@@ -30,9 +30,32 @@ export const PAYMENT_STATUS_COLORS: Record<string, string> = {
 
 export const PAGE_SIZE = 10;
 
+/** Query value for Admin Orders filter: orders with null `branch_id`. */
+export const LEGACY_BRANCH_FILTER = "legacy";
+
+export const LEGACY_BRANCH_LABEL = "Legacy / Default";
+
 export type OrderListRow = Order & {
   review_count?: number;
 };
+
+/** Admin Orders display only — never used for assignment, shipping, or ETA. */
+export function formatAssignedBranchName(
+  branchId?: string | null,
+  branchName?: string | null
+): string {
+  const id = branchId?.trim() ?? "";
+  if (!id || id.startsWith("legacy-")) return LEGACY_BRANCH_LABEL;
+  const name = branchName?.trim() ?? "";
+  return name || LEGACY_BRANCH_LABEL;
+}
+
+export function orderMatchesBranchFilter(order: Order, branchFilter: string): boolean {
+  if (!branchFilter || branchFilter === "all") return true;
+  const id = order.branch_id?.trim() ?? "";
+  if (branchFilter === LEGACY_BRANCH_FILTER) return !id;
+  return id === branchFilter;
+}
 
 export function customerName(order: Order) {
   return order.shipping_address?.name ?? order.guest_email ?? "Guest";

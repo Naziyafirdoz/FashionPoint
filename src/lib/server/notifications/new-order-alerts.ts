@@ -158,7 +158,7 @@ export async function notifyCustomerOrderShipped(
 
   const resend = new Resend(resendKey);
 
-  const template = buildCustomerOrderShippedEmail(order);
+  const template = await buildCustomerOrderShippedEmail(order);
 
   void message;
 

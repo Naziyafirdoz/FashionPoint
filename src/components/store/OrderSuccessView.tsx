@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 
+import Image from "next/image";
+
 import Link from "next/link";
 
 import { CheckCircle, Download, Truck } from "lucide-react";
@@ -14,6 +16,7 @@ import {
   CUSTOMER_CANCELLED_ONLINE_PAYMENT_MESSAGE,
   shouldShowCancelledRefundDetails
 } from "@/lib/orders/cancellation";
+import { resolveCustomerDeliveryEstimate } from "@/lib/orders/customer-order-display";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 
 import { STORE_NAME } from "@/lib/site-config";
@@ -159,8 +162,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
   const addressLines = formatAddress(order.shipping_address);
 
-  const shippingCity = order.shipping_address?.city?.trim().toLowerCase() ?? "";
-  const showVijayawadaDeliveryEstimate = shippingCity === "vijayawada";
+  const localDeliveryEstimate = resolveCustomerDeliveryEstimate(order);
 
   const isCod = order.payment_method === "cod";
   const isPaidOnline = order.payment_status === "paid" && order.payment_method !== "cod";
@@ -246,11 +248,41 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
                 key={`${item.productId}-${item.size}-${index}`}
 
-                className="flex items-start justify-between gap-4 py-3 text-sm"
+                className="flex items-start gap-3 py-3 text-sm"
 
               >
 
-                <div>
+                <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-blush">
+
+                  {item.image ? (
+
+                    <Image
+
+                      src={item.image}
+
+                      alt={item.name}
+
+                      fill
+
+                      className="object-cover"
+
+                      sizes="48px"
+
+                    />
+
+                  ) : (
+
+                    <span className="flex h-full w-full items-center justify-center text-[10px] text-foreground/35">
+
+                      —
+
+                    </span>
+
+                  )}
+
+                </div>
+
+                <div className="min-w-0 flex-1">
 
                   <p className="font-medium text-foreground">{item.name}</p>
 
@@ -302,11 +334,11 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         ) : null}
 
-        {showVijayawadaDeliveryEstimate && !isCancelled ? (
+        {localDeliveryEstimate ? (
           <p className="flex items-start gap-2 text-xs text-foreground/70 sm:text-sm">
             <Truck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span>
-              <span className="font-medium text-foreground">Estimated Delivery:</span> Approximately 2 Days
+              <span className="font-medium text-foreground">Estimated Delivery:</span> {localDeliveryEstimate}
             </span>
           </p>
         ) : null}

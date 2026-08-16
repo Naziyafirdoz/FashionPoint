@@ -46,7 +46,7 @@ export async function sendOrderReceived(params: { to: string; order: Order }) {
     return;
   }
 
-  const { subject, html } = buildCustomerOrderReceivedEmail(params.order);
+  const { subject, html } = await buildCustomerOrderReceivedEmail(params.order);
 
   try {
     await resend.emails.send({
@@ -104,7 +104,7 @@ export async function sendOrderConfirmation(params: {
   }
 
   const template = params.order
-    ? buildCustomerOrderConfirmedEmail(params.order)
+    ? await buildCustomerOrderConfirmedEmail(params.order)
     : buildCustomerOrderConfirmedEmailSimple({
         orderNumber: params.orderNumber,
         total: params.total

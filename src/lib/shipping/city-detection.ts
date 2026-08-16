@@ -1,4 +1,5 @@
-import { isVijayawadaShippingPincode } from "@/lib/shipping/vijayawada-pincodes";
+import { resolveBranchShipping } from "@/lib/shipping/branch-resolver";
+import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 
 export type ShippingAddressInput = {
   city?: string;
@@ -10,8 +11,9 @@ export type ShippingAddressInput = {
 };
 
 export function detectDeliveryCity(address: ShippingAddressInput): string {
-  if (isVijayawadaShippingPincode(address.pincode)) {
-    return "Vijayawada";
+  const resolution = resolveBranchShipping(address);
+  if (resolution.tier === "local" && !resolution.usedDefaultBranch) {
+    return resolution.branch.city;
   }
   return address.city?.trim() ?? "";
 }
@@ -19,15 +21,24 @@ export function detectDeliveryCity(address: ShippingAddressInput): string {
 export type ShippingLocationTier = "vijayawada_city" | "other";
 
 export function resolveShippingLocationTier(address: ShippingAddressInput): ShippingLocationTier {
-  return isVijayawadaShippingPincode(address.pincode) ? "vijayawada_city" : "other";
+  const resolution = resolveBranchShipping(address);
+  if (resolution.branch.slug === "vijayawada" && resolution.tier === "local") {
+    return "vijayawada_city";
+  }
+  return "other";
 }
 
 export function isVijayawadaDelivery(address: ShippingAddressInput): boolean {
-  return resolveShippingLocationTier(address) === "vijayawada_city";
+  const resolution = resolveBranchShipping(address);
+  return resolution.branch.slug === "vijayawada" && resolution.tier === "local";
 }
 
 export type ShippingZone = "local" | "outskirts" | "outstation";
 
 export function resolveShippingZone(address: ShippingAddressInput): ShippingZone {
-  return resolveShippingLocationTier(address) === "vijayawada_city" ? "local" : "outstation";
+  const resolution = resolveBranchShipping(address);
+  return resolution.tier === "local" ? "local" : "outstation";
 }
+
+/** Normalize pincode for branch lookups (re-export for convenience). */
+export { normalizePincode };

@@ -1,4 +1,3 @@
-import { isVijayawadaDelivery } from "@/lib/shipping/city-detection";
 import { getStageLabel, normalizeLegacyStatus, orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order, OrderStatus } from "@/types";
 
@@ -51,16 +50,19 @@ export function getAdminFulfillmentStatusLabel(status: string): string {
   }
 }
 
-export function isVijayawadaOrder(order: Pick<Order, "shipping_address">): boolean {
-  return Boolean(order.shipping_address && isVijayawadaDelivery(order.shipping_address));
+type FulfillmentZoneOrder = Pick<Order, "fulfillment_zone">;
+
+/** Persisted Local vs Standard. Missing/null zone is Standard. */
+function isLocalFulfillmentOrder(order: FulfillmentZoneOrder): boolean {
+  return order.fulfillment_zone === "local";
 }
 
-export function customerConfirmedMessage(order: Pick<Order, "shipping_address">): string {
+export function customerConfirmedMessage(order: FulfillmentZoneOrder): string {
   const lines = [
     "Your order has been confirmed.",
     "Fashion Point is preparing your parcel."
   ];
-  if (isVijayawadaOrder(order)) {
+  if (isLocalFulfillmentOrder(order)) {
     lines.push("Expected delivery within 2 days.");
   } else {
     lines.push(
@@ -71,15 +73,15 @@ export function customerConfirmedMessage(order: Pick<Order, "shipping_address">)
   return lines.join("\n");
 }
 
-export function customerShippedMessage(order: Pick<Order, "shipping_address">): string {
-  if (isVijayawadaOrder(order)) {
+export function customerShippedMessage(order: FulfillmentZoneOrder): string {
+  if (isLocalFulfillmentOrder(order)) {
     return "Your order has been shipped.\nExpected delivery within 2 days.";
   }
   return "Your order has been shipped through DTDC.\nTracking details will be shared when available.";
 }
 
-export function workerReminderIntervalHours(order: Pick<Order, "shipping_address">): number {
-  return isVijayawadaOrder(order) ? 1 : 2;
+export function workerReminderIntervalHours(order: FulfillmentZoneOrder): number {
+  return isLocalFulfillmentOrder(order) ? 1 : 2;
 }
 
 export function formatShippingAddress(order: Order): string {

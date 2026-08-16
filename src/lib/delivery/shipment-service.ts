@@ -1,9 +1,9 @@
 import { getDeliveryProvider } from "@/lib/delivery";
 import type { DeliveryAddress, DeliveryStatus } from "@/lib/delivery/types";
-import { buildShippingQuote } from "@/lib/shipping/rates";
 import { getShippingSettings } from "@/lib/shipping/settings";
 import { estimateDeliveryWindow } from "@/lib/shipping/rates";
-import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
+import { resolveOrderBranch } from "@/lib/shipping/order-branch";
 import type { Order } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -35,22 +35,13 @@ function orderAddressToDelivery(order: Order): DeliveryAddress | null {
   };
 }
 
-function storePickupAddress(): DeliveryAddress {
-  const settings = getShippingSettings();
-  return {
-    name: "Fashion Point",
-    phone: settings.storePickupPhone,
-    line: settings.storePickupAddress,
-    city: settings.storePickupCity,
-    state: "Andhra Pradesh",
-    pincode: settings.storePickupPincode
-  };
-}
-
-export function computeEstimatedDeliveryDateForOrder(order: Order): string | null {
+export async function computeEstimatedDeliveryDateForOrder(
+  order: Order,
+  db?: SupabaseClient | null
+): Promise<string | null> {
   const addr = order.shipping_address;
   if (!addr) return null;
-  const zone = resolveShippingZone(addr);
+  const zone = await resolveOrderEtaZone(order, db);
   const eta = estimateDeliveryWindow(zone);
   return addBusinessDays(new Date(order.created_at), eta.maxDays);
 }
@@ -76,18 +67,19 @@ export async function createShipmentForOrder(
 
   const settings = getShippingSettings();
   const provider = getDeliveryProvider();
-  const quote = buildShippingQuote(order.shipping_address ?? {});
+  const { pickup } = await resolveOrderBranch(order, db);
 
   try {
     const result = await provider.createShipment({
       orderId: order.id,
       orderNumber: order.order_number,
-      pickup: storePickupAddress(),
+      pickup,
       delivery,
       package: {
         weightKg: settings.defaultPackageWeightKg,
         notes: `Order ${order.order_number}`
-      }
+      },
+      shippingAmount: Number(order.shipping_amount ?? 0)
     });
 
     const updatePayload: Record<string, unknown> = {

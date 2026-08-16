@@ -81,6 +81,41 @@ CREATE TABLE IF NOT EXISTS product_variants (
   UNIQUE(product_id, size, color)
 );
 
+CREATE TABLE IF NOT EXISTS branches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  address text,
+  city text NOT NULL,
+  state text NOT NULL DEFAULT '',
+  pincode text NOT NULL DEFAULT '',
+  phone text,
+  local_shipping_charge numeric NOT NULL DEFAULT 99 CHECK (local_shipping_charge >= 0),
+  outstation_shipping_charge numeric NOT NULL DEFAULT 200 CHECK (outstation_shipping_charge >= 0),
+  is_active boolean NOT NULL DEFAULT true,
+  is_default boolean NOT NULL DEFAULT false,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS branch_service_areas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+  pincode text NOT NULL,
+  is_local boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (branch_id, pincode)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_branch_service_areas_pincode_unique
+  ON branch_service_areas (pincode);
+CREATE INDEX IF NOT EXISTS idx_branch_service_areas_branch_id
+  ON branch_service_areas (branch_id);
+CREATE INDEX IF NOT EXISTS idx_branches_active ON branches (is_active, sort_order);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_branches_single_default
+  ON branches (is_default) WHERE is_default = true;
+
 CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number text UNIQUE NOT NULL,
@@ -89,6 +124,7 @@ CREATE TABLE IF NOT EXISTS orders (
   items jsonb NOT NULL,
   subtotal numeric NOT NULL,
   shipping_amount numeric DEFAULT 0,
+  branch_id uuid REFERENCES branches(id),
   discount_amount numeric DEFAULT 0,
   total numeric NOT NULL,
   status text DEFAULT 'pending',
@@ -116,6 +152,9 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_orders_branch_id ON orders (branch_id)
+  WHERE branch_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS return_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

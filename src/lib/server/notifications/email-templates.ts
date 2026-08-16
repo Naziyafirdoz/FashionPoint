@@ -22,6 +22,11 @@ import { STORE_TIMEZONE } from "@/lib/site-config";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
 import type { Order } from "@/types";
+import {
+  GENERIC_CUSTOMER_EMAIL_BRANCH_COPY,
+  resolveCustomerEmailBranchCopy,
+  type CustomerEmailBranchCopy
+} from "@/lib/server/notifications/customer-email-branch-copy";
 
 const MAROON = "#7B0D2B";
 const GOLD = "#B8860B";
@@ -119,10 +124,15 @@ function preheaderHtml(text: string): string {
 type EmailShellOptions = {
   preheader?: string;
   footer?: "standard" | "minimal";
+  customerCopy?: CustomerEmailBranchCopy;
 };
 
-function customerFooterHtml(): string {
-  return `<tr><td style="padding:24px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 6px;font-size:14px;color:${MAROON};font-weight:600;">❤️ Thank you for shopping with Fashion Point ❤️</p><p style="margin:0;font-size:12px;color:${MUTED};">Fashion Point • Vijayawada</p></td></tr>`;
+function customerFooterHtml(copy: CustomerEmailBranchCopy): string {
+  return `<tr><td style="padding:24px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 6px;font-size:14px;color:${MAROON};font-weight:600;">${escapeHtml(copy.thankYou)}</p><p style="margin:0;font-size:12px;color:${MUTED};">${escapeHtml(copy.locationLine)}</p></td></tr>`;
+}
+
+function customerLocationFooterHtml(copy: CustomerEmailBranchCopy): string {
+  return `<tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0;font-size:12px;color:${MUTED};">${escapeHtml(copy.locationLine)}</p></td></tr>`;
 }
 
 function minimalFooterHtml(): string {
@@ -132,7 +142,11 @@ function minimalFooterHtml(): string {
 function emailShell(title: string, body: string, options?: EmailShellOptions): string {
   const preheaderBlock = options?.preheader ? preheaderHtml(options.preheader) : "";
   const footer =
-    options?.footer === "minimal" ? minimalFooterHtml() : customerFooterHtml();
+    options?.footer === "minimal"
+      ? options.customerCopy
+        ? customerLocationFooterHtml(options.customerCopy)
+        : minimalFooterHtml()
+      : customerFooterHtml(options?.customerCopy ?? GENERIC_CUSTOMER_EMAIL_BRANCH_COPY);
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">Fashion Point</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
 }
@@ -343,7 +357,8 @@ function adminOrderShippedBody(order: Order): string {
     ${cardClose()}`;
 }
 
-export function buildCustomerOrderShippedEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Good news! Your order has been shipped and is on its way.</p>
@@ -352,12 +367,14 @@ export function buildCustomerOrderShippedEmail(order: Order): { subject: string;
   return {
     subject: `📦 Your Order Has Been Shipped — ${order.order_number}`,
     html: emailShell(`Your Order Has Been Shipped — ${order.order_number}`, body, {
-      preheader: `Your order ${order.order_number} has been shipped and is on its way.`
+      preheader: `Your order ${order.order_number} has been shipped and is on its way.`,
+      customerCopy
     })
   };
 }
 
-export function buildCustomerOrderPackingStartedEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderPackingStartedEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml([
@@ -370,12 +387,14 @@ export function buildCustomerOrderPackingStartedEmail(order: Order): { subject: 
   return {
     subject: `📦 Packing Started — ${order.order_number}`,
     html: emailShell(`Packing Started — ${order.order_number}`, body, {
-      preheader: `Your order ${order.order_number} is being packed.`
+      preheader: `Your order ${order.order_number} is being packed.`,
+      customerCopy
     })
   };
 }
 
-export function buildCustomerOrderReadyForShippingEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderReadyForShippingEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml([
@@ -388,23 +407,26 @@ export function buildCustomerOrderReadyForShippingEmail(order: Order): { subject
   return {
     subject: `🚚 Ready For Shipping — ${order.order_number}`,
     html: emailShell(`Ready For Shipping — ${order.order_number}`, body, {
-      preheader: `Your order ${order.order_number} is ready for dispatch.`
+      preheader: `Your order ${order.order_number} is ready for dispatch.`,
+      customerCopy
     })
   };
 }
 
-export function buildCustomerOrderDeliveredEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">Your order has been delivered successfully.</p>
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">Thank you for shopping with Fashion Point ❤️</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">${escapeHtml(customerCopy.thankYou)}</p>
     <p style="margin:0;font-size:15px;line-height:1.6;color:${TEXT};">We hope to see you again.</p>`;
 
   return {
     subject: `🎉 Order Delivered — ${order.order_number}`,
     html: emailShell(`Order Delivered — ${order.order_number}`, body, {
       preheader: `Your order ${order.order_number} has been delivered.`,
-      footer: "minimal"
+      footer: "minimal",
+      customerCopy
     })
   };
 }
@@ -479,7 +501,8 @@ export async function buildOrderEmailTemplate(
   };
 }
 
-export function buildCustomerOrderReceivedEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderReceivedEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml(CUSTOMER_PLACED_MESSAGES)}
@@ -490,12 +513,14 @@ export function buildCustomerOrderReceivedEmail(order: Order): { subject: string
   return {
     subject: `🛍 Thanks for Placing Your Order — ${order.order_number}`,
     html: emailShell(`Thanks for Placing Your Order — ${order.order_number}`, body, {
-      preheader: PREHEADER_CUSTOMER_PLACED
+      preheader: PREHEADER_CUSTOMER_PLACED,
+      customerCopy
     })
   };
 }
 
-export function buildCustomerOrderConfirmedEmail(order: Order): { subject: string; html: string } {
+export async function buildCustomerOrderConfirmedEmail(order: Order): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}
@@ -504,7 +529,8 @@ export function buildCustomerOrderConfirmedEmail(order: Order): { subject: strin
   return {
     subject: `✅ Order Confirmed — ${order.order_number}`,
     html: emailShell(`Order Confirmed — ${order.order_number}`, body, {
-      preheader: PREHEADER_CUSTOMER_CONFIRMED
+      preheader: PREHEADER_CUSTOMER_CONFIRMED,
+      customerCopy
     })
   };
 }
@@ -521,7 +547,8 @@ export function buildCustomerOrderConfirmedEmailSimple(params: {
   return {
     subject: `✅ Order Confirmed — ${params.orderNumber}`,
     html: emailShell(`Order Confirmed — ${params.orderNumber}`, body, {
-      preheader: PREHEADER_CUSTOMER_CONFIRMED
+      preheader: PREHEADER_CUSTOMER_CONFIRMED,
+      customerCopy: GENERIC_CUSTOMER_EMAIL_BRANCH_COPY
     })
   };
 }

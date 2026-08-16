@@ -35,6 +35,15 @@ export class RapidoDeliveryProvider implements DeliveryProvider {
   }
 
   async getQuote(input: ShipmentQuoteInput): Promise<ShipmentQuote> {
+    if (typeof input.shippingAmount === "number") {
+      return {
+        provider: this.id,
+        estimatedAmount: input.shippingAmount,
+        currency: "INR",
+        estimatedDeliveryLabel: ""
+      };
+    }
+
     const quote = buildShippingQuote({
       city: input.delivery.city,
       pincode: input.delivery.pincode,
@@ -70,7 +79,8 @@ export class RapidoDeliveryProvider implements DeliveryProvider {
         mode: "rapido-stub",
         pickup: input.pickup,
         delivery: input.delivery,
-        package: input.package
+        package: input.package,
+        shippingAmount: input.shippingAmount
       }
     };
   }
