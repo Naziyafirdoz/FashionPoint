@@ -14,6 +14,7 @@ import {
   CUSTOMER_CANCELLED_ONLINE_PAYMENT_MESSAGE,
   shouldShowCancelledRefundDetails
 } from "@/lib/orders/cancellation";
+import { resolveCustomerDeliveryEstimate } from "@/lib/orders/customer-order-display";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 
 import { STORE_NAME } from "@/lib/site-config";
@@ -159,8 +160,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
   const addressLines = formatAddress(order.shipping_address);
 
-  const shippingCity = order.shipping_address?.city?.trim().toLowerCase() ?? "";
-  const showVijayawadaDeliveryEstimate = shippingCity === "vijayawada";
+  const localDeliveryEstimate = resolveCustomerDeliveryEstimate(order);
 
   const isCod = order.payment_method === "cod";
   const isPaidOnline = order.payment_status === "paid" && order.payment_method !== "cod";
@@ -302,11 +302,11 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         ) : null}
 
-        {showVijayawadaDeliveryEstimate && !isCancelled ? (
+        {localDeliveryEstimate ? (
           <p className="flex items-start gap-2 text-xs text-foreground/70 sm:text-sm">
             <Truck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span>
-              <span className="font-medium text-foreground">Estimated Delivery:</span> Approximately 2 Days
+              <span className="font-medium text-foreground">Estimated Delivery:</span> {localDeliveryEstimate}
             </span>
           </p>
         ) : null}

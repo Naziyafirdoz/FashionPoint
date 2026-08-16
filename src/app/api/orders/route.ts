@@ -13,8 +13,102 @@ import { normalizeCustomerOrderRow } from "@/lib/orders/normalize-order";
 import { fetchCustomerOrdersForUser } from "@/lib/orders/customer-order-retrieval";
 import type { AdminOrderStatsV2 } from "@/lib/orders/refund-queue";
 import { isRefundSchemaReady } from "@/lib/orders/refund-schema";
+import { resolveShippingZone } from "@/lib/shipping/city-detection";
+import { normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { devLog, devInfo, devTime, devTimeEnd } from "@/lib/dev-log";
 import type { Order } from "@/types";
+
+type FulfillmentZone = NonNullable<Order["fulfillment_zone"]>;
+
+function persistedFulfillmentBranchId(branchId: string | null | undefined): string | null {
+  const id = branchId?.trim() ?? "";
+  if (!id || id.startsWith("legacy-")) return null;
+  return id;
+}
+
+function orderDeliveryPincode(address: Order["shipping_address"]): string {
+  if (!address) return "";
+  return normalizePincode(address.pincode ?? address.postal_code ?? "");
+}
+
+function legacyFulfillmentZone(address: Order["shipping_address"]): FulfillmentZone {
+  if (!address) return "outstation";
+  const zone = resolveShippingZone(address);
+  return zone === "outskirts" ? "outstation" : zone;
+}
+
+async function attachFulfillmentZonesSafely(
+  db: SupabaseClient,
+  orders: Order[]
+): Promise<Order[]> {
+  if (orders.length === 0) return orders;
+
+  const assignedIds = [
+    ...new Set(
+      orders
+        .map((order) => persistedFulfillmentBranchId(order.branch_id))
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
+  const existingBranchIds = new Set<string>();
+  const areasByBranch = new Map<string, Array<{ pincode: string; is_local: boolean }>>();
+
+  if (assignedIds.length > 0) {
+    try {
+      const { data: branchRows, error: branchError } = await db
+        .from("branches")
+        .select("id")
+        .in("id", assignedIds);
+      if (branchError) throw branchError;
+      for (const row of branchRows ?? []) {
+        if (row.id) existingBranchIds.add(String(row.id));
+      }
+
+      const existingIds = [...existingBranchIds];
+      if (existingIds.length > 0) {
+        const { data: areaRows, error: areaError } = await db
+          .from("branch_service_areas")
+          .select("branch_id, pincode, is_local")
+          .in("branch_id", existingIds);
+        if (areaError) throw areaError;
+        for (const row of areaRows ?? []) {
+          const branchId = String((row as { branch_id: string }).branch_id);
+          const list = areasByBranch.get(branchId) ?? [];
+          list.push({
+            pincode: String((row as { pincode: string }).pincode),
+            is_local: Boolean((row as { is_local: boolean }).is_local)
+          });
+          areasByBranch.set(branchId, list);
+        }
+      }
+    } catch (error) {
+      console.error("[orders] fulfillment zones error:", error);
+      return orders.map((order) => ({
+        ...order,
+        fulfillment_zone: legacyFulfillmentZone(order.shipping_address)
+      }));
+    }
+  }
+
+  return orders.map((order) => {
+    const branchId = persistedFulfillmentBranchId(order.branch_id);
+    if (!branchId || !existingBranchIds.has(branchId)) {
+      return { ...order, fulfillment_zone: legacyFulfillmentZone(order.shipping_address) };
+    }
+
+    const areas = areasByBranch.get(branchId) ?? [];
+    const pincode = orderDeliveryPincode(order.shipping_address);
+    if (pincode.length === 6) {
+      const match = areas.find((area) => area.pincode === pincode);
+      if (match) {
+        return { ...order, fulfillment_zone: match.is_local ? "local" : "outstation" };
+      }
+    }
+
+    return { ...order, fulfillment_zone: "outstation" };
+  });
+}
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -489,6 +583,10 @@ export async function GET(req: Request) {
 
   if (admin && orders.length > 0) {
     orders = await attachBranchNamesSafely(db, orders);
+  }
+
+  if (orders.length > 0) {
+    orders = await attachFulfillmentZonesSafely(db, orders);
   }
 
   let refund_tracking_available: boolean | undefined;

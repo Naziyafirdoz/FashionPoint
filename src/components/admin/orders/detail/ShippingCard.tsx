@@ -132,7 +132,7 @@ export function ShippingCard({
             {order.shipping_date ? formatOrderDateTime(order.shipping_date) : "—"}
           </dd>
         </div>
-        {deliveryDisplay.kind === "vijayawada_estimate" ? (
+        {deliveryDisplay.kind === "local_estimate" ? (
           <div>
             <dt className="text-xs text-gray-500">Estimated Delivery</dt>
             <dd className="mt-0.5 text-gray-900">{deliveryDisplay.label}</dd>

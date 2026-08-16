@@ -164,6 +164,7 @@ export type Order = {
   shipping_amount: number;
   branch_id?: string | null;
   branch_name?: string | null;
+  fulfillment_zone?: "local" | "outstation" | null;
   discount_amount: number;
   total: number;
   status: OrderStatus;

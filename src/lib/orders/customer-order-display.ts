@@ -7,9 +7,15 @@ export const CUSTOMER_VIJAYAWADA_DELIVERY_ESTIMATE = "Approximately 2 Days";
 export const CUSTOMER_ORDER_STATUS_MESSAGE =
   "We'll update your order status as it progresses.";
 
-type CustomerDeliveryOrder = Pick<Order, "status" | "shipping_address">;
+type CustomerDeliveryOrder = Pick<Order, "status" | "shipping_address" | "fulfillment_zone">;
 
-/** Vijayawada active orders only — no estimates for cancelled, delivered, or DTDC orders. */
+function isLocalDeliveryEstimate(order: CustomerDeliveryOrder): boolean {
+  if (order.fulfillment_zone === "local") return true;
+  if (order.fulfillment_zone === "outstation") return false;
+  return Boolean(order.shipping_address && isVijayawadaDelivery(order.shipping_address));
+}
+
+/** Local assigned-branch (or legacy Vijayawada PIN) active orders only. */
 export function resolveCustomerDeliveryEstimate(order: CustomerDeliveryOrder): string | null {
   const status = normalizeLegacyStatus(order.status);
 
@@ -23,7 +29,7 @@ export function resolveCustomerDeliveryEstimate(order: CustomerDeliveryOrder): s
     return null;
   }
 
-  if (order.shipping_address && isVijayawadaDelivery(order.shipping_address)) {
+  if (isLocalDeliveryEstimate(order)) {
     return CUSTOMER_VIJAYAWADA_DELIVERY_ESTIMATE;
   }
 
