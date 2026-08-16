@@ -1,5 +1,5 @@
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
-import { isVijayawadaDelivery } from "@/lib/shipping/city-detection";
+import { isVijayawadaShippingPincode } from "@/lib/shipping/vijayawada-pincodes";
 import type { Order } from "@/types";
 
 export const CUSTOMER_VIJAYAWADA_DELIVERY_ESTIMATE = "Approximately 2 Days";
@@ -12,7 +12,9 @@ type CustomerDeliveryOrder = Pick<Order, "status" | "shipping_address" | "fulfil
 function isLocalDeliveryEstimate(order: CustomerDeliveryOrder): boolean {
   if (order.fulfillment_zone === "local") return true;
   if (order.fulfillment_zone === "outstation") return false;
-  return Boolean(order.shipping_address && isVijayawadaDelivery(order.shipping_address));
+  return Boolean(
+    order.shipping_address && isVijayawadaShippingPincode(order.shipping_address.pincode)
+  );
 }
 
 /** Local assigned-branch (or legacy Vijayawada PIN) active orders only. */

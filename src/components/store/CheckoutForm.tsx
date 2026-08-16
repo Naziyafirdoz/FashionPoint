@@ -14,7 +14,6 @@ import type { CartItem } from "@/types";
 import { FinalSalePolicyNotice } from "@/components/store/FinalSalePolicyNotice";
 import { AddressValidationModal } from "@/components/store/AddressValidationModal";
 import { ShippingChargesInfo } from "@/components/store/ShippingChargesInfo";
-import { SHIPPING_BEFORE_ADDRESS_MESSAGE } from "@/lib/shipping/display";
 import {
   validateCheckoutStep1,
   type CheckoutStep1Field
@@ -778,13 +777,10 @@ export function CheckoutForm({
               </div>
             </div>
 
-            {addressReady ? (
+            {totals.quote ? (
               <ShippingChargesInfo quote={totals.quote} />
             ) : (
-              <>
-                <ShippingChargesInfo />
-                <p className="text-xs text-foreground/50">{SHIPPING_BEFORE_ADDRESS_MESSAGE}</p>
-              </>
+              <ShippingChargesInfo />
             )}
 
             <Step1ErrorSummary errors={step1Errors} />

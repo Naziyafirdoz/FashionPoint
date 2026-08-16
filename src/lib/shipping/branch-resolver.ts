@@ -1,4 +1,4 @@
-import { normalizePincode } from "@/lib/shipping/pincode-lookup";
+import { locationNamesMatch, normalizePincode } from "@/lib/shipping/pincode-lookup";
 import { getCachedBranches } from "@/lib/shipping/branch-store";
 import type {
   BranchRecord,
@@ -65,38 +65,69 @@ function chargeForTier(branch: BranchRecord, tier: ShippingTier): number {
   return tier === "local" ? branch.local_shipping_charge : branch.outstation_shipping_charge;
 }
 
+function eligibleBranches(branches: BranchWithAreas[]): BranchWithAreas[] {
+  const active = branches.filter((branch) => branch.is_active);
+  return active.length ? active : branches;
+}
+
+function hasLocalServicePin(branch: BranchWithAreas, pincode: string): boolean {
+  return branch.service_areas.some((area) => area.pincode === pincode && area.is_local);
+}
+
+function rateTierForBranch(branch: BranchWithAreas, pincode: string): ShippingTier {
+  return pincode.length === 6 && hasLocalServicePin(branch, pincode) ? "local" : "outstation";
+}
+
+function resolutionFor(
+  branch: BranchWithAreas,
+  pincode: string,
+  usedDefaultBranch: boolean
+): BranchShippingResolution {
+  const tier = rateTierForBranch(branch, pincode);
+  return {
+    branch,
+    tier,
+    shippingAmount: chargeForTier(branch, tier),
+    matchedPincode: pincode.length === 6 ? pincode : null,
+    usedDefaultBranch
+  };
+}
+
+function branchMatchesAddressCity(
+  branch: BranchWithAreas,
+  address: ShippingAddressInput
+): boolean {
+  const city = address.city?.trim() ?? "";
+  if (!city || !branch.city.trim()) return false;
+  if (!locationNamesMatch(city, branch.city)) return false;
+
+  const state = address.state?.trim() ?? "";
+  const branchState = branch.state?.trim() ?? "";
+  if (state && branchState && !locationNamesMatch(state, branchState)) return false;
+  return true;
+}
+
 export function resolveBranchShipping(
   address: ShippingAddressInput,
   branchesInput?: BranchWithAreas[]
 ): BranchShippingResolution {
-  const branches = branchesInput ?? activeBranches();
+  const branches = eligibleBranches(branchesInput ?? activeBranches());
   const fallback = defaultBranch(branches);
   const pincode = normalizePincode(address.pincode ?? "");
 
   if (pincode.length === 6) {
-    for (const branch of branches) {
-      const match = branch.service_areas.find((a) => a.pincode === pincode);
-      if (match) {
-        const tier: ShippingTier = match.is_local ? "local" : "outstation";
-        return {
-          branch,
-          tier,
-          shippingAmount: chargeForTier(branch, tier),
-          matchedPincode: pincode,
-          usedDefaultBranch: false
-        };
-      }
+    const localBranch = branches.find((branch) => hasLocalServicePin(branch, pincode));
+    if (localBranch) {
+      return resolutionFor(localBranch, pincode, false);
     }
   }
 
-  const tier: ShippingTier = "outstation";
-  return {
-    branch: fallback,
-    tier,
-    shippingAmount: chargeForTier(fallback, tier),
-    matchedPincode: pincode.length === 6 ? pincode : null,
-    usedDefaultBranch: true
-  };
+  const cityBranch = branches.find((branch) => branchMatchesAddressCity(branch, address));
+  if (cityBranch) {
+    return resolutionFor(cityBranch, pincode, false);
+  }
+
+  return resolutionFor(fallback, pincode, true);
 }
 
 export function findBranchById(branchId: string | null | undefined): BranchWithAreas | null {

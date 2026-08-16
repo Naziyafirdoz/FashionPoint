@@ -29,9 +29,9 @@ export function shippingChargeReasonForBranch(
     return `Your delivery address is within ${branchName} local service area.`;
   }
   if (usedDefaultBranch) {
-    return `Your delivery address is outside configured branch service areas. ${branchName} outstation rate applies.`;
+    return `Your delivery address is outside configured branch coverage. ${branchName} standard rate applies.`;
   }
-  return `Your delivery address is in ${branchName} outstation service area.`;
+  return `Your delivery address uses ${branchName} standard shipping.`;
 }
 
 /** @deprecated Use shippingChargeReasonForBranch */

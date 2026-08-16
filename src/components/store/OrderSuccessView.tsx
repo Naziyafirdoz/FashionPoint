@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 
+import Image from "next/image";
+
 import Link from "next/link";
 
 import { CheckCircle, Download, Truck } from "lucide-react";
@@ -246,11 +248,41 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
                 key={`${item.productId}-${item.size}-${index}`}
 
-                className="flex items-start justify-between gap-4 py-3 text-sm"
+                className="flex items-start gap-3 py-3 text-sm"
 
               >
 
-                <div>
+                <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-blush">
+
+                  {item.image ? (
+
+                    <Image
+
+                      src={item.image}
+
+                      alt={item.name}
+
+                      fill
+
+                      className="object-cover"
+
+                      sizes="48px"
+
+                    />
+
+                  ) : (
+
+                    <span className="flex h-full w-full items-center justify-center text-[10px] text-foreground/35">
+
+                      —
+
+                    </span>
+
+                  )}
+
+                </div>
+
+                <div className="min-w-0 flex-1">
 
                   <p className="font-medium text-foreground">{item.name}</p>
 
