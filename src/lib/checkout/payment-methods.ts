@@ -34,10 +34,38 @@ export const PAYMENT_METHODS: PaymentMethodOption[] = [
   }
 ];
 
+export const CHECKOUT_PAYMENT_METHOD_IDS = ["upi", "card", "netbanking"] as const;
+export type CheckoutPaymentMethodId = (typeof CHECKOUT_PAYMENT_METHOD_IDS)[number];
+
 /** Payment options shown at checkout (prepaid only). */
 export const CHECKOUT_PAYMENT_METHODS: PaymentMethodOption[] = PAYMENT_METHODS.filter(
-  (m) => m.id === "upi" || m.id === "card" || m.id === "netbanking"
+  (m): m is PaymentMethodOption & { id: CheckoutPaymentMethodId } =>
+    m.id === "upi" || m.id === "card" || m.id === "netbanking"
 );
+
+export function isAllowedCheckoutPaymentMethod(value: string): value is CheckoutPaymentMethodId {
+  return (CHECKOUT_PAYMENT_METHOD_IDS as readonly string[]).includes(value);
+}
+
+/** Razorpay Standard Checkout options: one selected method, wallets/COD hidden. */
+export function razorpayCheckoutDisplayOptions(method: CheckoutPaymentMethodId) {
+  return {
+    method: {
+      upi: method === "upi",
+      card: method === "card",
+      netbanking: method === "netbanking",
+      wallet: false,
+      emi: false,
+      paylater: false
+    },
+    config: {
+      display: {
+        hide: [{ method: "wallet" }, { method: "emi" }, { method: "paylater" }]
+      }
+    },
+    prefillMethod: method
+  };
+}
 
 export function paymentMethodLabel(id: string | undefined) {
   const match = PAYMENT_METHODS.find((m) => m.id === id);

@@ -45,7 +45,7 @@ export async function finalizePaidOrder(
       updated_at: now
     })
     .eq("id", order.id)
-    .eq("payment_status", "pending")
+    .in("payment_status", ["pending", "failed"])
     .select("*")
     .maybeSingle();
 

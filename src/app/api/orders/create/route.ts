@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
-import { getRazorpay } from "@/lib/razorpay";
+import { getRazorpay, getRazorpayPublicKey, isRazorpayConfigured } from "@/lib/razorpay";
 import { generateOrderNumber } from "@/lib/orders";
 import { validateOrderItems } from "@/lib/checkout/validation";
-import { itemsSubtotal } from "@/lib/checkout/totals";
+import { amountToPaise, itemsSubtotal } from "@/lib/checkout/totals";
+import { isAllowedCheckoutPaymentMethod } from "@/lib/checkout/payment-methods";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
@@ -20,11 +21,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const paymentMethod = String(body.payment ?? "upi");
+  if (!isRazorpayConfigured()) {
+    return NextResponse.json(
+      { error: "Online payment is temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
+  }
 
-  if (paymentMethod === "cod") {
-    return NextResponse.json({ error: "Cash on delivery is not available" }, { status: 400 });
+  const body = await req.json();
+  const paymentMethod = String(body.payment ?? "");
+
+  if (!isAllowedCheckoutPaymentMethod(paymentMethod)) {
+    if (paymentMethod === "cod") {
+      return NextResponse.json({ error: "Cash on delivery is not available" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Unsupported payment method" }, { status: 400 });
   }
 
   const itemValidation = validateOrderItems(body.items);
@@ -33,7 +44,7 @@ export async function POST(req: Request) {
   }
   const items = itemValidation.items;
 
-  const subtotal = Number(body.subtotal ?? itemsSubtotal(items));
+  const subtotal = itemsSubtotal(items);
   if (subtotal <= 0) {
     return NextResponse.json({ error: "Order subtotal must be greater than zero" }, { status: 400 });
   }
@@ -56,7 +67,7 @@ export async function POST(req: Request) {
   const shippingAmount = shippingCheck.shippingAmount;
   const branchId = shippingCheck.branchId;
   const total = Math.max(0, subtotal + shippingAmount - discountAmount);
-  const amountPaise = Math.round(total * 100);
+  const amountPaise = amountToPaise(total);
 
   const db = createServiceClient();
   if (!db) {
@@ -84,22 +95,28 @@ export async function POST(req: Request) {
   const orderNumber = generateOrderNumber();
 
   const razorpay = getRazorpay();
-  let razorpayOrderId: string | null = null;
-  let amount = amountPaise;
+  const publicKey = getRazorpayPublicKey();
+  if (!razorpay || !publicKey) {
+    return NextResponse.json(
+      { error: "Online payment is temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
+  }
 
-  if (razorpay) {
-    try {
-      const rzOrder = await razorpay.orders.create({
-        amount: amountPaise,
-        currency: "INR",
-        receipt: orderNumber.replace(/[^a-zA-Z0-9]/g, "").slice(0, 40)
-      });
-      razorpayOrderId = rzOrder.id;
-      amount = Number(rzOrder.amount);
-    } catch (error) {
-      console.error("[orders/create] Razorpay order creation failed", error);
-      return NextResponse.json({ error: "Could not initiate payment. Please try again." }, { status: 502 });
-    }
+  let razorpayOrderId: string;
+  let amount: number;
+
+  try {
+    const rzOrder = await razorpay.orders.create({
+      amount: amountPaise,
+      currency: "INR",
+      receipt: orderNumber.replace(/[^a-zA-Z0-9]/g, "").slice(0, 40)
+    });
+    razorpayOrderId = rzOrder.id;
+    amount = Number(rzOrder.amount);
+  } catch (error) {
+    console.error("[orders/create] Razorpay order creation failed", error);
+    return NextResponse.json({ error: "Could not initiate payment. Please try again." }, { status: 502 });
   }
 
   const { data: order, error: insertError } = await db
@@ -110,7 +127,7 @@ export async function POST(req: Request) {
       items,
       subtotal,
       shipping_amount: shippingAmount,
-      branch_id: branchId.startsWith("legacy-") ? null : branchId,
+      branch_id: persistedBranchId,
       discount_amount: discountAmount,
       total,
       status: "pending",
@@ -131,9 +148,9 @@ export async function POST(req: Request) {
     orderId: order.id,
     orderNumber: order.order_number,
     razorpayOrderId,
-    key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    key: publicKey,
     amount,
-    demo: !razorpayOrderId,
+    paymentMethod,
     subtotal,
     shippingAmount,
     total

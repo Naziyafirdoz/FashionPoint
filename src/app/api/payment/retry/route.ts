@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
-import { getRazorpay } from "@/lib/razorpay";
+import { getRazorpay, getRazorpayPublicKey, isRazorpayConfigured } from "@/lib/razorpay";
+import { amountToPaise } from "@/lib/checkout/totals";
+import { isAllowedCheckoutPaymentMethod } from "@/lib/checkout/payment-methods";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
 import type { CartItem, Order } from "@/types";
@@ -16,6 +18,13 @@ export async function POST(req: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isRazorpayConfigured()) {
+    return NextResponse.json(
+      { error: "Online payment is temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
   }
 
   const body = await req.json();
@@ -53,6 +62,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Order has been cancelled" }, { status: 409 });
   }
 
+  if (order.payment_status !== "pending" && order.payment_status !== "failed") {
+    return NextResponse.json({ error: "Order is not awaiting payment" }, { status: 409 });
+  }
+
+  if (!isAllowedCheckoutPaymentMethod(String(order.payment_method ?? ""))) {
+    return NextResponse.json({ error: "This order cannot be paid online" }, { status: 409 });
+  }
+
   const items = order.items as CartItem[];
   const stockCheck = await validateOrderStock(db, items);
   if (!stockCheck.ok) {
@@ -63,16 +80,15 @@ export async function POST(req: Request) {
   }
 
   const razorpay = getRazorpay();
-  if (!razorpay) {
-    return NextResponse.json({
-      demo: true,
-      orderId: order.id,
-      orderNumber: order.order_number,
-      amount: Math.round(Number(order.total) * 100)
-    });
+  const publicKey = getRazorpayPublicKey();
+  if (!razorpay || !publicKey) {
+    return NextResponse.json(
+      { error: "Online payment is temporarily unavailable. Please try again later." },
+      { status: 503 }
+    );
   }
 
-  const amountPaise = Math.round(Number(order.total) * 100);
+  const amountPaise = amountToPaise(Number(order.total));
 
   try {
     const rzOrder = await razorpay.orders.create({
@@ -89,7 +105,8 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString()
       })
       .eq("id", order.id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .in("payment_status", ["pending", "failed"]);
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
@@ -99,8 +116,9 @@ export async function POST(req: Request) {
       orderId: order.id,
       orderNumber: order.order_number,
       razorpayOrderId: rzOrder.id,
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: Number(rzOrder.amount)
+      key: publicKey,
+      amount: Number(rzOrder.amount),
+      paymentMethod: order.payment_method
     });
   } catch (error) {
     console.error("[payment/retry] Razorpay order creation failed", error);

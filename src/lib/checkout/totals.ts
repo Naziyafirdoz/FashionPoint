@@ -5,6 +5,10 @@ export function itemsSubtotal(items: CartItem[]) {
   return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 }
 
+export function amountToPaise(rupees: number): number {
+  return Math.round(Number(rupees) * 100);
+}
+
 export function computeCheckoutTotals(
   items: CartItem[],
   discount: number,

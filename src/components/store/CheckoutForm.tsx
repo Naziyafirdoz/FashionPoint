@@ -5,7 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import toast from "react-hot-toast";
-import { CHECKOUT_PAYMENT_METHODS, paymentMethodLabel, type PaymentMethodId } from "@/lib/checkout/payment-methods";
+import {
+  CHECKOUT_PAYMENT_METHODS,
+  paymentMethodLabel,
+  razorpayCheckoutDisplayOptions,
+  type CheckoutPaymentMethodId
+} from "@/lib/checkout/payment-methods";
 import { computeCheckoutTotals } from "@/lib/checkout/totals";
 import { STORE_NAME } from "@/lib/site-config";
 import { useCheckoutSession } from "@/stores/checkout-session";
@@ -169,7 +174,7 @@ export function CheckoutForm({
     savedAddresses[0]?.id ?? "new"
   );
   const [saveAddress, setSaveAddress] = useState(false);
-  const [payment, setPayment] = useState<PaymentMethodId>("upi");
+  const [payment, setPayment] = useState<CheckoutPaymentMethodId>("upi");
   const [pincodeValidated, setPincodeValidated] = useState(false);
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
@@ -426,7 +431,6 @@ export function CheckoutForm({
       }
 
       const orderNumber = data.orderNumber as string;
-      const orderId = data.orderId as string;
 
       const finishCheckout = () => {
         if (isBuyNow) {
@@ -457,27 +461,26 @@ export function CheckoutForm({
         return true;
       };
 
-      if (data.demo) {
-        await completeOrder({ demo: true, orderId });
-        return;
-      }
-
       const { razorpayOrderId, key, amount: amt } = data;
       if (!razorpayOrderId || !key) {
-        toast.error("Payment not configured");
+        toast.error("Online payment is temporarily unavailable. Please try again later.");
         return;
       }
 
+      const checkoutMethod = razorpayCheckoutDisplayOptions(payment);
       const rzp = new window.Razorpay({
         key,
         amount: amt,
         currency: "INR",
         name: STORE_NAME,
         order_id: razorpayOrderId,
+        method: checkoutMethod.method,
+        config: checkoutMethod.config,
         prefill: {
           name: address.name,
           email: address.email,
-          contact: address.phone
+          contact: address.phone,
+          method: checkoutMethod.prefillMethod
         },
         handler: async (response: {
           razorpay_order_id: string;
@@ -832,7 +835,11 @@ export function CheckoutForm({
                     name="pay"
                     className="mt-1"
                     checked={payment === method.id}
-                    onChange={() => setPayment(method.id)}
+                    onChange={() => {
+                      if (method.id === "upi" || method.id === "card" || method.id === "netbanking") {
+                        setPayment(method.id);
+                      }
+                    }}
                   />
                   <div>
                     <p className="font-medium text-foreground">{method.title}</p>

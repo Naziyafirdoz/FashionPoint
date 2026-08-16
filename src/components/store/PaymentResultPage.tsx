@@ -6,6 +6,10 @@ import Script from "next/script";
 import toast from "react-hot-toast";
 import { AlertCircle, XCircle } from "lucide-react";
 import { STORE_NAME } from "@/lib/site-config";
+import {
+  isAllowedCheckoutPaymentMethod,
+  razorpayCheckoutDisplayOptions
+} from "@/lib/checkout/payment-methods";
 
 declare global {
   interface Window {
@@ -55,19 +59,22 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
       key: string;
       amount: number;
       orderId: string;
-      demo?: boolean;
+      paymentMethod?: string;
     }) => {
-      if (data.demo) {
-        void completePayment({ demo: true, orderId: data.orderId });
-        return;
-      }
-
+      const rawMethod = String(data.paymentMethod ?? "");
+      const methodId = isAllowedCheckoutPaymentMethod(rawMethod) ? rawMethod : "upi";
+      const checkoutMethod = razorpayCheckoutDisplayOptions(methodId);
       const rzp = new window.Razorpay({
         key: data.key,
         amount: data.amount,
         currency: "INR",
         name: STORE_NAME,
         order_id: data.razorpayOrderId,
+        method: checkoutMethod.method,
+        config: checkoutMethod.config,
+        prefill: {
+          method: checkoutMethod.prefillMethod
+        },
         handler: async (response: {
           razorpay_order_id: string;
           razorpay_payment_id: string;
@@ -125,13 +132,8 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
         return;
       }
 
-      if (data.demo) {
-        await completePayment({ demo: true, orderId: data.orderId });
-        return;
-      }
-
       if (!data.razorpayOrderId || !data.key) {
-        toast.error("Payment not configured");
+        toast.error("Online payment is temporarily unavailable. Please try again later.");
         return;
       }
 
@@ -139,7 +141,8 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
         razorpayOrderId: data.razorpayOrderId,
         key: data.key,
         amount: data.amount,
-        orderId: data.orderId
+        orderId: data.orderId,
+        paymentMethod: data.paymentMethod
       });
     } finally {
       setRetrying(false);

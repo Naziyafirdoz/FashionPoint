@@ -14,7 +14,7 @@ Production e-commerce platform for **Fashion Point** — a premium readymade Ind
 
 ## Overview
 
-Fashion Point is a full-stack web application built on **Next.js App Router**. The storefront sells catalog products from **Supabase**, supports **Razorpay** online payments and **COD**, and includes customer accounts, wishlists, product reviews, and AI shopping assistants. A separate **admin panel** manages products, categories, inventory, orders, analytics, and staff notifications.
+Fashion Point is a full-stack web application built on **Next.js App Router**. The storefront sells catalog products from **Supabase**, supports **Razorpay** online payments (UPI, cards, and net banking), and includes customer accounts, wishlists, product reviews, and AI shopping assistants. A separate **admin panel** manages products, categories, inventory, orders, analytics, and staff notifications.
 
 Categories are **fully database-driven**: new categories created in admin are available at `/category/{slug}` without code changes. Legacy bare URLs (for example `/daily-wear`) redirect to the matching category when an active slug exists in the database.
 
@@ -28,7 +28,7 @@ Categories are **fully database-driven**: new categories created in admin are av
 |--------|-------------|
 | **Product catalog** | Browse all products, search, filter, and view product detail pages with variants (size/color), images, and stock |
 | **Dynamic categories** | Category pages at `/category/[slug]` with sub-category filters, related categories, and DB-driven navigation |
-| **Cart & checkout** | Cart persistence, shipping quotes, address capture, Razorpay checkout, and COD |
+| **Cart & checkout** | Cart persistence, shipping quotes, address capture, and Razorpay checkout (UPI, card, net banking) |
 | **Customer accounts** | Sign up / login (Supabase Auth), dashboard, profile, addresses, order history, saved measurements |
 | **Wishlist** | Save products; syncs with database for signed-in users |
 | **Product reviews** | Verified-purchase reviews with ratings, moderation, and realtime sync |
@@ -191,6 +191,7 @@ Copy `.env.local.example` to `.env.local`. **Never commit secrets.** Variable na
 | `RAZORPAY_KEY_ID` | Razorpay key ID (server) |
 | `RAZORPAY_KEY_SECRET` | Razorpay key secret |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Razorpay key ID (client checkout) |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook signing secret (server only) |
 | `GOOGLE_CLOUD_VISION_API_KEY` | Listed in env template (not used by current color matcher; extraction is client-side) |
 | `OPENAI_API_KEY` | OpenAI API key (admin product-generator route) |
 | `RESEND_API_KEY` | Resend email API key |
@@ -404,11 +405,11 @@ From `package.json`:
 
 | Method | Implementation |
 |--------|----------------|
-| **Razorpay (online)** | `POST /api/payment/create` creates an order; Razorpay Checkout on the client; `POST /api/payment/verify` verifies signature and marks order paid |
-| **COD** | Cash on delivery supported at checkout (`payment_method: "cod"`) |
-| **Demo mode** | If Razorpay keys are missing, payment create returns a demo response |
+| **Razorpay (online)** | Checkout calls `POST /api/orders/create` (authoritative total in paise). Customer pays in Razorpay Standard Checkout (UPI, card, or net banking). `POST /api/payment/verify` checks the signature and Razorpay capture status, then `finalizePaidOrder` marks the order paid. `POST /api/payment/webhook` handles `payment.captured` / `order.paid` / `payment.failed` when the browser is closed. Retry unpaid orders with `POST /api/payment/retry`. |
+| **COD** | Disabled for new checkout orders. Historical COD rows are left unchanged. |
+| **Missing keys** | Fail closed: no payable order is created and nothing is marked paid. |
 
-Required env vars: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`.
+Required env vars: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`. For webhooks: `RAZORPAY_WEBHOOK_SECRET`.
 
 ---
 

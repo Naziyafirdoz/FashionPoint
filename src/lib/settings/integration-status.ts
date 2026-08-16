@@ -48,7 +48,7 @@ export function getPaymentsSettingsStatus(): PaymentsSettingsStatus {
         process.env.RAZORPAY_KEY_SECRET?.trim() &&
         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim()
     ),
-    webhookConfigured: false,
+    webhookConfigured: Boolean(process.env.RAZORPAY_WEBHOOK_SECRET?.trim()),
     manualRefundsEnabled: true,
     codDisabled: true
   };

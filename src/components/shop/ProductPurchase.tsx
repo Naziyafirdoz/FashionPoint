@@ -152,7 +152,7 @@ export function ProductPurchase({ product }: { product: Product }) {
               Payment & checkout
             </div>
             <p className="mt-1">
-              Razorpay / UPI / Cards / COD are prepared in the checkout stub.
+              Pay securely at checkout with UPI, credit/debit card, or net banking.
             </p>
           </div>
         ) : null}

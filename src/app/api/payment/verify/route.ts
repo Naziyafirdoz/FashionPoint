@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
-import { finalizePaidOrder } from "@/lib/checkout/finalize-paid-order";
+import { confirmCapturedRazorpayPayment } from "@/lib/checkout/confirm-razorpay-payment";
 import { generateInvoiceNumber } from "@/lib/orders/invoice";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
@@ -12,12 +12,15 @@ export async function POST(req: Request) {
   await hydrateShippingSettings();
 
   const body = await req.json();
-  const isDemo = Boolean(body.demo);
 
   logWorkflow("payment_verify_start", {
-    isDemo,
     razorpayOrderId: body.razorpay_order_id ?? null
   });
+
+  if (body.demo === true) {
+    logWorkflow("payment_verify_failed", { reason: "demo_rejected" }, "warn");
+    return NextResponse.json({ error: "Demo payment is not allowed" }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const {
@@ -35,60 +38,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
 
-  let order: Order | null = null;
+  if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
+    logWorkflow("payment_verify_failed", { reason: "missing_verification_fields" }, "warn");
+    return NextResponse.json({ error: "Missing payment verification fields" }, { status: 400 });
+  }
 
-  if (isDemo) {
-    const orderId = String(body.orderId ?? "").trim();
-    if (!orderId) {
-      return NextResponse.json({ error: "Order ID is required" }, { status: 400 });
-    }
+  const razorpayOrderId = String(body.razorpay_order_id);
+  const razorpayPaymentId = String(body.razorpay_payment_id);
+  const razorpaySignature = String(body.razorpay_signature);
 
-    const { data } = await db
-      .from("orders")
-      .select("*")
-      .eq("id", orderId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+  const valid = verifyPaymentSignature({
+    orderId: razorpayOrderId,
+    paymentId: razorpayPaymentId,
+    signature: razorpaySignature
+  });
 
-    order = (data as Order) ?? null;
-  } else {
-    if (!body.razorpay_order_id || !body.razorpay_payment_id || !body.razorpay_signature) {
-      logWorkflow("payment_verify_failed", { reason: "missing_verification_fields" }, "warn");
-      return NextResponse.json({ error: "Missing payment verification fields" }, { status: 400 });
-    }
+  logWorkflow("payment_verify_signature", {
+    razorpayOrderId,
+    valid
+  });
 
-    const valid = verifyPaymentSignature({
-      orderId: body.razorpay_order_id,
-      paymentId: body.razorpay_payment_id,
-      signature: body.razorpay_signature
-    });
+  if (!valid) {
+    logWorkflow("payment_verify_failed", { reason: "invalid_signature" }, "error");
+    return NextResponse.json({ error: "Invalid payment signature" }, { status: 400 });
+  }
 
-    logWorkflow("payment_verify_signature", {
-      razorpayOrderId: body.razorpay_order_id,
-      valid
-    });
+  const { data } = await db
+    .from("orders")
+    .select("*")
+    .eq("razorpay_order_id", razorpayOrderId)
+    .maybeSingle();
 
-    if (!valid) {
-      logWorkflow("payment_verify_failed", { reason: "invalid_signature" }, "error");
-      return NextResponse.json({ error: "Invalid payment signature" }, { status: 400 });
-    }
+  const order = (data as Order) ?? null;
 
-    const { data } = await db
-      .from("orders")
-      .select("*")
-      .eq("razorpay_order_id", body.razorpay_order_id)
-      .maybeSingle();
-
-    order = (data as Order) ?? null;
-
-    if (order && order.user_id !== user.id) {
-      logWorkflow(
-        "payment_verify_failed",
-        { reason: "forbidden", orderId: order.id, userId: user.id },
-        "error"
-      );
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (order && order.user_id !== user.id) {
+    logWorkflow(
+      "payment_verify_failed",
+      { reason: "forbidden", orderId: order.id, userId: user.id },
+      "error"
+    );
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (!order) {
@@ -103,71 +92,32 @@ export async function POST(req: Request) {
     paymentStatus: order.payment_status
   });
 
-  if (order.payment_status === "paid") {
-    logWorkflow("payment_verify_idempotent", {
-      orderId: order.id,
-      orderNumber: order.order_number,
-      status: order.status
-    });
-    return NextResponse.json({
-      success: true,
-      orderNumber: order.order_number,
-      orderId: order.id,
-      invoiceNumber: generateInvoiceNumber(order.order_number),
-      paymentId: order.razorpay_payment_id ?? body.razorpay_payment_id ?? null,
-      amountPaid: order.total,
-      status: order.status
-    });
+  const result = await confirmCapturedRazorpayPayment(
+    db,
+    order,
+    razorpayPaymentId,
+    razorpayOrderId
+  );
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  if (order.payment_status !== "pending") {
-    logWorkflow(
-      "payment_verify_failed",
-      {
-        orderId: order.id,
-        orderNumber: order.order_number,
-        reason: "not_awaiting_payment",
-        paymentStatus: order.payment_status
-      },
-      "warn"
-    );
-    return NextResponse.json({ error: "Order is not awaiting payment" }, { status: 409 });
-  }
+  logWorkflow(result.alreadyPaid ? "payment_verify_idempotent" : "payment_verify_success", {
+    orderId: result.order.id,
+    orderNumber: result.order.order_number,
+    status: result.order.status,
+    paymentStatus: result.order.payment_status,
+    paymentId: result.order.razorpay_payment_id ?? razorpayPaymentId
+  });
 
-  try {
-    const finalized = await finalizePaidOrder(db, order, {
-      razorpayPaymentId: body.razorpay_payment_id ?? null
-    });
-
-    logWorkflow("payment_verify_success", {
-      orderId: finalized.id,
-      orderNumber: finalized.order_number,
-      status: finalized.status,
-      paymentStatus: finalized.payment_status,
-      paymentId: finalized.razorpay_payment_id ?? body.razorpay_payment_id ?? null
-    });
-
-    return NextResponse.json({
-      success: true,
-      orderNumber: finalized.order_number,
-      orderId: finalized.id,
-      invoiceNumber: generateInvoiceNumber(finalized.order_number),
-      paymentId: finalized.razorpay_payment_id ?? body.razorpay_payment_id ?? null,
-      amountPaid: finalized.total,
-      status: finalized.status
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Payment confirmation failed";
-    logWorkflow(
-      "payment_verify_failed",
-      {
-        orderId: order.id,
-        orderNumber: order.order_number,
-        error: message
-      },
-      "error"
-    );
-    const status = message.toLowerCase().includes("stock") ? 409 : 500;
-    return NextResponse.json({ error: message }, { status });
-  }
+  return NextResponse.json({
+    success: true,
+    orderNumber: result.order.order_number,
+    orderId: result.order.id,
+    invoiceNumber: generateInvoiceNumber(result.order.order_number),
+    paymentId: result.order.razorpay_payment_id ?? razorpayPaymentId,
+    amountPaid: result.order.total,
+    status: result.order.status
+  });
 }
