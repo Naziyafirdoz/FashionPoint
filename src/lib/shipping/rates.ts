@@ -1,5 +1,4 @@
 import { resolveBranchShipping } from "@/lib/shipping/branch-resolver";
-import { getShippingSettings } from "@/lib/shipping/settings";
 import { shippingChargeReasonForBranch } from "@/lib/shipping/display";
 import type { BranchShippingResolution, ShippingTier } from "@/lib/shipping/branch-types";
 import type { ShippingAddressInput, ShippingLocationTier, ShippingZone } from "@/lib/shipping/city-detection";
@@ -63,5 +62,5 @@ export function estimateDeliveryWindow(zone: ShippingZone): {
 
 /** @deprecated Use buildShippingQuote(address).shippingAmount — subtotal no longer affects shipping. */
 export function computeShippingAmount(_subtotal: number, _shipping?: string): number {
-  return getShippingSettings().outstationShippingCharge;
+  return resolveBranchShipping({}).shippingAmount;
 }

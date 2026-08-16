@@ -5,25 +5,70 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 type PublicShippingSettings = {
-  localShippingCharge: number;
-  outstationShippingCharge: number;
-  storePickupAddress: string;
-  storePickupCity: string;
-  storePickupPincode: string;
-  storePickupPhone: string;
   defaultPackageWeightKg: number;
   deliveryProvider: "mock" | "rapido";
   rapidoConfigured: boolean;
 };
 
+type BranchOriginPreview = {
+  id: string;
+  name: string;
+  is_default: boolean;
+  is_active: boolean;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  phone: string;
+  local_shipping_charge: number;
+  outstation_shipping_charge: number;
+};
+
+function mapSavedSettings(raw: Record<string, unknown>): PublicShippingSettings {
+  return {
+    defaultPackageWeightKg: Number(raw.defaultPackageWeightKg ?? 0.5),
+    deliveryProvider: raw.deliveryProvider === "rapido" ? "rapido" : "mock",
+    rapidoConfigured: Boolean(raw.rapidoConfigured)
+  };
+}
+
 export function AdminShippingSettings() {
   const [settings, setSettings] = useState<PublicShippingSettings | null>(null);
+  const [branches, setBranches] = useState<BranchOriginPreview[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     void fetch("/api/admin/shipping-settings")
       .then((res) => res.json())
-      .then((data) => setSettings(data.settings ?? null));
+      .then((data) => {
+        const raw = data.settings;
+        if (!raw || typeof raw !== "object") {
+          setSettings(null);
+          return;
+        }
+        setSettings(mapSavedSettings(raw as Record<string, unknown>));
+      });
+
+    void fetch("/api/admin/branches")
+      .then((res) => res.json())
+      .then((data) => {
+        const rows = Array.isArray(data.branches) ? data.branches : [];
+        setBranches(
+          rows.map((row: Record<string, unknown>) => ({
+            id: String(row.id ?? ""),
+            name: String(row.name ?? ""),
+            is_default: Boolean(row.is_default),
+            is_active: Boolean(row.is_active),
+            address: String(row.address ?? ""),
+            city: String(row.city ?? ""),
+            state: String(row.state ?? ""),
+            pincode: String(row.pincode ?? ""),
+            phone: String(row.phone ?? ""),
+            local_shipping_charge: Number(row.local_shipping_charge),
+            outstation_shipping_charge: Number(row.outstation_shipping_charge)
+          }))
+        );
+      });
   }, []);
 
   const save = async () => {
@@ -40,7 +85,10 @@ export function AdminShippingSettings() {
         toast.error(data.error ?? "Failed to save shipping settings");
         return;
       }
-      setSettings(data.settings);
+      const saved = data.settings;
+      if (saved && typeof saved === "object") {
+        setSettings(mapSavedSettings(saved as Record<string, unknown>));
+      }
       toast.success("Shipping settings saved");
     } finally {
       setSaving(false);
@@ -58,72 +106,41 @@ export function AdminShippingSettings() {
         Shipping &amp; Delivery
       </h2>
       <p className="text-sm text-foreground/70">
-        Shipping is calculated automatically from the customer&apos;s delivery address. Vijayawada
-        orders use the local charge; all other cities use the outstation charge.
+        Fulfillment origin, contact details, and shipping rates come from the assigned branch in
+        Settings → Branches. Customer delivery addresses at checkout are separate and are not
+        edited here.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="text-foreground/70">Local Shipping Charge (Vijayawada)</span>
-          <input
-            type="number"
-            min={0}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            value={settings.localShippingCharge}
-            onChange={(e) =>
-              setSettings({ ...settings, localShippingCharge: Number(e.target.value) })
-            }
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-foreground/70">Outstation Shipping Charge</span>
-          <input
-            type="number"
-            min={0}
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            value={settings.outstationShippingCharge}
-            onChange={(e) =>
-              setSettings({ ...settings, outstationShippingCharge: Number(e.target.value) })
-            }
-          />
-        </label>
-      </div>
-
-      <label className="block text-sm">
-        <span className="text-foreground/70">Store Pickup Address</span>
-        <textarea
-          className="mt-1 w-full rounded-lg border px-3 py-2"
-          rows={3}
-          value={settings.storePickupAddress}
-          onChange={(e) => setSettings({ ...settings, storePickupAddress: e.target.value })}
-        />
-      </label>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <label className="block text-sm">
-          <span className="text-foreground/70">Pickup City</span>
-          <input
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            value={settings.storePickupCity}
-            onChange={(e) => setSettings({ ...settings, storePickupCity: e.target.value })}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-foreground/70">Pickup Pincode</span>
-          <input
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            value={settings.storePickupPincode}
-            onChange={(e) => setSettings({ ...settings, storePickupPincode: e.target.value })}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-foreground/70">Pickup Phone</span>
-          <input
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-            value={settings.storePickupPhone}
-            onChange={(e) => setSettings({ ...settings, storePickupPhone: e.target.value })}
-          />
-        </label>
+      <div className="rounded-lg border border-border/70 bg-blush/30 px-3 py-3 text-sm">
+        <p className="font-medium text-foreground">Branch origin &amp; rates (read-only)</p>
+        {branches === null ? (
+          <p className="mt-2 text-foreground/60">Loading branch details…</p>
+        ) : branches.length === 0 ? (
+          <p className="mt-2 text-foreground/60">No branches found. Add them in Settings → Branches.</p>
+        ) : (
+          <ul className="mt-2 space-y-3 text-foreground/80">
+            {branches.map((branch) => {
+              const origin = [branch.address, branch.city, branch.state, branch.pincode]
+                .filter((part) => part.trim())
+                .join(", ");
+              return (
+                <li key={branch.id}>
+                  <p className="font-medium text-foreground">
+                    {branch.name}
+                    {branch.is_default ? " (default)" : ""}
+                    {!branch.is_active ? " (inactive)" : ""}
+                  </p>
+                  <p>{origin || "No origin address set"}</p>
+                  <p>Phone: {branch.phone || "—"}</p>
+                  <p>
+                    Local ₹{branch.local_shipping_charge} · Outstation ₹
+                    {branch.outstation_shipping_charge}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <label className="block text-sm">

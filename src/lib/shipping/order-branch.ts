@@ -36,11 +36,30 @@ type BranchPickupRow = {
   phone: string | null;
 };
 
+function pickupFromBranchRow(
+  branch: BranchPickupRow,
+  source: OrderBranchResolution["source"]
+): OrderBranchResolution {
+  return {
+    source,
+    branchId: source === "assigned_branch" ? branch.id : null,
+    branchName: branch.name,
+    pickup: {
+      name: "Fashion Point",
+      phone: branch.phone ?? "",
+      line: branch.address?.trim() ?? "",
+      city: branch.city,
+      state: branch.state,
+      pincode: branch.pincode
+    }
+  };
+}
+
 /**
- * Existing shipment pickup used when an order has no persisted branch.
- * Mirrors `storePickupAddress()` in shipment-service.ts — do not change that behavior here.
+ * Last-resort pickup when no branch row is available (dev / pre-migration).
+ * Live fulfillment origin comes from the assigned or default branch.
  */
-function legacyStorePickup(): OrderBranchResolution {
+function pickupFromStoreSettings(): OrderBranchResolution {
   const settings = getShippingSettings();
   return {
     source: "legacy_fallback",
@@ -55,6 +74,28 @@ function legacyStorePickup(): OrderBranchResolution {
       pincode: settings.storePickupPincode
     }
   };
+}
+
+async function loadDefaultBranchPickup(db: SupabaseClient): Promise<BranchPickupRow | null> {
+  const { data, error } = await db
+    .from("branches")
+    .select("id, name, address, city, state, pincode, phone")
+    .eq("is_default", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as BranchPickupRow;
+}
+
+async function legacyStorePickup(db?: SupabaseClient | null): Promise<OrderBranchResolution> {
+  const client = db ?? createServiceClient();
+  if (client) {
+    const defaultBranch = await loadDefaultBranchPickup(client);
+    if (defaultBranch) {
+      return pickupFromBranchRow(defaultBranch, "legacy_fallback");
+    }
+  }
+  return pickupFromStoreSettings();
 }
 
 function persistedBranchId(branchId: string | null | undefined): string | null {
@@ -90,30 +131,18 @@ export async function resolveOrderBranch(
 ): Promise<OrderBranchResolution> {
   const branchId = persistedBranchId(order.branch_id);
   if (!branchId) {
-    return legacyStorePickup();
+    return legacyStorePickup(db);
   }
 
   const client = db ?? createServiceClient();
   if (!client) {
-    return legacyStorePickup();
+    return legacyStorePickup(db);
   }
 
   const branch = await loadBranchPickupById(client, branchId);
   if (!branch) {
-    return legacyStorePickup();
+    return legacyStorePickup(client);
   }
 
-  return {
-    source: "assigned_branch",
-    branchId: branch.id,
-    branchName: branch.name,
-    pickup: {
-      name: "Fashion Point",
-      phone: branch.phone ?? "",
-      line: branch.address?.trim() ?? "",
-      city: branch.city,
-      state: branch.state,
-      pincode: branch.pincode
-    }
-  };
+  return pickupFromBranchRow(branch, "assigned_branch");
 }
