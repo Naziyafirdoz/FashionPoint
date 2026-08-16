@@ -2,7 +2,7 @@ import type { Order } from "@/types";
 
 /** Admin list projection — includes `items` jsonb for qty/thumbnails (same source as customer My Orders). */
 export const ADMIN_ORDER_LIST_SELECT =
-  "id,order_number,status,payment_status,payment_method,total,created_at,updated_at,user_id,guest_email,shipping_address,items";
+  "id,order_number,status,payment_status,payment_method,total,created_at,updated_at,user_id,guest_email,shipping_address,items,branch_id";
 
 /** @deprecated Alias for ADMIN_ORDER_LIST_SELECT — items are always included for admin list UI. */
 export const ADMIN_ORDER_LIST_WITH_ITEMS_SELECT = ADMIN_ORDER_LIST_SELECT;

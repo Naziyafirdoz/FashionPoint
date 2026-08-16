@@ -18,7 +18,7 @@ import {
   orderMatchesOrdersView,
   toOrderListRow
 } from "@/lib/admin/notifications/orders-view";
-import { PAGE_SIZE, type OrderListRow } from "@/lib/orders/admin-orders";
+import { PAGE_SIZE, LEGACY_BRANCH_FILTER, LEGACY_BRANCH_LABEL, orderMatchesBranchFilter, type OrderListRow } from "@/lib/orders/admin-orders";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import { triggerPostShipSideEffects } from "@/lib/orders/post-ship-side-effects";
 import { refundAmountForOrder } from "@/lib/orders/refunds";
@@ -34,6 +34,8 @@ import { orderStatusLabel } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
 
 type RefundTarget = OrderListRow | null;
+
+type BranchOption = { id: string; name: string };
 
 const EMPTY_STATS: AdminOrderStatsV2 = {
   total: 0,
@@ -82,6 +84,8 @@ export function AdminOrdersClient() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(urlTab);
   const [paymentFilter, setPaymentFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -93,9 +97,41 @@ export function AdminOrdersClient() {
 
   const activeFilter = useMemo(() => resolveOrderListFilter(statusFilter), [statusFilter]);
 
+  const branchNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const branch of branches) {
+      map.set(branch.id, branch.name);
+    }
+    return map;
+  }, [branches]);
+
   useEffect(() => {
     setStatusFilter(urlTab);
   }, [urlTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/branches", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const rows = Array.isArray(data.branches) ? data.branches : [];
+        const options: BranchOption[] = rows
+          .map((row: { id?: unknown; name?: unknown }) => ({
+            id: typeof row.id === "string" ? row.id : "",
+            name: typeof row.name === "string" ? row.name : ""
+          }))
+          .filter((row: BranchOption) => row.id && row.name);
+        if (!cancelled) setBranches(options);
+      } catch {
+        // Branch dropdown still works with All Branches + Legacy / Default.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadStats = useCallback(async () => {
     try {
@@ -127,6 +163,7 @@ export function AdminOrdersClient() {
       params.set("limit", String(PAGE_SIZE));
       params.set("include_review_counts", "true");
       if (paymentFilter !== "all") params.set("payment_method", paymentFilter);
+      if (branchFilter !== "all") params.set("branch_id", branchFilter);
       if (search.trim()) params.set("search", search.trim());
       const res = await fetch(`/api/orders?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
@@ -140,7 +177,7 @@ export function AdminOrdersClient() {
         setLoading(false);
       }
     }
-  }, [statusFilter, paymentFilter, search, page, seedKnownOrders]);
+  }, [statusFilter, paymentFilter, branchFilter, search, page, seedKnownOrders]);
 
   const refreshOrdersPage = useCallback(async () => {
     await Promise.all([loadOrders(true), loadStats()]);
@@ -170,8 +207,16 @@ export function AdminOrdersClient() {
 
       setStats((current) => applyOrderStatsDelta(current, order, prior));
 
-      const row = toOrderListRow(order);
-      const matches = orderMatchesOrdersView(order, viewOptions);
+      const listRow = toOrderListRow(order);
+      const branchId = listRow.branch_id?.trim() ?? "";
+      const row: OrderListRow = {
+        ...listRow,
+        branch_name:
+          listRow.branch_name ?? (branchId ? branchNameById.get(branchId) ?? null : null)
+      };
+      const matches =
+        orderMatchesOrdersView(order, viewOptions) &&
+        orderMatchesBranchFilter(order, branchFilter);
 
       if (event === "INSERT") {
         if (matches) {
@@ -207,7 +252,7 @@ export function AdminOrdersClient() {
         return prev;
       });
     });
-  }, [subscribeToOrderChanges, statusFilter, paymentFilter, search, page, touch]);
+  }, [subscribeToOrderChanges, statusFilter, paymentFilter, branchFilter, search, page, touch, branchNameById]);
 
   useEffect(() => {
     void loadStats();
@@ -485,6 +530,23 @@ export function AdminOrdersClient() {
             <option value="cod">COD</option>
             <option value="netbanking">Net Banking</option>
             <option value="wallet">Wallet</option>
+          </select>
+          <select
+            aria-label="Filter by branch"
+            className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={branchFilter}
+            onChange={(e) => {
+              setBranchFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">All Branches</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {branch.name}
+              </option>
+            ))}
+            <option value={LEGACY_BRANCH_FILTER}>{LEGACY_BRANCH_LABEL}</option>
           </select>
           <Link
             href="/admin/orders/analytics"

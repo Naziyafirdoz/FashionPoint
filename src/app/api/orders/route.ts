@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
+import { LEGACY_BRANCH_FILTER } from "@/lib/orders/admin-orders";
 import { orderMatchesPaymentFilter, orderMatchesSearch } from "@/lib/admin/notifications/orders-view";
 import { fetchAdminOrderStats } from "@/lib/orders/admin-stats";
 import { matchesOrderListFilter, resolveOrderListFilter } from "@/lib/orders/order-list-filter";
@@ -78,6 +79,60 @@ async function loadAdminStatsSafely(db: SupabaseClient): Promise<AdminOrderStats
   }
 }
 
+function applyPersistedBranchFilter<
+  Q extends {
+    is: (column: string, value: null) => Q;
+    eq: (column: string, value: string) => Q;
+  }
+>(query: Q, branchIdParam: string | null): Q {
+  if (!branchIdParam || branchIdParam === "all") return query;
+  if (branchIdParam === LEGACY_BRANCH_FILTER) {
+    return query.is("branch_id", null);
+  }
+  return query.eq("branch_id", branchIdParam);
+}
+
+async function attachBranchNamesSafely(
+  db: SupabaseClient,
+  orders: Order[]
+): Promise<Order[]> {
+  if (orders.length === 0) return orders;
+
+  const branchIds = [
+    ...new Set(
+      orders
+        .map((order) => order.branch_id?.trim() ?? "")
+        .filter((id) => id.length > 0 && !id.startsWith("legacy-"))
+    )
+  ];
+
+  if (branchIds.length === 0) {
+    return orders.map((order) => ({ ...order, branch_name: order.branch_name ?? null }));
+  }
+
+  try {
+    const { data, error } = await db.from("branches").select("id, name").in("id", branchIds);
+    if (error) throw error;
+
+    const nameById = new Map<string, string>();
+    for (const row of data ?? []) {
+      const record = row as { id?: string; name?: string };
+      if (record.id && record.name) nameById.set(record.id, record.name);
+    }
+
+    return orders.map((order) => {
+      const id = order.branch_id?.trim() ?? "";
+      return {
+        ...order,
+        branch_name: id ? nameById.get(id) ?? null : null
+      };
+    });
+  } catch (error) {
+    console.error("[orders] branch names error:", error);
+    return orders;
+  }
+}
+
 async function attachReviewCountsSafely(
   db: SupabaseClient,
   orders: Order[]
@@ -142,6 +197,7 @@ export async function GET(req: Request) {
   const listFilter = resolveOrderListFilter(tabParam);
   const paymentMethod = url.searchParams.get("payment_method");
   const search = url.searchParams.get("search")?.trim();
+  const branchIdParam = url.searchParams.get("branch_id")?.trim() || null;
   const includeReviewCounts = url.searchParams.get("include_review_counts") === "true";
   const includeStats = url.searchParams.get("include_stats") === "true";
   const statsOnly = url.searchParams.get("stats_only") === "true";
@@ -227,6 +283,8 @@ export async function GET(req: Request) {
       );
     }
 
+    query = applyPersistedBranchFilter(query, branchIdParam);
+
     query = query.range(offset, offset + limit - 1);
 
     const adminQueryMeta: OrderQueryDebugMeta = {
@@ -239,7 +297,8 @@ export async function GET(req: Request) {
       filters: {
         listFilter,
         paymentMethod: paymentMethod ?? null,
-        search: search ?? null
+        search: search ?? null,
+        branchId: branchIdParam
       },
       nestedJoins: false
     };
@@ -335,6 +394,8 @@ export async function GET(req: Request) {
       );
     }
 
+    query = applyPersistedBranchFilter(query, branchIdParam);
+
     if (listFilter.kind === "returns") {
       const returnsMeta: OrderQueryDebugMeta = {
         source: "admin-returns-order-ids",
@@ -384,7 +445,8 @@ export async function GET(req: Request) {
       filters: {
         listFilter,
         paymentMethod: paymentMethod ?? null,
-        search: search ?? null
+        search: search ?? null,
+        branchId: branchIdParam
       },
       nestedJoins: false
     };
@@ -423,6 +485,10 @@ export async function GET(req: Request) {
 
   if (orders.length > 0) {
     orders = orders.map(normalizeCustomerOrderRow);
+  }
+
+  if (admin && orders.length > 0) {
+    orders = await attachBranchNamesSafely(db, orders);
   }
 
   let refund_tracking_available: boolean | undefined;

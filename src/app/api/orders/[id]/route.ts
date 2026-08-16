@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
@@ -10,6 +11,27 @@ import { ORDER_STATUSES } from "@/lib/orders/status-config";
 import type { Order, OrderStatus } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+async function attachBranchNameSafely(db: SupabaseClient, order: Order): Promise<Order> {
+  const branchId = order.branch_id?.trim() ?? "";
+  if (!branchId || branchId.startsWith("legacy-")) {
+    return { ...order, branch_name: null };
+  }
+
+  try {
+    const { data, error } = await db
+      .from("branches")
+      .select("name")
+      .eq("id", branchId)
+      .maybeSingle();
+    if (error) throw error;
+    const name = typeof data?.name === "string" ? data.name : null;
+    return { ...order, branch_name: name };
+  } catch (error) {
+    console.error("[orders] branch name error:", error);
+    return { ...order, branch_name: order.branch_name ?? null };
+  }
+}
 
 export async function GET(_req: Request, { params }: RouteContext) {
   const supabase = await createClient();
@@ -49,6 +71,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
   }
 
   const normalized = await normalizeOrderRecord(db, row, { persist: admin });
+  const withBranch = admin ? await attachBranchNameSafely(db, normalized) : normalized;
   const refund_tracking_available = admin ? await isRefundSchemaReady(db) : undefined;
 
   const { count: reviewCount } = await db
@@ -57,7 +80,7 @@ export async function GET(_req: Request, { params }: RouteContext) {
     .eq("order_id", id);
 
   return NextResponse.json({
-    order: normalized,
+    order: withBranch,
     review_count: reviewCount ?? 0,
     ...(admin ? { refund_tracking_available } : {})
   });
@@ -108,8 +131,9 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
 
     const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
+    const withBranch = await attachBranchNameSafely(auth.ctx.db, normalized);
     const refund_tracking_available = await isRefundSchemaReady(auth.ctx.db);
-    return NextResponse.json({ order: normalized, refund_tracking_available });
+    return NextResponse.json({ order: withBranch, refund_tracking_available });
   }
 
   if (!isValidStatus(body.status)) {
@@ -152,9 +176,10 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   }
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, order, { persist: true });
+  const withBranch = await attachBranchNameSafely(auth.ctx.db, normalized);
   const refund_tracking_available = await isRefundSchemaReady(auth.ctx.db);
 
-  return NextResponse.json({ order: normalized, refund_tracking_available });
+  return NextResponse.json({ order: withBranch, refund_tracking_available });
 }
 
 export async function DELETE(_req: Request, { params }: RouteContext) {
@@ -190,7 +215,8 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
   }
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, order, { persist: true });
+  const withBranch = await attachBranchNameSafely(auth.ctx.db, normalized);
   const refund_tracking_available = await isRefundSchemaReady(auth.ctx.db);
 
-  return NextResponse.json({ order: normalized, refund_tracking_available });
+  return NextResponse.json({ order: withBranch, refund_tracking_available });
 }

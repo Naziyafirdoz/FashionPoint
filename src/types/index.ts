@@ -163,6 +163,7 @@ export type Order = {
   subtotal: number;
   shipping_amount: number;
   branch_id?: string | null;
+  branch_name?: string | null;
   discount_amount: number;
   total: number;
   status: OrderStatus;
