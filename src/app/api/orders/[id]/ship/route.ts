@@ -12,6 +12,13 @@ import { generateDeliveryOtp } from "@/lib/orders/workflow";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
 import { createShipmentForOrder } from "@/lib/delivery/shipment-service";
 import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
+import {
+  DTDC_COURIER_NAME,
+  DTDC_MISSING_IMAGE_ERROR,
+  hasSavedDtdcParcelImage
+} from "@/lib/orders/dtdc-parcel-metadata";
+import { isLocalFulfillmentOrder } from "@/lib/orders/fulfillment-workflow";
+import { attachOrderFulfillmentZone } from "@/lib/orders/order-fulfillment-zone";
 import { notifyAdminOrderShipped, notifyCustomerOrderShipped } from "@/lib/server/notifications/new-order-alerts";
 import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
 import type { Order } from "@/types";
@@ -69,10 +76,18 @@ export async function POST(req: Request, { params }: RouteContext) {
     );
   }
 
+  order = await attachOrderFulfillmentZone(auth.ctx.db, order);
+  if (!isLocalFulfillmentOrder(order) && !hasSavedDtdcParcelImage(order)) {
+    return NextResponse.json({ error: DTDC_MISSING_IMAGE_ERROR }, { status: 400 });
+  }
+
   if (!order.shipment_id && !order.tracking_number) {
+    const fulfillmentZone = order.fulfillment_zone;
     await createShipmentForOrder(auth.ctx.db, order);
     const { data: refreshed } = await auth.ctx.db.from("orders").select("*").eq("id", id).maybeSingle();
-    if (refreshed) order = refreshed as Order;
+    if (refreshed) {
+      order = { ...(refreshed as Order), fulfillment_zone: fulfillmentZone };
+    }
   }
 
   const trackingNumber =
@@ -81,12 +96,15 @@ export async function POST(req: Request, { params }: RouteContext) {
       : typeof body.tracking_id === "string"
         ? body.tracking_id.trim()
         : order.tracking_number?.trim() || order.tracking_id?.trim() || "";
-  const courierPartner =
+  const requestedCourier =
     typeof body.courier_partner === "string"
       ? body.courier_partner.trim()
       : typeof body.courier_name === "string"
         ? body.courier_name.trim()
-        : resolveOrderCourierName(order);
+        : "";
+  const courierPartner = isLocalFulfillmentOrder(order)
+    ? requestedCourier || resolveOrderCourierName(order)
+    : DTDC_COURIER_NAME;
   const shippingDate =
     typeof body.shipping_date === "string" && body.shipping_date
       ? new Date(body.shipping_date).toISOString()
@@ -190,16 +208,20 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
+  const normalizedWithZone = await attachOrderFulfillmentZone(auth.ctx.db, {
+    ...normalized,
+    fulfillment_zone: order.fulfillment_zone
+  });
 
-  const shippedMessage = customerShippedMessage(normalized);
-  await notifyCustomerOrderShipped(normalized, shippedMessage);
-  await notifyAdminOrderShipped(auth.ctx.db, normalized);
+  const shippedMessage = customerShippedMessage(normalizedWithZone);
+  await notifyCustomerOrderShipped(normalizedWithZone, shippedMessage);
+  await notifyAdminOrderShipped(auth.ctx.db, normalizedWithZone);
 
   const otpStored = optionalColumns.has("delivery_otp") && Boolean(updatePayload.delivery_otp);
 
   return NextResponse.json({
     success: true,
-    order: normalized,
+    order: normalizedWithZone,
     delivery_otp: otpStored ? deliveryOtp : undefined,
     message: otpStored
       ? `Order shipped. Delivery OTP: ${deliveryOtp}`

@@ -4,10 +4,9 @@ import { createServiceClient } from "@/lib/supabase";
 import { buildCancellationMetadataPayload } from "@/lib/orders/cancellation";
 import {
   buildPrepaidCancelRequestPayload,
-  customerCancelRequestMessage,
-  validateCustomerRefundDetails,
-  type CustomerRefundDetailsInput
+  customerCancelRequestMessage
 } from "@/lib/orders/manual-refund";
+import { buildOriginalPaymentCancelDetails } from "@/lib/orders/razorpay-cancel-refund";
 import {
   getAvailableFulfillmentClearColumns,
   isCancellationSchemaReady
@@ -47,7 +46,7 @@ export async function POST(req: Request, { params }: RouteContext) {
   }
 
   const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as CustomerRefundDetailsInput & {
+  const body = (await req.json().catch(() => ({}))) as {
     cancellation_reason?: string;
   };
   const cancellationReason =
@@ -112,15 +111,10 @@ export async function POST(req: Request, { params }: RouteContext) {
   let updatePayload: Record<string, unknown>;
 
   if (isPrepaidPaid) {
-    const refundValidation = validateCustomerRefundDetails(body);
-    if (!refundValidation.ok) {
-      return NextResponse.json({ error: refundValidation.error }, { status: 400 });
-    }
-
     updatePayload = buildPrepaidCancelRequestPayload({
       order,
       cancellationReason,
-      refundDetails: refundValidation.payload
+      refundDetails: buildOriginalPaymentCancelDetails()
     });
   } else {
     const [cancellationColumnsReady, fulfillmentColumns] = await Promise.all([

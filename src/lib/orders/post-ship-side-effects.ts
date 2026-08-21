@@ -5,12 +5,4 @@ export function triggerPostShipSideEffects(orderId: string): void {
     credentials: "include",
     cache: "no-store"
   });
-
-  void fetch(`/api/orders/${orderId}/delivery-follow-up`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "start" }),
-    cache: "no-store"
-  });
 }

@@ -25,41 +25,6 @@ export function htmlResponse(html: string): Response {
   });
 }
 
-export function renderRemindScheduledPage(orderNumber: string, remindAt: string, orderId: string): string {
-  const when = new Date(remindAt).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-  return pageShell(
-    "Reminder Scheduled",
-    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✓ Reminder Scheduled After 2 Hours</p>
-     <p style="margin:0 0 8px;">Reminder scheduled after 2 hours.</p>
-     <p style="margin:0 0 8px;">Order <strong>${escapeHtml(orderNumber)}</strong> was not approved.</p>
-     <p style="margin:0 0 16px;color:#555;">You will be reminded on <strong>${escapeHtml(when)}</strong>.</p>
-     <p style="margin:0;"><a href="${adminOrderLink(orderId)}" style="color:${MAROON};font-weight:600;">Open order in admin</a></p>`
-  );
-}
-
-export function renderRemindSkippedPage(orderNumber: string, orderId: string): string {
-  return pageShell(
-    "Reminder Not Needed",
-    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">Reminder skipped</p>
-     <p style="margin:0 0 16px;">Order <strong>${escapeHtml(orderNumber)}</strong> is no longer awaiting approval.</p>
-     <p style="margin:0;"><a href="${adminOrderLink(orderId)}" style="color:${MAROON};font-weight:600;">View order</a></p>`
-  );
-}
-
-export function renderRemindErrorPage(orderId: string): string {
-  return pageShell(
-    "Reminder Failed",
-    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Unable to schedule reminder</p>
-     <p style="margin:0 0 16px;">Please try again from the admin dashboard.</p>
-     <p style="margin:0;"><a href="${adminOrderLink(orderId)}" style="color:${MAROON};font-weight:600;">Open order</a></p>`
-  );
-}
-
 export function renderInvalidTokenPage(): string {
   return pageShell(
     "Invalid Link",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CustomerInformationCard } from "@/components/admin/orders/detail/CustomerInformationCard";
@@ -10,6 +10,7 @@ import { OrderDetailHeader } from "@/components/admin/orders/detail/OrderDetailH
 import { OrderTimelineFinancialCard } from "@/components/admin/orders/detail/OrderTimelineFinancialCard";
 import { resolveDetailPrimaryAction } from "@/components/admin/orders/detail/resolveDetailAction";
 import { MarkRefundedModal } from "@/components/admin/orders/MarkRefundedModal";
+import { DtdcParcelImageSection } from "@/components/admin/orders/DtdcParcelImageSection";
 import { RapidoGuideModal } from "@/components/admin/orders/RapidoGuideModal";
 import { OrderProductsList } from "@/components/admin/orders/OrderProductsList";
 import { RefundInformationSection } from "@/components/admin/orders/RefundInformationSection";
@@ -109,7 +110,6 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRapidoGuide, setShowRapidoGuide] = useState(false);
-  const autoPackingInFlightRef = useRef(false);
   const { subscribeToOrderChanges, publishOrderSync, seedKnownOrders } = useAdminNotifications();
 
   const displayOrder = useMemo(
@@ -129,43 +129,6 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
       publishOrderSync(fresh, previous ?? null);
     },
     [publishOrderSync, seedKnownOrders]
-  );
-
-  const tryAutoStartPacking = useCallback(
-    async (loaded: Order) => {
-      console.info("[start-packing] effect entered");
-      console.info("[start-packing] order id:", loaded.id);
-      console.info("[start-packing] current status:", loaded.status);
-
-      if (normalizeLegacyStatus(loaded.status) !== "confirmed") {
-        console.info("[start-packing] skip — status is not confirmed");
-        return;
-      }
-
-      if (autoPackingInFlightRef.current) {
-        console.info("[start-packing] skip — already in flight");
-        return;
-      }
-
-      autoPackingInFlightRef.current = true;
-      const previous = loaded;
-      setUpdating(true);
-
-      try {
-        const freshOrder = await persistAutoStartPacking(orderId, previous.status);
-        if (!freshOrder) return;
-
-        if (normalizeLegacyStatus(freshOrder.status) === "packing_assigned") {
-          applyFreshOrder(freshOrder, previous);
-        } else {
-          setOrder(freshOrder);
-        }
-      } finally {
-        autoPackingInFlightRef.current = false;
-        setUpdating(false);
-      }
-    },
-    [orderId, applyFreshOrder]
   );
 
   const loadOrder = useCallback(async () => {
@@ -198,14 +161,10 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
       } else {
         setReturnRequest(null);
       }
-
-      if (normalizeLegacyStatus(loaded.status) === "confirmed") {
-        await tryAutoStartPacking(loaded);
-      }
     } finally {
       setLoading(false);
     }
-  }, [orderId, seedKnownOrders, tryAutoStartPacking]);
+  }, [orderId, seedKnownOrders]);
 
   const commitOrderUpdate = useCallback(
     (updated: Order) => {
@@ -219,7 +178,6 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   );
 
   useEffect(() => {
-    autoPackingInFlightRef.current = false;
     void loadOrder();
   }, [loadOrder]);
 
@@ -317,7 +275,11 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         return;
       }
       commitOrderUpdate(data.order as Order);
-      toast.success("Cancellation approved");
+      toast.success(
+        data.refund_completed
+          ? "Cancellation approved. Razorpay refund completed."
+          : "Cancellation approved"
+      );
     } finally {
       setUpdating(false);
     }
@@ -366,6 +328,11 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   const primaryAction = displayOrder ? resolveDetailPrimaryAction(displayOrder) : null;
   const isReadyToShip =
     displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "ready_to_ship";
+  const isHandedToCourier =
+    displayOrder != null &&
+    (normalizeLegacyStatus(displayOrder.status) === "shipped" ||
+      normalizeLegacyStatus(displayOrder.status) === "out_for_delivery");
+  const isLocalFulfillment = displayOrder?.fulfillment_zone === "local";
 
   const runPrimaryAction = () => {
     if (!displayOrder || !primaryAction) return;
@@ -392,10 +359,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         void runFulfillmentAction("ready-for-shipping", "Order marked ready for shipping");
         break;
       case "mark_shipped":
-        void runFulfillmentAction("mark-shipped", "Order marked as shipped");
-        break;
-      case "mark_delivered":
-        void runFulfillmentAction("mark-delivered", "Order marked as delivered");
+        void runFulfillmentAction("mark-shipped", "Parcel handed to courier");
         break;
       case "process_refund":
         setShowRefundModal(true);
@@ -437,7 +401,17 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 primaryActionDisabled={updating}
               />
 
-              {isReadyToShip ? (
+              {isHandedToCourier ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-emerald-900">Handed to Courier</p>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    Fashion Point responsibility is complete. Rapido or DTDC handles delivery from
+                    here.
+                  </p>
+                </div>
+              ) : null}
+
+              {isReadyToShip && isLocalFulfillment ? (
                 <div className="flex flex-wrap justify-end gap-2">
                   <button
                     type="button"
@@ -452,8 +426,34 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                     onClick={runPrimaryAction}
                     className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
                   >
-                    🚚 Mark Shipped
+                    🚚 Mark Shipped / Handed to Courier
                   </button>
+                </div>
+              ) : null}
+
+              {isReadyToShip && !isLocalFulfillment ? (
+                <div className="space-y-3">
+                  <DtdcParcelImageSection
+                    orderId={displayOrder.id}
+                    order={displayOrder}
+                    disabled={updating}
+                    onSaved={(updated) =>
+                      setOrder((prev) => ({
+                        ...updated,
+                        fulfillment_zone: updated.fulfillment_zone ?? prev?.fulfillment_zone
+                      }))
+                    }
+                  />
+                  <div className="flex flex-wrap justify-end">
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={runPrimaryAction}
+                      className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      🚚 Mark Shipped / Handed to Courier
+                    </button>
+                  </div>
                 </div>
               ) : null}
 
@@ -564,13 +564,18 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
         </div>
       </div>
 
-      {displayOrder && isReadyToShip ? (
+      {displayOrder && isReadyToShip && isLocalFulfillment ? (
         <RapidoGuideModal
           open={showRapidoGuide}
           onClose={() => setShowRapidoGuide(false)}
           orderId={displayOrder.id}
           order={displayOrder}
-          onOrderUpdated={(updated) => setOrder(updated)}
+          onOrderUpdated={(updated) =>
+            setOrder((prev) => ({
+              ...updated,
+              fulfillment_zone: updated.fulfillment_zone ?? prev?.fulfillment_zone
+            }))
+          }
         />
       ) : null}
 

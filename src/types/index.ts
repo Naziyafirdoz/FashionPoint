@@ -172,6 +172,7 @@ export type Order = {
   payment_status: PaymentStatus;
   razorpay_order_id?: string;
   razorpay_payment_id?: string;
+  razorpay_refund_id?: string | null;
   shipping_address?: Record<string, string>;
   tracking_id?: string;
   tracking_number?: string;

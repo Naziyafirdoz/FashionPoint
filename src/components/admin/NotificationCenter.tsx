@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { NewOrderNotificationCard } from "@/components/admin/orders/NewOrderNotificationCard";
-import { DeliveryFollowUpNotificationCard } from "@/components/admin/orders/DeliveryFollowUpNotificationCard";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useAdminNotificationsOptional } from "@/contexts/AdminNotificationsProvider";
 import type { AdminNotification } from "@/lib/admin/notifications/types";
@@ -44,9 +43,7 @@ function isVisibleAdminNotification(notification: AdminNotification): boolean {
 
   if (
     notification.type === "reminder" &&
-    notification.payload?.event === "delivery_follow_up" &&
-    notification.remindAfter &&
-    new Date(notification.remindAfter) > new Date()
+    notification.payload?.event === "delivery_follow_up"
   ) {
     return false;
   }
@@ -80,14 +77,6 @@ function notificationActionHref(notification: AdminNotification): string {
     return `/admin/orders/${notification.orderId}`;
   }
   return "/admin/dashboard";
-}
-
-function isDeliveryFollowUpNotification(notification: AdminNotification): boolean {
-  return (
-    notification.type === "reminder" &&
-    notification.payload?.event === "delivery_follow_up" &&
-    notification.title.includes("Delivery Follow-up")
-  );
 }
 
 function hasHighPriorityUnread(notifications: AdminNotification[]): boolean {
@@ -222,14 +211,6 @@ export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprov
                                   fallbackMessage={n.message}
                                   onActionComplete={() => markAsRead(n.id)}
                                 />
-                              ) : isDeliveryFollowUpNotification(n) && n.orderId ? (
-                                <DeliveryFollowUpNotificationCard
-                                  orderId={n.orderId}
-                                  orderNumber={n.orderNumber}
-                                  notificationId={n.id}
-                                  fallbackMessage={n.message}
-                                  onActionComplete={() => markAsRead(n.id)}
-                                />
                               ) : (
                                 n.message.split("\n").map((line, index) =>
                                   line.trim() ? (
@@ -239,7 +220,7 @@ export function NotificationCenter({ pendingApprovalCount = 0 }: { pendingApprov
                               )}
                             </div>
                             <p className="mt-2 text-[11px] text-gray-400">{formatTime(n.createdAt)}</p>
-                            {n.type !== "new_order" && !isDeliveryFollowUpNotification(n) ? (
+                            {n.type !== "new_order" ? (
                               <Link
                                 href={notificationActionHref(n)}
                                 className="mt-2 inline-flex rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"

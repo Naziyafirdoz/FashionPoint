@@ -52,8 +52,8 @@ export function getAdminFulfillmentStatusLabel(status: string): string {
 
 type FulfillmentZoneOrder = Pick<Order, "fulfillment_zone">;
 
-/** Persisted Local vs Standard. Missing/null zone is Standard. */
-function isLocalFulfillmentOrder(order: FulfillmentZoneOrder): boolean {
+/** Local vs Standard. Missing/null zone is treated as Standard / outstation. */
+export function isLocalFulfillmentOrder(order: FulfillmentZoneOrder): boolean {
   return order.fulfillment_zone === "local";
 }
 
@@ -78,10 +78,6 @@ export function customerShippedMessage(order: FulfillmentZoneOrder): string {
     return "Your order has been shipped.\nExpected delivery within 2 days.";
   }
   return "Your order has been shipped through DTDC.\nTracking details will be shared when available.";
-}
-
-export function workerReminderIntervalHours(order: FulfillmentZoneOrder): number {
-  return isLocalFulfillmentOrder(order) ? 1 : 2;
 }
 
 export function formatShippingAddress(order: Order): string {

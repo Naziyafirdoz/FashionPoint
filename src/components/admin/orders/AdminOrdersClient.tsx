@@ -42,6 +42,7 @@ const EMPTY_STATS: AdminOrderStatsV2 = {
   pending: 0,
   processing: 0,
   readyToShip: 0,
+  shipped: 0,
   outForDelivery: 0,
   delivered: 0,
   cancelled: 0,
@@ -57,11 +58,9 @@ const EMPTY_STATS: AdminOrderStatsV2 = {
 const STATUS_OPTIONS = [
   "all",
   "new_orders",
-  "pending",
-  "processing",
+  "confirmed",
   "ready_to_ship",
-  "out_for_delivery",
-  "delivered",
+  "shipped",
   "cancelled",
   "cancelled_awaiting_refund",
   "cancelled_refunded"
@@ -153,11 +152,7 @@ export function AdminOrdersClient() {
     try {
       const params = new URLSearchParams();
       const apiTab =
-        statusFilter === "new_orders"
-          ? "all"
-          : statusFilter === "refund_required"
-            ? "cancelled_awaiting_refund"
-            : statusFilter;
+        statusFilter === "refund_required" ? "cancelled_awaiting_refund" : statusFilter;
       params.set("tab", apiTab);
       params.set("page", String(page));
       params.set("limit", String(PAGE_SIZE));
@@ -389,10 +384,7 @@ export function AdminOrdersClient() {
     void runFulfillmentAction(order, "ready-for-shipping", "Order marked ready for shipping", "pack");
 
   const markShipped = (order: OrderListRow) =>
-    void runFulfillmentAction(order, "mark-shipped", "Order marked as shipped", "ship");
-
-  const markDelivered = (order: OrderListRow) =>
-    void runFulfillmentAction(order, "mark-delivered", "Order marked as delivered", "deliver");
+    void runFulfillmentAction(order, "mark-shipped", "Parcel handed to courier", "ship");
 
   const markAsRefunded = async (payload: { refund_reference: string; refund_notes?: string }) => {
     if (!refundTarget) return;
@@ -421,8 +413,10 @@ export function AdminOrdersClient() {
   const statusLabel = (s: string) => {
     if (s === "all") return "All statuses";
     if (s === "new_orders") return "New Orders";
+    if (s === "ready_to_ship") return "Ready for Shipping";
     if (s === "cancelled_awaiting_refund") return "Cancelled - Awaiting Refund";
     if (s === "cancelled_refunded") return "Cancelled & Refunded";
+    if (s === "shipped") return "Handed to Courier";
     return orderStatusLabel(s);
   };
 
@@ -437,7 +431,7 @@ export function AdminOrdersClient() {
       <div className="min-w-0 space-y-5 overflow-x-hidden p-4 sm:p-6">
         <OrderFulfillmentGuide />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             label="New Orders"
             value={String(stats.pending + stats.processing)}
@@ -451,16 +445,10 @@ export function AdminOrdersClient() {
             onClick={() => setFilter("ready_to_ship")}
           />
           <StatsCard
-            label="Out For Delivery"
-            value={String(stats.outForDelivery)}
-            active={statusFilter === "out_for_delivery"}
-            onClick={() => setFilter("out_for_delivery")}
-          />
-          <StatsCard
-            label="Delivered"
-            value={String(stats.delivered)}
-            active={statusFilter === "delivered"}
-            onClick={() => setFilter("delivered")}
+            label="Handed to Courier"
+            value={String(stats.shipped)}
+            active={statusFilter === "shipped"}
+            onClick={() => setFilter("shipped")}
           />
           <StatsCard
             label="Cancelled Orders"
@@ -607,7 +595,6 @@ export function AdminOrdersClient() {
               onStartPacking={startPacking}
               onReadyForShipping={readyForShipping}
               onMarkShipped={markShipped}
-              onMarkDelivered={markDelivered}
               onProcessRefund={(orderId) => {
                 const order = filteredOrders.find((row) => row.id === orderId);
                 if (order) setRefundTarget(order);

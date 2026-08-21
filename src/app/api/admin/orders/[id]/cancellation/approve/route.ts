@@ -7,6 +7,12 @@ import {
   canAdminApproveCancellation
 } from "@/lib/orders/manual-refund";
 import { normalizeOrderRecord, persistOrderUpdate } from "@/lib/orders/normalize-order";
+import {
+  canUseRazorpayAutoRefund,
+  isRazorpayRefundIdColumnReady,
+  processRazorpayCancellationRefund
+} from "@/lib/orders/razorpay-cancel-refund";
+import { sendCustomerRefundProcessedEmail } from "@/lib/server/notifications/refund-processed-email";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -36,10 +42,37 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   const fulfillmentColumns = await getAvailableFulfillmentClearColumns(auth.ctx.db);
-  const updatePayload = {
-    ...buildApproveCancellationPayload(order),
-    ...buildCancellationFulfillmentClearPayload(fulfillmentColumns)
-  };
+
+  let updatePayload: Record<string, unknown>;
+  let refundCompleted = false;
+
+  if (canUseRazorpayAutoRefund(order)) {
+    const columnReady = await isRazorpayRefundIdColumnReady(auth.ctx.db);
+    if (!columnReady) {
+      return NextResponse.json(
+        { error: "Razorpay refund tracking is not available on this database yet." },
+        { status: 503 }
+      );
+    }
+
+    const refundResult = await processRazorpayCancellationRefund(order, {
+      adminUserId: auth.ctx.userId
+    });
+    if (!refundResult.ok) {
+      return NextResponse.json({ error: refundResult.error }, { status: refundResult.status });
+    }
+
+    updatePayload = {
+      ...refundResult.payload,
+      ...buildCancellationFulfillmentClearPayload(fulfillmentColumns)
+    };
+    refundCompleted = refundResult.completed;
+  } else {
+    updatePayload = {
+      ...buildApproveCancellationPayload(order),
+      ...buildCancellationFulfillmentClearPayload(fulfillmentColumns)
+    };
+  }
 
   const { order: updated, error } = await persistOrderUpdate(auth.ctx.db, id, updatePayload);
   if (error || !updated) {
@@ -47,5 +80,14 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, updated, { persist: true });
-  return NextResponse.json({ success: true, order: normalized });
+
+  if (refundCompleted) {
+    void sendCustomerRefundProcessedEmail(normalized).catch(() => undefined);
+  }
+
+  return NextResponse.json({
+    success: true,
+    order: normalized,
+    refund_completed: refundCompleted
+  });
 }

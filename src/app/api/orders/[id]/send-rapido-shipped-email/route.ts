@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
+import { attachOrderFulfillmentZone } from "@/lib/orders/order-fulfillment-zone";
 import { sendRapidoShippedCustomerEmail } from "@/lib/server/notifications/rapido-shipped-email";
 import type { Order } from "@/types";
 
@@ -42,7 +43,10 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const order = await normalizeOrderRecord(db, existing as Order, { persist: false });
+  const order = await attachOrderFulfillmentZone(
+    db,
+    await normalizeOrderRecord(db, existing as Order, { persist: false })
+  );
   const result = await sendRapidoShippedCustomerEmail(db, order);
 
   return NextResponse.json({

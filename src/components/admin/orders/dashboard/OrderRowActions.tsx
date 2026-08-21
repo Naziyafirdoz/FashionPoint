@@ -14,7 +14,6 @@ type OrderRowActionsProps = {
   onStartPacking?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
-  onMarkDelivered?: (order: OrderListRow) => void;
   onProcessRefund?: (orderId: string) => void;
   onPrint: (order: OrderListRow) => void;
   onDownloadInvoice?: (order: OrderListRow) => void;
@@ -29,7 +28,6 @@ export function OrderRowActions({
   onStartPacking,
   onReadyForShipping,
   onMarkShipped,
-  onMarkDelivered,
   onProcessRefund,
   onPrint,
   onDownloadInvoice
@@ -62,9 +60,6 @@ export function OrderRowActions({
         break;
       case "mark_shipped":
         onMarkShipped?.(order);
-        break;
-      case "mark_delivered":
-        onMarkDelivered?.(order);
         break;
       case "process_refund":
         onProcessRefund?.(order.id);

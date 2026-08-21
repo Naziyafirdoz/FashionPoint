@@ -147,6 +147,7 @@ const FALLBACK_ADMIN_STATS: AdminOrderStatsV2 = {
   pending: 0,
   processing: 0,
   readyToShip: 0,
+  shipped: 0,
   outForDelivery: 0,
   delivered: 0,
   cancelled: 0,
@@ -346,6 +347,10 @@ export async function GET(req: Request) {
       query = query.eq("status", listFilter.status);
     }
 
+    if (listFilter.kind === "new_orders") {
+      query = query.in("status", ["pending", "processing"]);
+    }
+
     if (listFilter.kind === "payment_status") {
       query = query.eq("payment_status", listFilter.payment_status);
     }
@@ -455,6 +460,10 @@ export async function GET(req: Request) {
 
     if (listFilter.kind === "status") {
       query = query.eq("status", listFilter.status);
+    }
+
+    if (listFilter.kind === "new_orders") {
+      query = query.in("status", ["pending", "processing"]);
     }
 
     if (listFilter.kind === "payment_status") {

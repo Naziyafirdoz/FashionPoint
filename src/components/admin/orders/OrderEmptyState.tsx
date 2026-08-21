@@ -21,8 +21,7 @@ const EMPTY_STATE_CONFIG: Record<string, EmptyStateConfig> = {
   new_orders: {
     icon: "🆕",
     title: "No new orders.",
-    description: "Orders that were packed have been moved to Ready To Ship.",
-    cta: { label: "View Ready To Ship Orders", tab: "ready_to_ship" }
+    description: "Orders awaiting admin approval will appear here."
   },
   pending: {
     icon: "⏳",
@@ -32,14 +31,23 @@ const EMPTY_STATE_CONFIG: Record<string, EmptyStateConfig> = {
   processing: {
     icon: "🔧",
     title: "No new orders.",
-    description: "Orders that were packed have been moved to Ready To Ship.",
-    cta: { label: "View Ready To Ship Orders", tab: "ready_to_ship" }
+    description: "Orders awaiting admin approval will appear here."
+  },
+  confirmed: {
+    icon: "✅",
+    title: "No confirmed orders.",
+    description: "Approved orders awaiting Ready for Shipping will appear here."
   },
   ready_to_ship: {
     icon: "📋",
     title: "No ready-to-ship orders.",
-    description: "Orders appear here after packing.",
-    cta: { label: "View New Orders", tab: "new_orders" }
+    description: "Orders appear here after they are marked Ready for Shipping.",
+    cta: { label: "View Confirmed Orders", tab: "confirmed" }
+  },
+  shipped: {
+    icon: "🚚",
+    title: "No orders handed to courier.",
+    description: "Orders appear here after Mark Shipped."
   },
   out_for_delivery: {
     icon: "🚚",

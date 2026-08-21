@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Loader2, Mail } from "lucide-react";
+import { Bell, Clock, Loader2, Mail } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,10 @@ import {
   type NotificationRecipientInput,
   type NotificationRecipientRow
 } from "@/lib/settings/notification-recipients";
+import {
+  DEFAULT_DAILY_PENDING_ACTION_REMINDER,
+  type DailyPendingActionReminderSettings
+} from "@/lib/settings/daily-pending-action-reminder";
 
 export function AdminNotificationSettings() {
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,10 @@ export function AdminNotificationSettings() {
   const [savingRecipient, setSavingRecipient] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [dailyReminder, setDailyReminder] = useState<DailyPendingActionReminderSettings>({
+    ...DEFAULT_DAILY_PENDING_ACTION_REMINDER
+  });
+  const [savingDailyReminder, setSavingDailyReminder] = useState(false);
   const [recipients, setRecipients] = useState<NotificationRecipientRow[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<NotificationRecipientRow | null>(null);
@@ -39,6 +47,9 @@ export function AdminNotificationSettings() {
         return;
       }
       setEmailNotificationsEnabled(Boolean(data.emailNotificationsEnabled));
+      if (data.dailyPendingActionReminder) {
+        setDailyReminder(data.dailyPendingActionReminder as DailyPendingActionReminderSettings);
+      }
       setRecipients(data.recipients ?? []);
     } catch {
       toast.error("Failed to load notification settings");
@@ -72,6 +83,34 @@ export function AdminNotificationSettings() {
       setEmailNotificationsEnabled((current) => !enabled);
     } finally {
       setSavingEnabled(false);
+    }
+  };
+
+  const saveDailyReminder = async (next: DailyPendingActionReminderSettings) => {
+    const previous = dailyReminder;
+    setDailyReminder(next);
+    setSavingDailyReminder(true);
+    try {
+      const res = await fetch("/api/admin/notification-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dailyPendingActionReminder: next })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to save daily reminder settings");
+        setDailyReminder(previous);
+        return;
+      }
+      if (data.dailyPendingActionReminder) {
+        setDailyReminder(data.dailyPendingActionReminder as DailyPendingActionReminderSettings);
+      }
+      toast.success("Daily reminder settings saved");
+    } catch {
+      toast.error("Failed to save daily reminder settings");
+      setDailyReminder(previous);
+    } finally {
+      setSavingDailyReminder(false);
     }
   };
 
@@ -219,6 +258,95 @@ export function AdminNotificationSettings() {
               void saveEmailEnabled(enabled);
             }}
             aria-label="Enable email notifications"
+          />
+        </label>
+      </SettingsSection>
+
+      <SettingsSection title="Daily Pending Action Reminder" icon={Clock}>
+        <p className="text-sm text-foreground/70">
+          Send one consolidated email when unresolved admin actions remain at the scheduled time.
+        </p>
+        <label className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-accent/15 bg-blush/20 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Enable Daily Reminder</p>
+            <p className="mt-1 text-xs text-foreground/60">
+              When disabled, the daily pending-action email is not sent.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            className="h-5 w-5 rounded border-accent/30"
+            checked={dailyReminder.enabled}
+            disabled={savingDailyReminder}
+            onChange={(event) => {
+              void saveDailyReminder({ ...dailyReminder, enabled: event.target.checked });
+            }}
+            aria-label="Enable daily pending action reminder"
+          />
+        </label>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="text-sm font-medium text-foreground">Reminder time</span>
+            <input
+              type="time"
+              className="mt-1 w-full rounded-lg border border-accent/20 bg-white px-3 py-2 text-sm"
+              value={dailyReminder.time}
+              disabled={savingDailyReminder}
+              onChange={(event) => {
+                const time = event.target.value;
+                if (!time) return;
+                void saveDailyReminder({ ...dailyReminder, time });
+              }}
+              aria-label="Daily reminder time"
+            />
+          </label>
+          <div>
+            <p className="text-sm font-medium text-foreground">Time zone</p>
+            <p className="mt-1 rounded-lg border border-accent/20 bg-blush/10 px-3 py-2 text-sm text-foreground/80">
+              India (IST / {dailyReminder.timezone})
+            </p>
+          </div>
+        </div>
+        <label className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-accent/15 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Send only if pending actions exist</p>
+            <p className="mt-1 text-xs text-foreground/60">
+              No email is sent when everything is already resolved.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            className="h-5 w-5 rounded border-accent/30"
+            checked={dailyReminder.sendOnlyIfPending}
+            disabled={savingDailyReminder}
+            onChange={(event) => {
+              void saveDailyReminder({
+                ...dailyReminder,
+                sendOnlyIfPending: event.target.checked
+              });
+            }}
+            aria-label="Send only if pending actions exist"
+          />
+        </label>
+        <label className="mt-3 flex items-center justify-between gap-4 rounded-xl border border-accent/15 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Combine all pending actions into one email</p>
+            <p className="mt-1 text-xs text-foreground/60">
+              One daily summary is sent, never one email per issue.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            className="h-5 w-5 rounded border-accent/30"
+            checked={dailyReminder.combineIntoOneEmail}
+            disabled={savingDailyReminder}
+            onChange={(event) => {
+              void saveDailyReminder({
+                ...dailyReminder,
+                combineIntoOneEmail: event.target.checked
+              });
+            }}
+            aria-label="Combine all pending actions into one email"
           />
         </label>
       </SettingsSection>

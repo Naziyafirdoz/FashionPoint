@@ -34,6 +34,7 @@ const EMPTY_STATS: AdminOrderStatsV2 = {
   pending: 0,
   processing: 0,
   readyToShip: 0,
+  shipped: 0,
   outForDelivery: 0,
   delivered: 0,
   cancelled: 0,

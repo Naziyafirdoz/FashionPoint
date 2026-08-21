@@ -15,10 +15,10 @@ const WORKFLOW_TOAST_CONFIG: Record<
     linkLabel: "View Ready To Ship Orders"
   },
   ship: {
-    title: "Order shipped successfully",
-    nextStep: "Mark Delivered after customer receives the parcel.",
-    tab: "out_for_delivery",
-    linkLabel: "View Out For Delivery Orders"
+    title: "Parcel handed to courier",
+    nextStep: "Fashion Point responsibility is complete. The courier handles delivery.",
+    tab: "shipped",
+    linkLabel: "View Handed to Courier Orders"
   },
   deliver: {
     title: "Order marked as delivered",

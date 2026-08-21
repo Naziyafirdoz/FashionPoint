@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
 
-export type ActionTokenType = "approve" | "remind";
+export type ActionTokenType = "approve";
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -32,7 +32,6 @@ export function buildTokenActionUrl(action: ActionTokenType, token: string): str
 
 export type OrderEmailActionUrls = {
   approveUrl: string;
-  remindUrl: string;
 };
 
 export async function createActionToken(
@@ -81,20 +80,18 @@ export async function createActionToken(
   return token;
 }
 
-/** Create fresh approve + remind tokens for email action buttons. */
+/** Create a fresh approve token for email action buttons. */
 export async function createOrderEmailActionUrls(
   db: SupabaseClient,
   orderId: string,
   createdBy?: string | null
 ): Promise<OrderEmailActionUrls | null> {
   const approveToken = await createActionToken(db, orderId, "approve", createdBy);
-  const remindToken = await createActionToken(db, orderId, "remind", createdBy);
 
-  if (!approveToken || !remindToken) return null;
+  if (!approveToken) return null;
 
   return {
-    approveUrl: buildTokenActionUrl("approve", approveToken),
-    remindUrl: buildTokenActionUrl("remind", remindToken)
+    approveUrl: buildTokenActionUrl("approve", approveToken)
   };
 }
 

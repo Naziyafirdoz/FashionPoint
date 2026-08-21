@@ -11,7 +11,7 @@ import {
   paymentMethodLabel,
   paymentStatusLabel
 } from "@/lib/orders/admin-orders";
-import { getStageLabel, getStagePillClass } from "@/lib/orders/admin-order-ui";
+import { getAdminStageLabel, getStagePillClass } from "@/lib/orders/admin-order-ui";
 import type { Order } from "@/types";
 
 type OrderDetailHeaderProps = {
@@ -51,7 +51,7 @@ export function OrderDetailHeader({
           <span
             className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold shadow-sm ${getStagePillClass(order)}`}
           >
-            {getStageLabel(order)}
+            {getAdminStageLabel(order)}
           </span>
           {primaryActionLabel && onPrimaryAction ? (
             <button
@@ -85,7 +85,7 @@ export function OrderDetailHeader({
         </div>
         <div className="rounded-xl bg-gray-50 px-4 py-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Status</dt>
-          <dd className="mt-1 font-semibold text-gray-900">{getStageLabel(order)}</dd>
+          <dd className="mt-1 font-semibold text-gray-900">{getAdminStageLabel(order)}</dd>
         </div>
       </dl>
     </header>

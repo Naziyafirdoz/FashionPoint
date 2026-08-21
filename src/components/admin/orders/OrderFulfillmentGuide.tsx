@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Bell,
   ChevronDown,
-  CircleCheck,
   ClipboardCheck,
   Info,
   Package,
@@ -39,37 +38,30 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   },
   {
     icon: Package,
-    title: "Pack",
-    hint: "Packing starts when you open a confirmed order.",
-    status: "Packing",
+    title: "Get Parcel Ready",
+    hint: "Check and pack the parcel. Then mark Ready for Shipping.",
+    status: "Ready for Shipping",
     action: "Ready For Shipping"
   },
   {
     icon: Truck,
-    title: "Ship",
-    hint: "Rapido guide for local. DTDC outstation.",
-    status: "Shipped",
+    title: "Hand to Rapido / DTDC",
+    hint: "Local Rapido or outstation DTDC. Then mark Handed to Courier.",
+    status: "Handed to Courier",
     action: "Mark Shipped"
-  },
-  {
-    icon: CircleCheck,
-    title: "Delivered",
-    hint: "Mark after customer receives parcel.",
-    status: "Delivered",
-    action: "Mark Delivered"
   }
 ];
 
 const ADMIN_TIPS = [
   "Approve from the list, detail page, or email link",
-  "Staff mark Packed at /admin/worker when needed",
+  "Ready for Shipping means the parcel is packed and ready to hand over",
   "Open the Rapido guide on ready-to-ship local orders"
 ] as const;
 
 function WorkflowGrid() {
   return (
     <ol
-      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
       aria-label="Order fulfillment steps"
     >
       {WORKFLOW_STEPS.map((step, index) => {
@@ -150,7 +142,7 @@ export function OrderFulfillmentGuide() {
             <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
               How Order Processing Works
             </p>
-            <p className="text-xs text-gray-600">Approve → pack → ship → deliver</p>
+            <p className="text-xs text-gray-600">Approve → ready for shipping → handed to courier</p>
           </div>
         </div>
         <ChevronDown

@@ -54,10 +54,16 @@ export async function POST(req: Request, { params }: RouteContext) {
   switch (action) {
     case "start":
       await startDeliveryFollowUpSchedule(db, order);
-      return NextResponse.json({ success: true, message: "Delivery follow-up scheduled" });
+      return NextResponse.json({
+        success: true,
+        message: "Delivery follow-up is disabled; leftover reminders cancelled"
+      });
     case "snooze":
       await snoozeDeliveryFollowUpReminder(db, order);
-      return NextResponse.json({ success: true, message: "Reminder snoozed for 2 hours" });
+      return NextResponse.json({
+        success: true,
+        message: "Delivery follow-up is disabled; leftover reminders cancelled"
+      });
     case "cancel":
       await cancelDeliveryFollowUpReminders(db, id);
       return NextResponse.json({ success: true, message: "Delivery follow-up stopped" });

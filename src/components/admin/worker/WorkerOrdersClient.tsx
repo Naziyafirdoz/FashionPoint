@@ -132,14 +132,6 @@ export function WorkerOrdersClient() {
                       >
                         Still Pending
                       </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        className="rounded-lg border px-3 py-2 text-sm disabled:opacity-60"
-                        onClick={() => void runAction(order.id, "remind-later", { hours: 1 })}
-                      >
-                        Remind Me After 1 Hour
-                      </button>
                     </>
                   ) : null}
                   {(order.status as string) === "packed" ? (

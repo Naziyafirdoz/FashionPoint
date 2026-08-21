@@ -3,7 +3,6 @@ import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
-import { cancelAdminApprovalReminders } from "@/lib/server/notifications/admin-approval-reminders";
 import { sendOrderConfirmation } from "@/lib/server/email";
 import {
   hasApprovedAuditLog,
@@ -170,8 +169,6 @@ async function completeApproval(
   });
 
   invalidateAdminDataCaches();
-
-  await cancelAdminApprovalReminders(db, orderId);
 
   await markOrderNotificationsHandled(db, orderId);
 

@@ -4,9 +4,16 @@ import { confirmCapturedRazorpayPayment } from "@/lib/checkout/confirm-razorpay-
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { hydrateShippingSettings } from "@/lib/shipping/settings-store";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
+import { persistOrderUpdate, normalizeOrderRecord } from "@/lib/orders/normalize-order";
+import {
+  buildWebhookRazorpayRefundCompletePayload,
+  orderCanCompleteRazorpayRefundFromWebhook
+} from "@/lib/orders/razorpay-cancel-refund";
+import { sendCustomerRefundProcessedEmail } from "@/lib/server/notifications/refund-processed-email";
 import type { Order } from "@/types";
 
-const HANDLED_EVENTS = new Set(["payment.captured", "order.paid", "payment.failed"]);
+const PAYMENT_EVENTS = new Set(["payment.captured", "order.paid", "payment.failed"]);
+const REFUND_EVENTS = new Set(["refund.processed", "refund.failed"]);
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value != null && typeof value === "object" && !Array.isArray(value)
@@ -36,7 +43,7 @@ export async function POST(req: Request) {
   }
 
   const event = String(eventBody.event ?? "");
-  if (!HANDLED_EVENTS.has(event)) {
+  if (!PAYMENT_EVENTS.has(event) && !REFUND_EVENTS.has(event)) {
     return NextResponse.json({ received: true, ignored: event });
   }
 
@@ -50,6 +57,76 @@ export async function POST(req: Request) {
   const payload = asRecord(eventBody.payload);
   const paymentEntity = payloadEntity(payload, "payment");
   const orderEntity = payloadEntity(payload, "order");
+  const refundEntity = payloadEntity(payload, "refund");
+
+  if (REFUND_EVENTS.has(event)) {
+    const refundId = String(refundEntity?.id ?? "").trim();
+    const refundPaymentId = String(refundEntity?.payment_id ?? paymentEntity?.id ?? "").trim();
+    const refundStatus = String(refundEntity?.status ?? "").toLowerCase();
+
+    let order: Order | null = null;
+    if (refundId) {
+      const byRefund = await db.from("orders").select("*").eq("razorpay_refund_id", refundId).maybeSingle();
+      order = (byRefund.data as Order) ?? null;
+    }
+    if (!order && refundPaymentId) {
+      const byPayment = await db
+        .from("orders")
+        .select("*")
+        .eq("razorpay_payment_id", refundPaymentId)
+        .maybeSingle();
+      order = (byPayment.data as Order) ?? null;
+    }
+
+    if (!order) {
+      logWorkflow("payment_webhook_failed", { reason: "refund_order_not_found", event, refundId }, "warn");
+      return NextResponse.json({ received: true, ignored: "refund_order_not_found" });
+    }
+
+    if (event === "refund.failed" || refundStatus === "failed") {
+      logWorkflow(
+        "payment_webhook_failed",
+        { orderId: order.id, orderNumber: order.order_number, event, refundId },
+        "warn"
+      );
+      return NextResponse.json({ received: true, orderId: order.id, refund_failed: true });
+    }
+
+    if (!orderCanCompleteRazorpayRefundFromWebhook(order)) {
+      return NextResponse.json({ received: true, ignored: "refund_not_applicable", orderId: order.id });
+    }
+
+    if (refundStatus && refundStatus !== "processed") {
+      return NextResponse.json({ received: true, ignored: "refund_not_processed", orderId: order.id });
+    }
+
+    if (!refundId) {
+      return NextResponse.json({ received: true, ignored: "missing_refund_id" });
+    }
+
+    const { order: updated, error } = await persistOrderUpdate(
+      db,
+      order.id,
+      buildWebhookRazorpayRefundCompletePayload(order, { id: refundId })
+    );
+    if (error || !updated) {
+      logWorkflow(
+        "payment_webhook_failed",
+        { orderId: order.id, event, error: error ?? "update_failed" },
+        "error"
+      );
+      return NextResponse.json({ received: true, error: "refund_update_failed" }, { status: 500 });
+    }
+
+    const normalized = await normalizeOrderRecord(db, updated, { persist: true });
+    void sendCustomerRefundProcessedEmail(normalized).catch(() => undefined);
+    logWorkflow("payment_webhook_success", {
+      orderId: normalized.id,
+      orderNumber: normalized.order_number,
+      event
+    });
+    return NextResponse.json({ received: true, orderId: normalized.id, refund_completed: true });
+  }
 
   const razorpayOrderId = String(
     paymentEntity?.order_id ?? orderEntity?.id ?? ""

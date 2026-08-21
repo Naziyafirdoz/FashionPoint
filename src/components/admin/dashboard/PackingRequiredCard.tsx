@@ -20,8 +20,8 @@ export function PackingRequiredCard({ count }: PackingRequiredCardProps) {
           <Package className="h-5 w-5 text-amber-700" />
         </div>
         <div>
-          <p className="font-semibold text-amber-900">📦 Packing Required</p>
-          <p className="mt-1 text-sm text-amber-800/90">{label} for packing.</p>
+          <p className="font-semibold text-amber-900">📦 Ready for Shipping</p>
+          <p className="mt-1 text-sm text-amber-800/90">{label} to pack and mark ready for courier.</p>
         </div>
       </div>
     </Link>

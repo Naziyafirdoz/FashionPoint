@@ -216,7 +216,6 @@ Copy `.env.local.example` to `.env.local`. **Never commit secrets.** Variable na
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push VAPID public key |
 | `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
 | `CRON_SECRET` | Bearer token for cron API routes |
-| `REMINDER_DELAY_MINUTES` | Admin order approval reminder delay |
 | `REPLICATE_API_TOKEN` | Replicate API (virtual try-on backend route) |
 | `NEXT_PUBLIC_SITE_URL` | Public site URL |
 | `NEXT_PUBLIC_GA_ID` | Google Analytics measurement ID |
@@ -434,13 +433,13 @@ Required env vars: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_AP
 | **WhatsApp** | Twilio | Admin new-order and operational alerts |
 | **In-app** | Supabase `notifications` table + Realtime | Admin notification center |
 | **Push (PWA)** | Firebase Cloud Messaging / Web Push | Admin push subscriptions |
-| **Cron jobs** | Vercel Cron or external scheduler | Order reminders, delivery follow-ups (`CRON_SECRET` required) |
+| **Cron jobs** | Vercel Cron or external scheduler | Delivery follow-ups and daily pending-action digest (`CRON_SECRET` required) |
 
 Cron API routes:
 
-- `POST /api/cron/order-reminders`
 - `POST /api/cron/delivery-due-reminders`
 - `POST /api/cron/delivery-follow-up-reminders`
+- `POST /api/cron/daily-pending-digest`
 
 ---
 

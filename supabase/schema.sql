@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS orders (
   payment_status text DEFAULT 'pending',
   razorpay_order_id text,
   razorpay_payment_id text,
+  razorpay_refund_id text,
   shipping_address jsonb,
   billing_address jsonb,
   tracking_id text,

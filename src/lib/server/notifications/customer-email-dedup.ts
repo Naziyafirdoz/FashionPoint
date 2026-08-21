@@ -5,6 +5,7 @@ export const CUSTOMER_ORDER_PLACED_EVENT = "customer_order_placed";
 export const CUSTOMER_ORDER_CONFIRMED_EVENT = "customer_order_confirmed";
 export const CUSTOMER_ORDER_SHIPPED_EVENT = "customer_order_shipped";
 export const CUSTOMER_ORDER_DELIVERED_EVENT = "delivery_confirmation_email";
+export const CUSTOMER_REFUND_PROCESSED_EVENT = "customer_refund_processed";
 
 const SHIPPED_DEDUP_EVENTS = [
   CUSTOMER_ORDER_SHIPPED_EVENT,

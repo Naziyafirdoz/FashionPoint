@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "DB not configured" }, { status: 503 });
   }
 
-  const fired = await processDeliveryFollowUpReminders(db);
-  console.info("[cron/delivery-follow-up-reminders] finished", { fired });
-  return NextResponse.json({ success: true, fired });
+  const cancelled = await processDeliveryFollowUpReminders(db);
+  console.info("[cron/delivery-follow-up-reminders] finished", { cancelled });
+  return NextResponse.json({ success: true, cancelled });
 }

@@ -122,7 +122,6 @@ async function main() {
   results.order_action_logs = await deleteAll(db, "order_action_logs", "performed_at");
   results.action_tokens = await deleteAll(db, "action_tokens");
   results.order_notification_log = await deleteAll(db, "order_notification_log", "sent_at");
-  results.order_reminders = await deleteAll(db, "order_reminders");
   results.return_requests = await deleteAll(db, "return_requests");
   results.orders = await deleteAll(db, "orders");
 

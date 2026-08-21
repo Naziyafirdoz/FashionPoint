@@ -18,7 +18,7 @@ import {
 } from "@/lib/orders/admin-orders";
 import { requiresCustomerCancellationRefund } from "@/lib/orders/cancellation";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
-import { getPrimaryAction, getStageLabel, getStagePillClass } from "@/lib/orders/admin-order-ui";
+import { getAdminStageLabel, getPrimaryAction, getStagePillClass } from "@/lib/orders/admin-order-ui";
 
 type OrdersTableProps = {
   orders: OrderListRow[];
@@ -30,7 +30,6 @@ type OrdersTableProps = {
   onStartPacking?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
-  onMarkDelivered?: (order: OrderListRow) => void;
   onProcessRefund?: (orderId: string) => void;
 };
 
@@ -39,7 +38,7 @@ function StatusPill({ order }: { order: OrderListRow }) {
     <span
       className={`inline-flex max-w-full items-center rounded-full border px-3 py-1 text-xs font-semibold shadow-sm ${getStagePillClass(order)}`}
     >
-      <span className="truncate">{getStageLabel(order)}</span>
+      <span className="truncate">{getAdminStageLabel(order)}</span>
     </span>
   );
 }
@@ -57,7 +56,6 @@ export function OrdersTable({
   onStartPacking,
   onReadyForShipping,
   onMarkShipped,
-  onMarkDelivered,
   onProcessRefund
 }: OrdersTableProps) {
   return (
@@ -150,7 +148,6 @@ export function OrdersTable({
                     onStartPacking={onStartPacking}
                     onReadyForShipping={onReadyForShipping}
                     onMarkShipped={onMarkShipped}
-                    onMarkDelivered={onMarkDelivered}
                     onProcessRefund={onProcessRefund}
                     onPrint={onPrint}
                     onDownloadInvoice={onDownloadInvoice}

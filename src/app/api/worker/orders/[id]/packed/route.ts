@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { requireWorkerStaff } from "@/lib/admin/require-staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { assertTransition } from "@/lib/orders/workflow-validation";
-import { cancelOrderReminders } from "@/lib/server/notifications/order-reminders";
 import { notifyAdminWorkerPacked } from "@/lib/server/notifications/new-order-alerts";
 import type { Order } from "@/types";
 
@@ -49,8 +48,6 @@ export async function POST(_req: Request, { params }: RouteContext) {
   if (error || !updated) {
     return NextResponse.json({ error: "Unable to mark packed" }, { status: 500 });
   }
-
-  await cancelOrderReminders(auth.ctx.db, id, "worker", auth.ctx.userId);
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
   await notifyAdminWorkerPacked(auth.ctx.db, normalized);

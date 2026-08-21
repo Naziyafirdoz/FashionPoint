@@ -21,7 +21,6 @@ const exports = [
   { table: "return_requests", file: "return_requests.json", where: null },
   { table: "action_tokens", file: "action_tokens.json", where: null },
   { table: "order_action_logs", file: "order_action_logs.json", where: null },
-  { table: "order_reminders", file: "order_reminders.json", where: null },
   {
     table: "order_notification_log",
     file: "order_notification_log.json",

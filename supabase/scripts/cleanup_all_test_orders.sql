@@ -6,7 +6,7 @@
 -- AFFECTED TABLES (order-exclusive or order-linked):
 --   notification_logs (order-linked rows only)
 --   notifications (order-linked rows only; preserves back_in_stock)
---   order_action_logs, action_tokens, order_notification_log, order_reminders
+--   order_action_logs, action_tokens, order_notification_log
 --   return_requests, orders
 --   reviews: order_id unlinked (rows preserved per product-review policy)
 --
@@ -51,9 +51,11 @@ BEGIN
   GET DIAGNOSTICS n = ROW_COUNT;
   INSERT INTO _cleanup_deleted VALUES ('order_notification_log', n);
 
-  DELETE FROM order_reminders;
-  GET DIAGNOSTICS n = ROW_COUNT;
-  INSERT INTO _cleanup_deleted VALUES ('order_reminders', n);
+  IF to_regclass('public.order_reminders') IS NOT NULL THEN
+    DELETE FROM order_reminders;
+    GET DIAGNOSTICS n = ROW_COUNT;
+    INSERT INTO _cleanup_deleted VALUES ('order_reminders', n);
+  END IF;
 
   DELETE FROM return_requests;
   GET DIAGNOSTICS n = ROW_COUNT;
@@ -85,8 +87,6 @@ UNION ALL
 SELECT 'action_tokens', COUNT(*) FROM action_tokens
 UNION ALL
 SELECT 'order_action_logs', COUNT(*) FROM order_action_logs
-UNION ALL
-SELECT 'order_reminders', COUNT(*) FROM order_reminders
 UNION ALL
 SELECT 'order_notification_log', COUNT(*) FROM order_notification_log
 UNION ALL

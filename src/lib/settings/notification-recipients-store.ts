@@ -10,13 +10,25 @@ import {
   type NotificationRecipientInput,
   type NotificationRecipientRow
 } from "@/lib/settings/notification-recipients";
+import {
+  normalizeDailyPendingActionReminder,
+  type DailyPendingActionReminderSettings
+} from "@/lib/settings/daily-pending-action-reminder";
 
 const RECIPIENT_SELECT =
   "id,email,enabled,notify_new_order,notify_low_stock,notify_cancel_request,notify_refund_request,notify_payment_failed,notify_new_review,notify_contact_form,created_at,updated_at";
 
-export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null): Promise<boolean> {
+type NotificationEmailSettingsJson = {
+  enabled?: boolean;
+  dailyPendingActionReminder?: unknown;
+  [key: string]: unknown;
+};
+
+async function loadNotificationEmailSettingsJson(
+  db?: SupabaseClient | null
+): Promise<NotificationEmailSettingsJson> {
   const client = db ?? createServiceClient();
-  if (!client) return true;
+  if (!client) return {};
 
   const { data } = await client
     .from("store_settings")
@@ -24,13 +36,15 @@ export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null):
     .eq("key", NOTIFICATION_EMAIL_SETTINGS_KEY)
     .maybeSingle();
 
-  if (!data?.value || typeof data.value !== "object") return true;
-  const value = data.value as { enabled?: boolean };
-  return value.enabled !== false;
+  if (!data?.value || typeof data.value !== "object" || Array.isArray(data.value)) {
+    return {};
+  }
+
+  return data.value as NotificationEmailSettingsJson;
 }
 
-export async function saveEmailNotificationsEnabled(
-  enabled: boolean,
+async function saveNotificationEmailSettingsJson(
+  value: NotificationEmailSettingsJson,
   db?: SupabaseClient | null
 ): Promise<{ ok: boolean; error?: string }> {
   const client = db ?? createServiceClient();
@@ -38,12 +52,47 @@ export async function saveEmailNotificationsEnabled(
 
   const { error } = await client.from("store_settings").upsert({
     key: NOTIFICATION_EMAIL_SETTINGS_KEY,
-    value: { enabled },
+    value,
     updated_at: new Date().toISOString()
   });
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
+}
+
+export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null): Promise<boolean> {
+  const value = await loadNotificationEmailSettingsJson(db);
+  return value.enabled !== false;
+}
+
+export async function loadDailyPendingActionReminderSettings(
+  db?: SupabaseClient | null
+): Promise<DailyPendingActionReminderSettings> {
+  const value = await loadNotificationEmailSettingsJson(db);
+  return normalizeDailyPendingActionReminder(value.dailyPendingActionReminder);
+}
+
+export async function saveEmailNotificationsEnabled(
+  enabled: boolean,
+  db?: SupabaseClient | null
+): Promise<{ ok: boolean; error?: string }> {
+  const existing = await loadNotificationEmailSettingsJson(db);
+  return saveNotificationEmailSettingsJson({ ...existing, enabled }, db);
+}
+
+export async function saveDailyPendingActionReminderSettings(
+  settings: DailyPendingActionReminderSettings,
+  db?: SupabaseClient | null
+): Promise<{ ok: boolean; error?: string }> {
+  const existing = await loadNotificationEmailSettingsJson(db);
+  return saveNotificationEmailSettingsJson(
+    {
+      ...existing,
+      enabled: existing.enabled !== false,
+      dailyPendingActionReminder: settings
+    },
+    db
+  );
 }
 
 export async function listNotificationRecipients(

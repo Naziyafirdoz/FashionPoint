@@ -24,6 +24,16 @@ const FULFILLMENT_RANK: Record<string, number> = {
   delivered: 6
 };
 
+function hasActualPackingHistory(order: Order): boolean {
+  const status = normalizeLegacyStatus(order.status);
+  return (
+    status === "packing_assigned" ||
+    status === "packed" ||
+    Boolean(order.packed_at) ||
+    Boolean(order.assigned_at)
+  );
+}
+
 function statusRank(status: string): number {
   return FULFILLMENT_RANK[normalizeLegacyStatus(status)] ?? -1;
 }
@@ -60,16 +70,19 @@ export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilesto
       completed: rank >= 2,
       at: rank >= 2 ? (order.confirmed_at ?? order.updated_at ?? order.created_at) : undefined,
       notes: rank >= 2 ? "Order approved by staff" : undefined
-    },
-    {
+    }
+  );
+
+  if (hasActualPackingHistory(order)) {
+    steps.push({
       label: "Packing Started",
-      completed: rank >= 3,
-      at:
-        rank >= 3
-          ? (order.assigned_at ?? order.packed_at ?? order.updated_at ?? order.created_at)
-          : undefined,
-      notes: rank >= 3 ? "Packing in progress" : undefined
-    },
+      completed: true,
+      at: order.assigned_at ?? order.packed_at ?? order.updated_at,
+      notes: status === "packing_assigned" ? "Packing in progress" : "Packed by staff"
+    });
+  }
+
+  steps.push(
     {
       label: "Ready For Shipping",
       completed: rank >= 4,
@@ -77,24 +90,27 @@ export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilesto
       notes: rank >= 4 ? "Ready for dispatch" : undefined
     },
     {
-      label: "Shipped",
+      label: "Shipped / Handed to Courier",
       completed: rank >= 5,
       at:
         rank >= 5
           ? (order.shipping_date ?? order.updated_at ?? order.created_at)
           : undefined,
-      notes: rank >= 5 ? "Order shipped" : undefined
-    },
-    {
-      label: "Delivered",
-      completed: rank >= 6,
-      at:
-        rank >= 6
-          ? (order.delivery_confirmed_at ?? order.otp_verified_at ?? order.updated_at ?? order.created_at)
-          : undefined,
-      notes: rank >= 6 ? "Delivery completed" : undefined
+      notes:
+        rank >= 5
+          ? "Handed to courier. Fashion Point responsibility is complete."
+          : undefined
     }
   );
+
+  if (status === "delivered" || order.delivery_confirmed_at || order.otp_verified_at) {
+    steps.push({
+      label: "Delivered",
+      completed: true,
+      at: order.delivery_confirmed_at ?? order.otp_verified_at ?? order.updated_at ?? order.created_at,
+      notes: "Delivery completed"
+    });
+  }
 
   return steps;
 }
@@ -157,6 +173,7 @@ export function buildFullOrderTimeline(
   const pastProcessing: OrderStatus[] = [
     "processing",
     "ready_to_ship",
+    "shipped",
     "out_for_delivery",
     "delivered",
     "returned"
@@ -170,16 +187,16 @@ export function buildFullOrderTimeline(
     );
   }
 
-  if (order.packed_at || ["ready_to_ship", "out_for_delivery", "delivered", "returned"].includes(status)) {
+  if (order.packed_at || status === "packed" || status === "packing_assigned") {
     pushEntry(
       entries,
       "Order Packed",
-      order.packed_at ?? order.updated_at,
+      order.packed_at ?? order.assigned_at ?? order.updated_at,
       "Items packed and ready for dispatch"
     );
   }
 
-  if (order.shipping_date || ["out_for_delivery", "delivered"].includes(status)) {
+  if (order.shipping_date || ["shipped", "out_for_delivery", "delivered"].includes(status)) {
     const courier = resolveOrderCourierName(order);
     const awb = order.tracking_number ?? order.tracking_id;
     const shipNotes = [courier ? `Courier: ${courier}` : null, awb ? `AWB: ${awb}` : null]
@@ -189,7 +206,7 @@ export function buildFullOrderTimeline(
       entries,
       "Order Shipped",
       order.shipping_date ?? order.updated_at,
-      shipNotes || "Shipment dispatched"
+      shipNotes || "Handed to courier. Fashion Point responsibility is complete."
     );
   }
 

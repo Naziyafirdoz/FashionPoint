@@ -11,7 +11,9 @@ import {
   getRapidoDeliveryDetails,
   resolveOrderCourierName
 } from "@/lib/orders/rapido-delivery-metadata";
-import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
+import { getDtdcParcelDetails } from "@/lib/orders/dtdc-parcel-metadata";
+import { isLocalFulfillmentOrder } from "@/lib/orders/fulfillment-workflow";
+import { toAbsoluteHttpsUrl } from "@/lib/server/notifications/email-image";
 import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
 import {
   adminDashboardEmailUrl,
@@ -302,6 +304,47 @@ function resolveDeliveryPartnerLabel(order: Order): string {
   return resolveOrderCourierName(order);
 }
 
+function toDtdcEmailImageUrl(url: string): string | undefined {
+  const absolute = toAbsoluteHttpsUrl(url);
+  if (!absolute) return undefined;
+  try {
+    const parsed = new URL(absolute);
+    if (parsed.protocol !== "https:" || parsed.hostname !== "res.cloudinary.com") {
+      return undefined;
+    }
+    if (/\/upload\/[^/]*w_\d+/.test(absolute)) return absolute;
+    return absolute.replace("/upload/", "/upload/c_limit,w_1120,q_80,f_auto/");
+  } catch {
+    return undefined;
+  }
+}
+
+function customerDtdcDeliveryCardHtml(order: Order): string {
+  const parcel = getDtdcParcelDetails(order);
+  const safeImageUrl = parcel?.image_url ? toDtdcEmailImageUrl(parcel.image_url) : undefined;
+  const imageHtml = safeImageUrl
+    ? `<img src="${escapeHtml(safeImageUrl)}" alt="DTDC parcel shipping information" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:1px solid ${BORDER};border-radius:8px;" />`
+    : "";
+
+  return `
+    ${cardOpen()}
+      <tr>
+        <td style="padding:18px 16px;">
+          <p style="margin:0 0 14px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${GOLD};">DTDC Delivery Details</p>
+          <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${TEXT};">Your parcel has been shipped through DTDC.</p>
+          ${imageHtml}
+        </td>
+      </tr>
+    ${cardClose()}`;
+}
+
+function customerShippedDeliveryCardHtml(order: Order): string {
+  if (isLocalFulfillmentOrder(order)) {
+    return customerDeliveryPartnerCardHtml(order);
+  }
+  return customerDtdcDeliveryCardHtml(order);
+}
+
 function customerDeliveryPartnerCardHtml(order: Order): string {
   const rapido = getRapidoDeliveryDetails(order);
   const deliveryPartner = escapeHtml(resolveDeliveryPartnerLabel(order));
@@ -362,7 +405,7 @@ export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ su
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Good news! Your order has been shipped and is on its way.</p>
-    ${customerDeliveryPartnerCardHtml(order)}`;
+    ${customerShippedDeliveryCardHtml(order)}`;
 
   return {
     subject: `📦 Your Order Has Been Shipped — ${order.order_number}`,
@@ -427,26 +470,6 @@ export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ 
       preheader: `Your order ${order.order_number} has been delivered.`,
       footer: "minimal",
       customerCopy
-    })
-  };
-}
-
-export function buildPendingOrderReminderEmail(
-  order: Order,
-  actionUrls: OrderEmailActionUrls
-): { subject: string; html: string } {
-  const body = `
-    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${TEXT};">This order has been awaiting approval for more than ${formatReminderDelayLabel()}.</p>
-    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Please review and approve the order.</p>
-    ${orderSummaryCardHtml(order, { totalAmountLabel: true })}
-    ${adminCustomerDetailsCardHtml(order)}
-    ${adminShippingAddressStructuredCardHtml(order)}
-    ${adminActionButtonsHtml(order)}`;
-  return {
-    subject: `🔔 Pending Order Reminder — ${order.order_number}`,
-    html: emailShell(`Pending Order Reminder — ${order.order_number}`, body, {
-      preheader: PREHEADER_ADMIN_NEW_ORDER,
-      footer: "minimal"
     })
   };
 }
@@ -549,6 +572,28 @@ export function buildCustomerOrderConfirmedEmailSimple(params: {
     html: emailShell(`Order Confirmed — ${params.orderNumber}`, body, {
       preheader: PREHEADER_CUSTOMER_CONFIRMED,
       customerCopy: GENERIC_CUSTOMER_EMAIL_BRANCH_COPY
+    })
+  };
+}
+
+export async function buildCustomerRefundProcessedEmail(
+  order: Order
+): Promise<{ subject: string; html: string }> {
+  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const body = `
+    ${customerGreetingHtml(order)}
+    ${messageBlockHtml([
+      "Your cancellation has been approved.",
+      "Your refund has been processed to the original payment method used for this order.",
+      "It may take a few business days to appear, depending on your bank or UPI app."
+    ])}
+    ${orderSummaryCardHtml(order, { totalAmountLabel: true })}`;
+
+  return {
+    subject: `Refund processed — ${order.order_number}`,
+    html: emailShell(`Refund processed — ${order.order_number}`, body, {
+      preheader: "Your refund is being sent to the original payment method.",
+      customerCopy
     })
   };
 }

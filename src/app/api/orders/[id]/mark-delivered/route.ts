@@ -6,6 +6,13 @@ import { assertTransition } from "@/lib/orders/workflow-validation";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import type { Order } from "@/types";
 
+/**
+ * Legacy / optional manual capability.
+ * Fashion Point's normal admin workflow ends at Mark Shipped (handed to Rapido/DTDC).
+ * This endpoint is kept for compatibility and historical delivered events.
+ * It is not presented as a required admin action.
+ */
+
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(_req: Request, { params }: RouteContext) {

@@ -4,7 +4,13 @@ import { createServiceClient } from "@/lib/supabase";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
-import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
+import {
+  DTDC_COURIER_NAME,
+  DTDC_MISSING_IMAGE_ERROR,
+  hasSavedDtdcParcelImage
+} from "@/lib/orders/dtdc-parcel-metadata";
+import { isLocalFulfillmentOrder, customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
+import { attachOrderFulfillmentZone } from "@/lib/orders/order-fulfillment-zone";
 import { getAvailableShippingOptionalColumns } from "@/lib/orders/shipping-schema";
 import { assertTransition } from "@/lib/orders/workflow-validation";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
@@ -78,9 +84,17 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: transitionError }, { status: 400 });
   }
 
+  const existingWithZone = await attachOrderFulfillmentZone(db, existing as Order);
+  if (!isLocalFulfillmentOrder(existingWithZone) && !hasSavedDtdcParcelImage(existingWithZone)) {
+    console.info("[mark-shipped] error", "dtdc parcel image required");
+    return NextResponse.json({ error: DTDC_MISSING_IMAGE_ERROR }, { status: 400 });
+  }
+
   const now = new Date().toISOString();
   const optionalColumns = await getAvailableShippingOptionalColumns(db);
-  const courierName = resolveOrderCourierName(existing as Order);
+  const courierName = isLocalFulfillmentOrder(existingWithZone)
+    ? resolveOrderCourierName(existingWithZone)
+    : DTDC_COURIER_NAME;
   const payload: Record<string, unknown> = {
     status: "shipped",
     updated_at: now,
@@ -122,25 +136,29 @@ export async function POST(_req: Request, { params }: RouteContext) {
   console.info("[mark-shipped] rows updated", 1);
 
   const normalized = await normalizeOrderRecord(db, updated as Order, { persist: false });
+  const normalizedWithZone = await attachOrderFulfillmentZone(db, {
+    ...normalized,
+    fulfillment_zone: existingWithZone.fulfillment_zone
+  });
   console.info("[mark-shipped] success", {
     orderId: id,
-    orderNumber: normalized.order_number,
-    status: normalized.status
+    orderNumber: normalizedWithZone.order_number,
+    status: normalizedWithZone.status
   });
 
   invalidateAdminDataCaches();
 
   try {
-    const shippedMessage = customerShippedMessage(normalized);
-    await notifyCustomerOrderShipped(normalized, shippedMessage);
-    await notifyAdminOrderShipped(db, normalized);
+    const shippedMessage = customerShippedMessage(normalizedWithZone);
+    await notifyCustomerOrderShipped(normalizedWithZone, shippedMessage);
+    await notifyAdminOrderShipped(db, normalizedWithZone);
   } catch (err) {
     console.error("[mark-shipped] notifications failed", { orderId: id, error: err });
   }
 
   return NextResponse.json({
     success: true,
-    order: normalized,
+    order: normalizedWithZone,
     message: "Order marked as shipped"
   });
 }

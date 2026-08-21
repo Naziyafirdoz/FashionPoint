@@ -44,8 +44,9 @@ export function CustomerCancelledOrderSection({ order }: CustomerCancelledOrderS
       <section className="mt-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
         <p className="text-sm font-semibold text-amber-900">Cancellation Approved</p>
         <p className="mt-1 text-sm text-foreground/70">
-          Your cancellation was approved. We are processing your refund manually and will complete it
-          shortly.
+          {order.refund_method === "original_payment_method" || order.razorpay_refund_id
+            ? "Your cancellation was approved. Your refund will be processed to the original payment method used for this order."
+            : "Your cancellation was approved. We are processing your refund and will complete it shortly."}
         </p>
         <dl className="mt-3 space-y-1.5 border-t border-amber-100 pt-3 text-sm">
           <div className="flex justify-between gap-4">

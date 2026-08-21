@@ -125,6 +125,29 @@ export function RefundInformationSection({
               <dd className="font-medium">{refundMethodLabel(order.refund_method)}</dd>
             </div>
 
+            {method === "original_payment_method" || method === "razorpay" || order.razorpay_refund_id ? (
+              <div className="space-y-2 rounded-lg border px-3 py-2">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-foreground/50">Payment</dt>
+                  <dd className="text-right font-medium">Razorpay</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-foreground/50">Refund</dt>
+                  <dd className="text-right font-medium">Automatic via Razorpay</dd>
+                </div>
+                {order.razorpay_refund_id ? (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-foreground/50">Razorpay Refund ID</dt>
+                    <dd className="font-mono text-right text-xs">{order.razorpay_refund_id}</dd>
+                  </div>
+                ) : (
+                  <p className="text-xs text-foreground/60">
+                    Refund to original payment method after you approve this cancellation.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             {method === "upi" && order.refund_upi_id ? (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2">
                 <div>
@@ -237,6 +260,12 @@ export function RefundInformationSection({
               <dt className="text-foreground/60">Refunded On</dt>
               <dd>{formatRefundDateTime(order.refund_date ?? order.refund_completed_at)}</dd>
             </div>
+            {order.razorpay_refund_id?.trim() ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-foreground/60">Razorpay Refund ID</dt>
+                <dd className="font-mono text-sm">{order.razorpay_refund_id.trim()}</dd>
+              </div>
+            ) : null}
             {order.refund_reference?.trim() ? (
               <div className="flex justify-between gap-4">
                 <dt className="text-foreground/60">UTR Number</dt>

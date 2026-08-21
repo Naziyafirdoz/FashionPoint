@@ -58,6 +58,9 @@ export function refundMethodLabel(method: string | undefined | null): string {
       return "Bank Account";
     case "qr_code":
       return "QR Code";
+    case "original_payment_method":
+    case "razorpay":
+      return "Original Payment Method";
     default:
       return method?.trim() || "—";
   }
@@ -93,6 +96,37 @@ export function paidAmountForOrder(order: Pick<Order, "total" | "payment_status"
   return Number(order.total) || 0;
 }
 
+export const UPI_ID_INVALID_MESSAGE = "Enter a valid UPI ID (for example, name@upi).";
+
+const EMAIL_DOMAIN_HANDLES = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "live.com",
+  "icloud.com",
+  "protonmail.com"
+]);
+
+/** Generic VPA check: one "@", non-empty local + handle, not an email domain. */
+export function isValidUpiId(value: string): boolean {
+  const upi = value.trim();
+  if (!upi || /\s/.test(upi)) return false;
+
+  const separator = upi.indexOf("@");
+  if (separator <= 0 || separator !== upi.lastIndexOf("@") || separator === upi.length - 1) {
+    return false;
+  }
+
+  const local = upi.slice(0, separator);
+  const handle = upi.slice(separator + 1).toLowerCase();
+
+  if (!/^[a-zA-Z0-9._-]+$/.test(local)) return false;
+  if (handle.includes(".") || EMAIL_DOMAIN_HANDLES.has(handle)) return false;
+  if (!/^[a-zA-Z][a-zA-Z0-9]{1,}$/.test(handle)) return false;
+  return true;
+}
+
 export function validateCustomerRefundDetails(
   input: CustomerRefundDetailsInput
 ): { ok: true; method: ManualRefundMethod; payload: Record<string, unknown> } | { ok: false; error: string } {
@@ -114,6 +148,7 @@ export function validateCustomerRefundDetails(
   if (method === "upi") {
     const upiId = input.refund_upi_id?.trim() ?? "";
     if (!upiId) return { ok: false, error: "UPI ID is required." };
+    if (!isValidUpiId(upiId)) return { ok: false, error: UPI_ID_INVALID_MESSAGE };
     payload.refund_upi_id = upiId;
   }
 
@@ -170,6 +205,7 @@ export function canAdminRejectCancellation(order: Order): boolean {
 }
 
 export function canAdminMarkManualRefundCompleted(order: Order): boolean {
+  if (order.razorpay_refund_id?.trim()) return false;
   return (
     isCancellationApprovedOrder(order) &&
     isPrepaidPayment(order.payment_method) &&
@@ -271,5 +307,5 @@ export function validateManualRefundCompletion(
 }
 
 export function customerCancelRequestMessage(): string {
-  return "Your cancellation request has been submitted. We will review it and process your refund after approval.";
+  return "Your cancellation request has been submitted. After approval, your refund will be processed to the original payment method used for this order.";
 }

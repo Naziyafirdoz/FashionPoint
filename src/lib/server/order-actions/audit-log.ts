@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type OrderActionLogType =
   | "approved"
-  | "remind_later"
   | "already_approved"
   | "token_used"
   | "token_expired"

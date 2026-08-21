@@ -14,7 +14,6 @@ export type PrimaryActionType =
   | "start_packing"
   | "ready_for_shipping"
   | "mark_shipped"
-  | "mark_delivered"
   | "process_refund"
   | "view";
 
@@ -24,6 +23,15 @@ export type OrderPrimaryAction = {
 };
 
 export { getStageLabel, getStatusPillClass as getStagePillClass };
+
+/** Admin operations label. Customers still see STATUS_CONFIG ("Shipped"). */
+export function getAdminStageLabel(
+  order: Pick<Order, "status" | "payment_status" | "refund_status" | "payment_method">
+): string {
+  const status = normalizeLegacyStatus(order.status);
+  if (status === "shipped") return "Handed to Courier";
+  return getStageLabel(order);
+}
 
 export function formatOrderAge(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -69,7 +77,7 @@ export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
     case "processing":
       return { type: "approve_order", label: "Approve Order" };
     case "confirmed":
-      return { type: "start_packing", label: "Assign Worker" };
+      return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
     case "packing_assigned":
       return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
     case "packed":
@@ -78,7 +86,6 @@ export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
       return { type: "mark_shipped", label: "🚚 Mark Shipped" };
     case "shipped":
     case "out_for_delivery":
-      return { type: "mark_delivered", label: "✅ Mark Delivered" };
     case "delivered":
       return { type: "view", label: "View" };
     default:

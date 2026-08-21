@@ -94,7 +94,6 @@ export function getAvailableAdminActions(order: Order): OrderAdminAction[] {
   if (status === "pending") actions.push("start_processing");
   if (status === "processing") actions.push("pack");
   if (status === "ready_to_ship") actions.push("ship");
-  if (status === "out_for_delivery") actions.push("mark_delivered");
   if (order.payment_status === "refund_pending") actions.push("mark_refunded");
   return actions;
 }

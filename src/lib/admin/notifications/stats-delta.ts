@@ -16,6 +16,9 @@ function bumpStatus(stats: AdminOrderStatsV2, status: string, delta: number) {
     case "ready_to_ship":
       stats.readyToShip = Math.max(0, stats.readyToShip + delta);
       break;
+    case "shipped":
+      stats.shipped = Math.max(0, stats.shipped + delta);
+      break;
     case "out_for_delivery":
       stats.outForDelivery = Math.max(0, stats.outForDelivery + delta);
       break;

@@ -104,6 +104,7 @@ export type AdminOrderStatsV2 = {
   pending: number;
   processing: number;
   readyToShip: number;
+  shipped: number;
   outForDelivery: number;
   delivered: number;
   cancelled: number;
@@ -125,6 +126,7 @@ export function computeAdminOrderStatsV2(
     pending: 0,
     processing: 0,
     readyToShip: 0,
+    shipped: 0,
     outForDelivery: 0,
     delivered: 0,
     cancelled: 0,
@@ -139,10 +141,11 @@ export function computeAdminOrderStatsV2(
 
   for (const o of orders) {
     const raw = o.status as string;
-    const status = raw === "cod_verification" ? "processing" : raw === "shipped" ? "out_for_delivery" : o.status;
+    const status = raw === "cod_verification" ? "processing" : o.status;
     if (status === "pending") stats.pending++;
     if (status === "processing") stats.processing++;
     if (status === "ready_to_ship") stats.readyToShip++;
+    if (status === "shipped") stats.shipped++;
     if (status === "out_for_delivery") stats.outForDelivery++;
     if (status === "delivered") stats.delivered++;
     if (status === "cancelled") stats.cancelled++;

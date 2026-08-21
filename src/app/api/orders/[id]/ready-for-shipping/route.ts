@@ -51,11 +51,13 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   const status = existing.status as string;
+  const fromStatus = normalizeLegacyStatus(status);
   console.info("[ready-for-shipping route] current status", status);
 
-  if (normalizeLegacyStatus(status) !== "packing_assigned") {
+  const adminReadyFrom = new Set(["confirmed", "packing_assigned", "packed"]);
+  if (!adminReadyFrom.has(fromStatus)) {
     return NextResponse.json(
-      { error: "Only packing orders can be marked ready for shipping" },
+      { error: "Only confirmed, packing, or packed orders can be marked ready for shipping" },
       { status: 400 }
     );
   }
@@ -65,9 +67,10 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: transitionError }, { status: 400 });
   }
 
-  console.info(
-    "[ready-for-shipping route] attempting transition packing_assigned -> ready_for_shipping"
-  );
+  console.info("[ready-for-shipping route] attempting transition", {
+    from: fromStatus,
+    to: "ready_to_ship"
+  });
 
   const now = new Date().toISOString();
   const { data: updated, error } = await db
@@ -77,7 +80,7 @@ export async function POST(_req: Request, { params }: RouteContext) {
       updated_at: now
     })
     .eq("id", id)
-    .eq("status", "packing_assigned")
+    .in("status", ["confirmed", "packing_assigned", "packed"])
     .select("*")
     .maybeSingle();
 
