@@ -31,7 +31,7 @@ export async function GET(req: Request) {
   }
 
   if (mine) {
-    const auth = await requireCustomer();
+    const auth = await requireCustomer(req);
     if (!auth.ok) return auth.response;
 
     const productIds = productIdsParam
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireCustomer();
+  const auth = await requireCustomer(req);
   if (!auth.ok) return auth.response;
 
   const body = (await req.json()) as Partial<CreateReviewInput>;

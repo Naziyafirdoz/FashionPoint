@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const body = await req.json();
   const orderNumber = String(body.orderNumber ?? "").trim();

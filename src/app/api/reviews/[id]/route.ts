@@ -6,7 +6,7 @@ import type { UpdateReviewInput } from "@/lib/reviews/types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: RouteContext) {
-  const auth = await requireCustomer();
+  const auth = await requireCustomer(req);
   if (!auth.ok) return auth.response;
 
   const { id } = await params;

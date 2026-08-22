@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 import {
   canRequestReturn,
@@ -11,14 +11,9 @@ import type { Order, ReturnRequest } from "@/types";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, { params }: RouteContext) {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const db = createServiceClient();
   if (!db) {

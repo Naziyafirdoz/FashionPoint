@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/require-admin";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 import { isAdminUser } from "@/lib/auth/helpers";
 import { resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
@@ -54,15 +54,10 @@ async function attachBranchNameSafely(db: SupabaseClient, order: Order): Promise
   }
 }
 
-export async function GET(_req: Request, { params }: RouteContext) {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(req: Request, { params }: RouteContext) {
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const { id } = await params;
   const db = createServiceClient();

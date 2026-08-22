@@ -1,18 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 import { isReturnTableError, RETURN_MIGRATION_UNAVAILABLE } from "@/lib/orders/returns";
 import type { ReturnRequest } from "@/types";
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(req: Request) {
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const db = createServiceClient();
   if (!db) {

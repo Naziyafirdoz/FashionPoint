@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 import { ADMIN_ORDER_LIST_SELECT } from "@/lib/admin/fetch-all-orders";
 import { isAdminUser } from "@/lib/auth/helpers";
@@ -278,14 +278,9 @@ export async function GET(req: Request) {
   devLog("API ORDERS CALLED");
   devTime("[orders] total");
   try {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) return auth.response;
+  const { user } = auth;
 
   const url = new URL(req.url);
   const tabParam = url.searchParams.get("tab") ?? url.searchParams.get("status");

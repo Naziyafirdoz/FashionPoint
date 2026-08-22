@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyPaymentSignature } from "@/lib/razorpay";
-import { createClient } from "@/lib/supabase/server";
+import { requireRequestUser } from "@/lib/auth/request-user";
 import { createServiceClient } from "@/lib/supabase";
 import { confirmCapturedRazorpayPayment } from "@/lib/checkout/confirm-razorpay-payment";
 import { generateInvoiceNumber } from "@/lib/orders/invoice";
@@ -22,15 +22,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Demo payment is not allowed" }, { status: 400 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await requireRequestUser(req);
+  if (!auth.ok) {
     logWorkflow("payment_verify_failed", { reason: "unauthorized" }, "warn");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return auth.response;
   }
+  const { user } = auth;
 
   const db = createServiceClient();
   if (!db) {
