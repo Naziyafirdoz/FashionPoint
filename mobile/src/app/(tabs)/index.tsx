@@ -12,9 +12,9 @@ import {
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HomeProductCard } from "@/components/home/HomeProductCard";
+import { AppHeader } from "@/components/navigation/AppHeader";
 import { Brand } from "@/constants/brand";
 import { BottomTabInset, MaxContentWidth } from "@/constants/theme";
 import {
@@ -53,8 +53,8 @@ export default function HomeScreen() {
     void load();
   }, [load]);
 
-  const openExplore = () => {
-    router.push("/explore");
+  const openShop = () => {
+    router.push("/shop");
   };
 
   const contentWidth = Math.min(width, MaxContentWidth);
@@ -64,7 +64,7 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={[styles.frame, { maxWidth: MaxContentWidth }]}>
-          <HomeHeader onSearchPress={openExplore} />
+          <AppHeader />
 
           {loading ? (
             <View style={styles.centered}>
@@ -92,7 +92,7 @@ export default function HomeScreen() {
                 />
               }
             >
-              <HomeHero onShopPress={openExplore} />
+              <HomeHero onShopPress={openShop} />
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Collections</Text>
@@ -107,7 +107,7 @@ export default function HomeScreen() {
                     {categories.map((category) => (
                       <Pressable
                         key={category.id}
-                        onPress={openExplore}
+                        onPress={openShop}
                         style={styles.categoryChip}
                       >
                         <Text style={styles.categoryText}>{category.name}</Text>

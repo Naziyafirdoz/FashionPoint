@@ -5,27 +5,53 @@ import {
   TabSlot,
   TabTriggerSlotProps,
   TabListProps,
-} from 'expo-router/ui';
-import { SymbolView } from 'expo-symbols';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+} from "expo-router/ui";
+import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
+import { Pressable, View, StyleSheet, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ExternalLink } from './external-link';
-import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
+import { Brand } from "@/constants/brand";
+import { MaxContentWidth } from "@/constants/theme";
 
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+type TabIconName = {
+  ios: SFSymbol;
+  android: AndroidSymbol;
+  web: AndroidSymbol;
+};
 
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+      <TabSlot style={{ height: "100%" }} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Home</TabButton>
+            <TabButton
+              icon={{ ios: "house.fill", android: "home", web: "home" }}
+            >
+              Home
+            </TabButton>
           </TabTrigger>
-          <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>Explore</TabButton>
+          <TabTrigger name="shop" href="/shop" asChild>
+            <TabButton
+              icon={{ ios: "square.grid.2x2.fill", android: "grid_view", web: "grid_view" }}
+            >
+              Shop
+            </TabButton>
+          </TabTrigger>
+          <TabTrigger name="wishlist" href="/wishlist" asChild>
+            <TabButton
+              icon={{ ios: "heart.fill", android: "favorite", web: "favorite" }}
+            >
+              Wishlist
+            </TabButton>
+          </TabTrigger>
+          <TabTrigger name="account" href="/account" asChild>
+            <TabButton
+              icon={{ ios: "person.fill", android: "person", web: "person" }}
+            >
+              Account
+            </TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -33,83 +59,85 @@ export default function AppTabs() {
   );
 }
 
-export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+function TabButton({
+  children,
+  isFocused,
+  icon,
+  ...props
+}: TabTriggerSlotProps & { icon: TabIconName }) {
+  const color = isFocused ? Brand.maroon : Brand.muted;
+
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-          {children}
-        </ThemedText>
-      </ThemedView>
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: !!isFocused }}
+      style={({ pressed }) => [styles.tabButton, pressed && styles.pressed]}
+    >
+      <SymbolView name={icon} size={22} tintColor={color} />
+      <Text style={[styles.tabLabel, { color }]}>{children}</Text>
+      <View
+        style={[
+          styles.activeMark,
+          { backgroundColor: isFocused ? Brand.gold : "transparent" },
+        ]}
+      />
     </Pressable>
   );
 }
 
-export function CustomTabList(props: TabListProps) {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+function CustomTabList(props: TabListProps) {
+  const insets = useSafeAreaInsets();
 
   return (
-    <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Expo Starter
-        </ThemedText>
-
-        {props.children}
-
-        <ExternalLink href="https://docs.expo.dev" asChild>
-          <Pressable style={styles.externalPressable}>
-            <ThemedText type="link">Docs</ThemedText>
-            <SymbolView
-              tintColor={colors.text}
-              name={{ ios: 'arrow.up.right.square', web: 'link' }}
-              size={12}
-            />
-          </Pressable>
-        </ExternalLink>
-      </ThemedView>
+    <View
+      {...props}
+      style={[
+        styles.tabList,
+        { paddingBottom: Math.max(insets.bottom, 8) },
+      ]}
+    >
+      <View style={styles.inner}>{props.children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  tabListContainer: {
-    position: 'absolute',
-    width: '100%',
-    padding: Spacing.three,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
+  tabList: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    borderTopWidth: 1,
+    borderTopColor: Brand.blushBorder,
+    backgroundColor: Brand.white,
+    alignItems: "center",
   },
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexGrow: 1,
-    gap: Spacing.two,
+  inner: {
+    width: "100%",
     maxWidth: MaxContentWidth,
+    flexDirection: "row",
+    alignItems: "stretch",
   },
-  brandText: {
-    marginRight: 'auto',
+  tabButton: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingTop: 8,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  activeMark: {
+    marginTop: 4,
+    height: 3,
+    width: 18,
+    borderRadius: 999,
   },
   pressed: {
     opacity: 0.7,
-  },
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  externalPressable: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.one,
-    marginLeft: Spacing.three,
   },
 });

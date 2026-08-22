@@ -5,7 +5,7 @@ export const Brand = {
   tagline: "Style. Confidence. You.",
   maroon: "#7B0D2B",
   maroonDeep: "#5C0A21",
-  gold: "#C9A227",
+  gold: "#B8860B",
   goldDeep: "#9A7209",
   ivory: "#FFFBF9",
   blush: "#FFF5F7",
