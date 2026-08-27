@@ -28,9 +28,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FFFBF9",
+          "image": "./assets/brand/fashion-point-logo.png",
+          "imageWidth": 100,
+          "resizeMode": "contain"
         }
       ],
       "expo-secure-store"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,10 @@ import {
   authLabelClassName
 } from "@/components/auth/AuthLayout";
 
+/** Same copy for new unconfirmed signups and obfuscated existing-email responses. */
+const SIGNUP_EMAIL_CONTINUE_MESSAGE =
+  "Check your email to continue. If you already have an account, sign in or reset your password.";
+
 export default function SignupPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
@@ -22,6 +26,15 @@ export default function SignupPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        router.replace("/account/dashboard");
+      }
+    });
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -29,8 +42,18 @@ export default function SignupPage() {
     setSuccess(null);
 
     const supabase = createClient();
+    const {
+      data: { user: existingUser }
+    } = await supabase.auth.getUser();
+    if (existingUser) {
+      router.replace("/account/dashboard");
+      setLoading(false);
+      return;
+    }
+
+    const trimmedEmail = email.trim();
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
         data: { full_name: fullName, phone },
@@ -44,8 +67,9 @@ export default function SignupPage() {
       return;
     }
 
-    if (data.user) {
-      const payload = { userId: data.user.id, email, fullName, phone };
+    const hasAuthIdentity = Boolean(data.user?.identities && data.user.identities.length > 0);
+
+    if (data.user && hasAuthIdentity) {
       if (data.session) {
         await fetch("/api/auth/ensure-customer", {
           method: "POST",
@@ -56,7 +80,12 @@ export default function SignupPage() {
         await fetch("/api/auth/register-customer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            userId: data.user.id,
+            email: trimmedEmail,
+            fullName,
+            phone
+          })
         });
       }
     }
@@ -67,7 +96,7 @@ export default function SignupPage() {
       return;
     }
 
-    setSuccess("Account created! Check your email to confirm, then sign in.");
+    setSuccess(SIGNUP_EMAIL_CONTINUE_MESSAGE);
     setLoading(false);
   }
 

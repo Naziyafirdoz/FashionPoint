@@ -32,6 +32,13 @@ type HomepageBannerUploaderProps = {
   onUploadMetaChange?: (meta: BannerUploadMeta | null) => void;
   onUploadSummaryChange?: (summary: BannerUploadSummary | null) => void;
   disabled?: boolean;
+  emptyStateTitle?: string;
+  removeDialogTitle?: string;
+  removeDialogDescription?: string;
+  previewAlt?: string;
+  previewAspectClass?: string;
+  recommendedSize?: string;
+  aspectRatioLabel?: string;
 };
 
 function isAllowedBannerImage(file: File): boolean {
@@ -176,11 +183,15 @@ function UploadSummaryPanel({ summary }: { summary: BannerUploadSummary }) {
 function RemoveBannerDialog({
   open,
   onCancel,
-  onConfirm
+  onConfirm,
+  title,
+  description
 }: {
   open: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  title: string;
+  description: string;
 }) {
   if (!open) return null;
 
@@ -200,10 +211,10 @@ function RemoveBannerDialog({
         className="relative z-10 w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
       >
         <h3 id="remove-banner-title" className="font-display text-base font-bold text-primary">
-          Remove Homepage Banner?
+          {title}
         </h3>
         <p id="remove-banner-description" className="mt-2 text-sm text-foreground/65">
-          This only removes the banner from this category.
+          {description}
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onCancel} className="btn-outline px-4 py-2 text-sm">
@@ -227,7 +238,14 @@ export function HomepageBannerUploader({
   onChange,
   onUploadMetaChange,
   onUploadSummaryChange,
-  disabled = false
+  disabled = false,
+  emptyStateTitle = "Homepage Banner",
+  removeDialogTitle = "Remove Homepage Banner?",
+  removeDialogDescription = "This only removes the banner from this category.",
+  previewAlt = "Uploaded homepage banner thumbnail",
+  previewAspectClass = "aspect-[16/10]",
+  recommendedSize = "1200 × 600",
+  aspectRatioLabel
 }: HomepageBannerUploaderProps) {
   const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
   const [uploadSummary, setUploadSummary] = useState<BannerUploadSummary | null>(null);
@@ -352,7 +370,7 @@ export function HomepageBannerUploader({
       {hasImage ? (
         <div className="space-y-3">
           <div
-            className={`relative aspect-[16/10] overflow-hidden rounded-lg border bg-white ${
+            className={`relative ${previewAspectClass} overflow-hidden rounded-lg border bg-white ${
               dragOver ? "ring-2 ring-primary/30" : ""
             }`}
             onDragOver={(event) => {
@@ -366,13 +384,13 @@ export function HomepageBannerUploader({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={imageUrl}
-                alt="Uploaded homepage banner thumbnail"
+                alt={previewAlt}
                 className="h-full w-full object-cover"
               />
             ) : (
               <Image
                 src={imageUrl}
-                alt="Uploaded homepage banner thumbnail"
+                alt={previewAlt}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 400px"
@@ -429,9 +447,12 @@ export function HomepageBannerUploader({
             className={`h-6 w-6 text-foreground/40 ${isBusy ? "animate-pulse" : ""}`}
             aria-hidden="true"
           />
-          <p className="mt-2 text-sm font-semibold text-foreground/70">Homepage Banner</p>
+          <p className="mt-2 text-sm font-semibold text-foreground/70">{emptyStateTitle}</p>
           <p className="mt-2 text-xs text-foreground/50">Recommended Size</p>
-          <p className="text-xs font-medium text-foreground/60">1200 × 600</p>
+          <p className="text-xs font-medium text-foreground/60">{recommendedSize}</p>
+          {aspectRatioLabel ? (
+            <p className="mt-1 text-xs font-medium text-foreground/60">{aspectRatioLabel}</p>
+          ) : null}
           <p className="mt-1 text-xs text-foreground/50">PNG / JPG / WEBP</p>
           <p className="text-xs text-foreground/50">Maximum 10 MB</p>
           <p className="mt-3 text-xs font-medium text-primary/80">
@@ -444,6 +465,8 @@ export function HomepageBannerUploader({
         open={removeDialogOpen}
         onCancel={() => setRemoveDialogOpen(false)}
         onConfirm={handleRemove}
+        title={removeDialogTitle}
+        description={removeDialogDescription}
       />
     </div>
   );

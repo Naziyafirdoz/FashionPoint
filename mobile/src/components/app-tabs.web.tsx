@@ -6,6 +6,7 @@ import {
   TabTriggerSlotProps,
   TabListProps,
 } from "expo-router/ui";
+import type { Href } from "expo-router";
 import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
 import { Pressable, View, StyleSheet, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,7 +26,7 @@ export default function AppTabs() {
       <TabSlot style={{ height: "100%" }} />
       <TabList asChild>
         <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
+          <TabTrigger name="home" href={"/" as Href} asChild>
             <TabButton
               icon={{ ios: "house.fill", android: "home", web: "home" }}
             >

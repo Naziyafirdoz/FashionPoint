@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -9,11 +9,16 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CatalogProductCard } from "@/components/catalog/CatalogProductCard";
+import { HomeAnnouncementBar } from "@/components/home/HomeAnnouncementBar";
+import { HomeCollections } from "@/components/home/HomeCollections";
 import { HomeHero } from "@/components/home/HomeHero";
-import { HomeProductCard } from "@/components/home/HomeProductCard";
+import { HomeSectionHeader } from "@/components/home/HomeSectionHeader";
+import { HomeUspStrip } from "@/components/home/HomeUspStrip";
 import { AppHeader } from "@/components/navigation/AppHeader";
 import { Brand } from "@/constants/brand";
 import { BottomTabInset, MaxContentWidth } from "@/constants/theme";
@@ -23,6 +28,8 @@ import {
   type HomeProduct,
 } from "@/lib/home-data";
 
+const TRENDING_BG = require("@/assets/home/trending-now-bg.png");
+
 export default function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -31,6 +38,8 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<HomeCategory[]>([]);
   const [products, setProducts] = useState<HomeProduct[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+  const collectionsOffsetY = useRef(0);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -53,17 +62,29 @@ export default function HomeScreen() {
     void load();
   }, [load]);
 
-  const openShop = () => {
-    router.push("/shop");
+  const scrollToCollections = () => {
+    scrollRef.current?.scrollTo({
+      y: collectionsOffsetY.current,
+      animated: true,
+    });
   };
 
+  const openCategory = (category: HomeCategory) => {
+    router.push(`/category/${encodeURIComponent(category.slug)}` as Href);
+  };
+
+  const openStyle = () => router.push("/ai/style" as Href);
+  const openSize = () => router.push("/ai/size" as Href);
+  const openColor = () => router.push("/ai/color" as Href);
+
   const contentWidth = Math.min(width, MaxContentWidth);
-  const cardWidth = (contentWidth - 40 - 12) / 2;
+  const cardWidth = (contentWidth - 32 - 12) / 2;
 
   return (
     <View style={styles.screen}>
       <SafeAreaView style={styles.safe} edges={["top"]}>
         <View style={[styles.frame, { maxWidth: MaxContentWidth }]}>
+          <HomeAnnouncementBar />
           <AppHeader />
 
           {loading ? (
@@ -81,6 +102,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <ScrollView
+              ref={scrollRef}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
               refreshControl={
@@ -92,40 +114,43 @@ export default function HomeScreen() {
                 />
               }
             >
-              <HomeHero onShopPress={openShop} />
+              <HomeHero
+                onShopPress={scrollToCollections}
+                onStylePress={openStyle}
+                onSizePress={openSize}
+                onColorPress={openColor}
+              />
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Collections</Text>
-                {categories.length === 0 ? (
-                  <Text style={styles.emptyText}>Collections will appear here soon.</Text>
-                ) : (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryRow}
-                  >
-                    {categories.map((category) => (
-                      <Pressable
-                        key={category.id}
-                        onPress={openShop}
-                        style={styles.categoryChip}
-                      >
-                        <Text style={styles.categoryText}>{category.name}</Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                )}
+              <View
+                style={styles.collectionsBlock}
+                onLayout={(event) => {
+                  collectionsOffsetY.current = event.nativeEvent.layout.y;
+                }}
+              >
+                <Image source={require("@/assets/home/explore-collections-bg.png")} style={StyleSheet.absoluteFill} contentFit="cover" />
+                <HomeSectionHeader
+                  dividerFirst
+                  title="Explore Our Collections"
+                  subtitle="Discover beautifully crafted ready-made blouse collections for every occasion."
+                />
+                <HomeCollections
+                  categories={categories}
+                  onCategoryPress={openCategory}
+                />
               </View>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Trending now</Text>
+              <HomeUspStrip />
+
+              <View style={styles.trendingBlock}>
+                <Image source={TRENDING_BG} style={StyleSheet.absoluteFill} contentFit="cover" />
+                <HomeSectionHeader title="Trending Now" />
                 {products.length === 0 ? (
-                  <Text style={styles.emptyText}>New blouses are being added to the boutique.</Text>
+                  <Text style={styles.emptyText}>No products available.</Text>
                 ) : (
                   <View style={styles.grid}>
                     {products.map((product) => (
                       <View key={product.id} style={{ width: cardWidth }}>
-                        <HomeProductCard product={product} />
+                        <CatalogProductCard product={product} />
                       </View>
                     ))}
                   </View>
@@ -153,8 +178,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   scrollContent: {
-    paddingBottom: BottomTabInset + 24,
-    gap: 8,
+    paddingBottom: BottomTabInset + 16,
   },
   centered: {
     flex: 1,
@@ -187,39 +211,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 13,
   },
-  section: {
-    marginTop: 28,
-    paddingHorizontal: 20,
+  collectionsBlock: {
+    position: "relative",
+    overflow: "hidden",
+    paddingTop: 28,
+    paddingBottom: 12,
+    backgroundColor: "#FFF8F5",
   },
-  sectionTitle: {
-    fontFamily: Brand.displayFont,
-    fontSize: 22,
-    color: Brand.maroon,
-    marginBottom: 14,
+  trendingBlock: {
+    position: "relative",
+    paddingTop: 28,
+    paddingBottom: 32,
+    overflow: "hidden",
   },
   emptyText: {
+    marginTop: 16,
+    paddingHorizontal: 20,
     fontSize: 14,
     color: Brand.muted,
-    lineHeight: 20,
-  },
-  categoryRow: {
-    gap: 8,
-    paddingRight: 8,
-  },
-  categoryChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Brand.blushBorder,
-    backgroundColor: Brand.white,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  categoryText: {
-    color: Brand.maroon,
-    fontSize: 13,
-    fontWeight: "600",
+    textAlign: "center",
   },
   grid: {
+    marginTop: 18,
+    paddingHorizontal: 16,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   AuthError,
@@ -12,13 +12,40 @@ import {
   authLabelClassName
 } from "@/components/auth/AuthLayout";
 
-export default function ResetPasswordPage() {
+const INVALID_RESET_MESSAGE =
+  "This reset link is invalid or has expired. Request a new link and try again.";
+
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error");
+
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionValid, setSessionValid] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      if (cancelled) return;
+      const valid = Boolean(user);
+      setSessionValid(valid);
+      setSessionReady(true);
+      if (!valid) {
+        setError(INVALID_RESET_MESSAGE);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlError]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,6 +64,17 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     const supabase = createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setSessionValid(false);
+      setError(INVALID_RESET_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
@@ -50,6 +88,30 @@ export default function ResetPasswordPage() {
       router.push("/account/dashboard");
       router.refresh();
     }, 1500);
+  }
+
+  if (!sessionReady) {
+    return (
+      <AuthLayout title="Reset Password" subtitle="Enter your new password">
+        <p className="text-sm text-foreground/70">Checking your reset link…</p>
+      </AuthLayout>
+    );
+  }
+
+  if (!sessionValid) {
+    return (
+      <AuthLayout
+        title="Reset Password"
+        subtitle="Enter your new password"
+        footer={
+          <Link href="/forgot-password" className="font-medium text-primary hover:underline">
+            Request a new reset link
+          </Link>
+        }
+      >
+        <AuthError message={error ?? INVALID_RESET_MESSAGE} />
+      </AuthLayout>
+    );
   }
 
   return (
@@ -95,10 +157,18 @@ export default function ResetPasswordPage() {
             className={authInputClassName()}
           />
         </div>
-        <button type="submit" disabled={loading} className="btn-primary w-full">
+        <button type="submit" disabled={loading || Boolean(success)} className="btn-primary w-full">
           {loading ? "Updating…" : "Update Password"}
         </button>
       </form>
     </AuthLayout>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="py-24 text-center text-sm">Loading…</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

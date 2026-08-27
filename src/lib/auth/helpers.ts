@@ -24,7 +24,10 @@ export async function ensureCustomerRecord(params: {
     phone: params.phone ?? null
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    if (error.code === "23505") return { ok: true, created: false };
+    return { ok: false, error: error.message };
+  }
   return { ok: true, created: true };
 }
 

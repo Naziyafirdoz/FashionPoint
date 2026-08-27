@@ -23,8 +23,15 @@ export default function ForgotPasswordPage() {
     setError(null);
     setSuccess(null);
 
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError("Please enter a valid email.");
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
       redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`
     });
 

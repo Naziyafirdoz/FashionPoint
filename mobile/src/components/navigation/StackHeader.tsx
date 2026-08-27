@@ -1,14 +1,15 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { SymbolView } from "expo-symbols";
 
 import { Brand } from "@/constants/brand";
 
 type StackHeaderProps = {
   title: string;
+  fallbackHref?: Href;
 };
 
-export function StackHeader({ title }: StackHeaderProps) {
+export function StackHeader({ title, fallbackHref = "/" as Href }: StackHeaderProps) {
   const router = useRouter();
 
   const goBack = () => {
@@ -17,7 +18,7 @@ export function StackHeader({ title }: StackHeaderProps) {
       return;
     }
 
-    router.replace("/");
+    router.replace(fallbackHref);
   };
 
   return (
