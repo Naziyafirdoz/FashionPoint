@@ -29,15 +29,7 @@ import {
   isValidFullName,
   isValidIndianMobile
 } from "@/lib/checkout/contact-validation";
-import {
-  STORE_ADDRESS,
-  STORE_ADDRESS_SHORT,
-  STORE_NAME,
-  STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_TEL_PRIMARY,
-  STORE_WHATSAPP_URL,
-  SUPPORT_EMAIL
-} from "@/lib/site-config";
+import { STORE_ADDRESS_SHORT } from "@/lib/site-config";
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -46,36 +38,47 @@ const fadeUp = {
   transition: { duration: 0.5, ease: "easeOut" as const }
 };
 
-const CONTACT_CARDS = [
-  {
-    icon: MapPin,
-    title: "Store Address",
-    content: STORE_ADDRESS,
-    href: "https://www.google.com/maps/search/?api=1&query=Fashion+Point+Vijayawada",
-    linkLabel: "Get directions"
-  },
-  {
-    icon: Phone,
-    title: "Phone",
-    content: STORE_PHONE_PRIMARY_DISPLAY,
-    href: STORE_TEL_PRIMARY,
-    linkLabel: "Call now"
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    content: SUPPORT_EMAIL,
-    href: `mailto:${SUPPORT_EMAIL}`,
-    linkLabel: "Send email"
-  },
-  {
-    icon: Clock,
-    title: "Business Hours",
-    content: "Mon – Sat: 10:00 AM – 8:00 PM\nSunday: Closed",
-    href: undefined,
-    linkLabel: undefined
-  }
-] as const;
+type ContactPageContentProps = {
+  storeName: string;
+  address: string;
+  phoneDisplay: string;
+  telUrl: string;
+  supportEmail: string;
+  whatsappUrl: string;
+};
+
+function buildContactCards(store: Pick<ContactPageContentProps, "address" | "phoneDisplay" | "telUrl" | "supportEmail">) {
+  return [
+    {
+      icon: MapPin,
+      title: "Store Address",
+      content: store.address,
+      href: "https://www.google.com/maps/search/?api=1&query=Fashion+Point+Vijayawada",
+      linkLabel: "Get directions"
+    },
+    {
+      icon: Phone,
+      title: "Phone",
+      content: store.phoneDisplay,
+      href: store.telUrl,
+      linkLabel: "Call now"
+    },
+    {
+      icon: Mail,
+      title: "Email",
+      content: store.supportEmail,
+      href: `mailto:${store.supportEmail}`,
+      linkLabel: "Send email"
+    },
+    {
+      icon: Clock,
+      title: "Business Hours",
+      content: "Mon – Sat: 10:00 AM – 8:00 PM\nSunday: Closed",
+      href: undefined,
+      linkLabel: undefined
+    }
+  ] as const;
+}
 
 const WHY_CONTACT = [
   {
@@ -147,7 +150,7 @@ const INITIAL_FORM: FormFields = {
   message: ""
 };
 
-function ContactForm() {
+function ContactForm({ supportEmail }: { supportEmail: string }) {
   const [form, setForm] = useState<FormFields>(INITIAL_FORM);
   const [state, setState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -192,7 +195,7 @@ function ContactForm() {
       form.message.trim()
     ].join("\n");
 
-    const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(form.subject.trim())}&body=${encodeURIComponent(body)}`;
+    const mailto = `mailto:${supportEmail}?subject=${encodeURIComponent(form.subject.trim())}&body=${encodeURIComponent(body)}`;
 
     await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -202,7 +205,7 @@ function ContactForm() {
       setForm(INITIAL_FORM);
     } catch {
       setState("error");
-      setErrorMessage("Unable to open your email app. Please email us directly at " + SUPPORT_EMAIL);
+      setErrorMessage("Unable to open your email app. Please email us directly at " + supportEmail);
     }
   }
 
@@ -309,7 +312,7 @@ function ContactForm() {
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           Thank you! Your email app should open with your message ready to send. If it didn&apos;t open,
-          please email us at {SUPPORT_EMAIL}.
+          please email us at {supportEmail}.
         </p>
       ) : null}
 
@@ -388,7 +391,15 @@ function FaqAccordion() {
   );
 }
 
-export function ContactPageContent() {
+export function ContactPageContent({
+  storeName,
+  address,
+  phoneDisplay,
+  telUrl,
+  supportEmail,
+  whatsappUrl
+}: ContactPageContentProps) {
+  const contactCards = buildContactCards({ address, phoneDisplay, telUrl, supportEmail });
   return (
     <div className="bg-background">
       {/* 1. Hero */}
@@ -433,7 +444,7 @@ export function ContactPageContent() {
               id="contact-hero-heading"
               className="font-display text-4xl font-bold leading-tight text-primary sm:text-5xl"
             >
-              Contact {STORE_NAME}
+              Contact {storeName}
             </h1>
             <p className="mt-4 text-base leading-relaxed text-foreground/75 sm:text-lg">
               We&apos;re here to help you choose the perfect ready-made blouse.
@@ -448,7 +459,7 @@ export function ContactPageContent() {
           Contact information
         </h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {CONTACT_CARDS.map((card, index) => {
+          {contactCards.map((card, index) => {
             const Icon = card.icon;
             return (
               <motion.article
@@ -493,7 +504,7 @@ export function ContactPageContent() {
               Fill in the form below and we&apos;ll get back to you as soon as possible.
             </p>
             <div className="mt-8 rounded-3xl border border-accent/15 bg-gradient-to-br from-white to-blush/30 p-6 shadow-card sm:p-8">
-              <ContactForm />
+              <ContactForm supportEmail={supportEmail} />
             </div>
           </motion.div>
 
@@ -515,7 +526,7 @@ export function ContactPageContent() {
                 Mon – Sat · 10:00 AM – 8:00 PM
               </p>
               <a
-                href={STORE_WHATSAPP_URL}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#20bd5a] sm:w-auto"
@@ -563,7 +574,7 @@ export function ContactPageContent() {
             className="rounded-3xl border border-accent/15 bg-white p-6 shadow-card sm:p-8"
           >
             <h3 className="font-display text-xl font-semibold text-primary">Visit Our Store</h3>
-            <p className="mt-4 text-sm leading-relaxed text-foreground/75">{STORE_ADDRESS}</p>
+            <p className="mt-4 text-sm leading-relaxed text-foreground/75">{address}</p>
             <ul className="mt-6 space-y-4 text-sm text-foreground/70">
               <li className="flex gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
@@ -684,7 +695,7 @@ export function ContactPageContent() {
               Browse Collection
             </Button>
             <a
-              href={STORE_WHATSAPP_URL}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/50 bg-transparent px-7 text-base font-medium text-white transition hover:bg-white/10"

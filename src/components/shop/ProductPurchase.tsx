@@ -11,9 +11,16 @@ import { useCartStore } from "@/stores/cart";
 import { useCheckoutSession } from "@/stores/checkout-session";
 import { AiSizeHint } from "@/components/ai/AiSizeHint";
 import { AiSareeMatchHint } from "@/components/ai/AiSareeMatchHint";
-import { STORE_NAME, STORE_WHATSAPP_URL } from "@/lib/site-config";
 
-export function ProductPurchase({ product }: { product: Product }) {
+export function ProductPurchase({
+  product,
+  storeName,
+  whatsappUrl
+}: {
+  product: Product;
+  storeName: string;
+  whatsappUrl: string;
+}) {
   const [size, setSize] = useState<number>(product.sizes[0] ?? 36);
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -124,7 +131,7 @@ export function ProductPurchase({ product }: { product: Product }) {
           </div>
         </div>
         <a
-          href={`${STORE_WHATSAPP_URL}?text=${encodeURIComponent(`Hi ${STORE_NAME}, I want to order this blouse.`)}`}
+          href={`${whatsappUrl}?text=${encodeURIComponent(`Hi ${storeName}, I want to order this blouse.`)}`}
           className="inline-flex items-center gap-2 rounded-full px-4 py-2 border border-blush-100 bg-white/80 hover:bg-white transition text-sm text-maroon"
         >
           <MessageCircle className="h-4 w-4" />

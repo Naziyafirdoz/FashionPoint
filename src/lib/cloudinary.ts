@@ -22,6 +22,7 @@ export async function uploadImage(
   return result.secure_url;
 }
 
+export const CAMPAIGN_CLOUDINARY_FOLDER = "fashionpoint/campaigns";
 export const DTDC_CLOUDINARY_FOLDER = "fashionpoint/dtdc";
 
 const DTDC_OPTIMIZATION = {
@@ -39,6 +40,17 @@ function isHttpsCloudinaryUrl(url: string | undefined): url is string {
   } catch {
     return false;
   }
+}
+
+export async function uploadCampaignHeroImage(file: string): Promise<string | null> {
+  if (!configured) return null;
+
+  const result = await cloudinary.uploader.upload(file, {
+    folder: CAMPAIGN_CLOUDINARY_FOLDER,
+    resource_type: "image"
+  });
+
+  return isHttpsCloudinaryUrl(result.secure_url) ? result.secure_url : null;
 }
 
 /** Upload a DTDC parcel photo: longest side ≤ 2000px, quality 85, no upscale. */

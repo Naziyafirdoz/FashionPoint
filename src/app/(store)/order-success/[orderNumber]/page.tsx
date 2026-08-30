@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { OrderSuccessView } from "@/components/store/OrderSuccessView";
+import { getStoreInformation } from "@/lib/settings/store-information";
 import type { Order } from "@/types";
 
 export const metadata = { title: "Order Placed" };
@@ -11,6 +12,7 @@ type PageProps = {
 export default async function OrderSuccessByNumberPage({ params }: PageProps) {
   const { orderNumber } = await params;
   const trimmed = orderNumber.trim();
+  const { storeName } = await getStoreInformation();
 
   const supabase = await createClient();
   const {
@@ -32,5 +34,12 @@ export default async function OrderSuccessByNumberPage({ params }: PageProps) {
     }
   }
 
-  return <OrderSuccessView order={order} hasOrderRef={Boolean(trimmed)} orderNumber={trimmed} />;
+  return (
+    <OrderSuccessView
+      order={order}
+      hasOrderRef={Boolean(trimmed)}
+      orderNumber={trimmed}
+      storeName={storeName}
+    />
+  );
 }

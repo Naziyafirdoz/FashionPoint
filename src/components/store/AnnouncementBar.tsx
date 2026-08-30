@@ -1,10 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Award, MessageCircle, Phone, Users } from "lucide-react";
-import {
-  STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_TEL_PRIMARY
-} from "@/lib/site-config";
 
 const ICON_CLASS =
   "h-4 w-4 shrink-0 text-[#D4AF37] transition-colors duration-200 group-hover:text-[#F0D78C] md:h-[1.125rem] md:w-[1.125rem]";
@@ -47,7 +43,16 @@ function IndiaFlagIcon({ className }: { className?: string }) {
   );
 }
 
-function AnnouncementItems({ interactive = true }: { interactive?: boolean }) {
+type AnnouncementPhoneProps = {
+  phoneDisplay: string;
+  telUrl: string;
+};
+
+function AnnouncementItems({
+  interactive = true,
+  phoneDisplay,
+  telUrl
+}: { interactive?: boolean } & AnnouncementPhoneProps) {
   const phoneClassName =
     "group flex min-h-[44px] min-w-0 shrink-0 items-center gap-2 whitespace-nowrap text-white transition-opacity duration-200 hover:opacity-95 md:min-h-0 md:flex-1 md:justify-center";
   const helpClassName =
@@ -57,7 +62,7 @@ function AnnouncementItems({ interactive = true }: { interactive?: boolean }) {
     <>
       <Phone className={ICON_CLASS} aria-hidden />
       <span className="text-[11px] font-medium tracking-wide sm:text-xs md:text-sm">
-        {STORE_PHONE_PRIMARY_DISPLAY}
+        {phoneDisplay}
       </span>
     </>
   );
@@ -100,9 +105,9 @@ function AnnouncementItems({ interactive = true }: { interactive?: boolean }) {
 
       {interactive ? (
         <a
-          href={STORE_TEL_PRIMARY}
+          href={telUrl}
           className={`${phoneClassName} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F0D78C]`}
-          aria-label={`Call us at ${STORE_PHONE_PRIMARY_DISPLAY}`}
+          aria-label={`Call us at ${phoneDisplay}`}
         >
           {phoneContent}
         </a>
@@ -130,7 +135,7 @@ function AnnouncementItems({ interactive = true }: { interactive?: boolean }) {
 const ITEM_GROUP_CLASS =
   "announcement-marquee-group flex min-w-full shrink-0 items-center gap-3 px-3 sm:px-4 md:justify-between md:gap-0";
 
-export function AnnouncementBar() {
+export function AnnouncementBar({ phoneDisplay, telUrl }: AnnouncementPhoneProps) {
   return (
     <header
       className="relative w-full overflow-hidden border-b border-black/10 bg-gradient-to-r from-[#5C0A20] via-[#7B0D2B] to-[#9B1428] text-white shadow-[0_2px_12px_rgba(91,10,32,0.25)]"
@@ -140,10 +145,10 @@ export function AnnouncementBar() {
         className="announcement-marquee-viewport mx-auto flex h-auto min-h-[52px] max-w-7xl items-center overflow-hidden py-2 motion-reduce:overflow-x-auto motion-reduce:[-ms-overflow-style:none] motion-reduce:[scrollbar-width:none] sm:min-h-[56px] md:h-[60px] md:min-h-[60px] md:py-0 motion-reduce:md:overflow-hidden [&::-webkit-scrollbar]:hidden"
       >
         <div className={ITEM_GROUP_CLASS}>
-          <AnnouncementItems />
+          <AnnouncementItems phoneDisplay={phoneDisplay} telUrl={telUrl} />
         </div>
         <div className={`${ITEM_GROUP_CLASS} announcement-marquee-clone`} aria-hidden="true" inert>
-          <AnnouncementItems interactive={false} />
+          <AnnouncementItems interactive={false} phoneDisplay={phoneDisplay} telUrl={telUrl} />
         </div>
       </div>
     </header>

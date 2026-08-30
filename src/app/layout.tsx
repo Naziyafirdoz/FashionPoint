@@ -3,7 +3,8 @@ import "./globals.css";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { Analytics } from "@/components/analytics/Analytics";
-import { SITE_URL, STORE_NAME } from "@/lib/site-config";
+import { SITE_URL } from "@/lib/site-config";
+import { getStoreInformation } from "@/lib/settings/store-information";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -15,23 +16,27 @@ const inter = Inter({
   variable: "--font-sans"
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: `${STORE_NAME} | Premium Ready-Made Indian Blouses`,
-    template: `%s | ${STORE_NAME}`
-  },
-  description:
-    "Shop premium readymade blouses — daily wear, designer & party collections. AI size finder, saree color matcher & style assistant.",
-  metadataBase: new URL(SITE_URL),
-  openGraph: {
-    title: STORE_NAME,
-    description: "Premium readymade Indian blouses with AI-powered shopping",
-    type: "website",
-    siteName: STORE_NAME
-  },
-  twitter: { card: "summary_large_image", title: STORE_NAME },
-  robots: { index: true, follow: true }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { storeName } = await getStoreInformation();
+
+  return {
+    title: {
+      default: `${storeName} | Premium Ready-Made Indian Blouses`,
+      template: `%s | ${storeName}`
+    },
+    description:
+      "Shop premium readymade blouses — daily wear, designer & party collections. AI size finder, saree color matcher & style assistant.",
+    metadataBase: new URL(SITE_URL),
+    openGraph: {
+      title: storeName,
+      description: "Premium readymade Indian blouses with AI-powered shopping",
+      type: "website",
+      siteName: storeName
+    },
+    twitter: { card: "summary_large_image", title: storeName },
+    robots: { index: true, follow: true }
+  };
+}
 
 export default function RootLayout({
   children

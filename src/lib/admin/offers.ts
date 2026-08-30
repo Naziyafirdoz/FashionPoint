@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  assertCatalogTargetIdsExist,
+  parseCatalogTargeting
+} from "@/lib/admin/catalog-targeting";
 import type { OfferDiscountType, OfferScope } from "@/lib/offers/types";
+
+export { uniqueIds, findMissingIds } from "@/lib/admin/catalog-targeting";
 
 export type AdminOfferStatus = "disabled" | "scheduled" | "active" | "expired";
 
@@ -11,7 +17,7 @@ export type AdminOfferRow = {
   discount_value: number;
   scope: OfferScope;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
   is_enabled: boolean;
   banner_image_url: string | null;
   created_at: string;
@@ -26,9 +32,8 @@ export type AdminOfferDto = {
   discountValue: number;
   scope: OfferScope;
   startsAt: string;
-  endsAt: string;
+  endsAt: string | null;
   isEnabled: boolean;
-  bannerImageUrl: string | null;
   productIds: string[];
   categoryIds: string[];
   status: AdminOfferStatus;
@@ -43,9 +48,8 @@ export type AdminOfferUpsertInput = {
   discountValue: number;
   scope: OfferScope;
   startsAt: Date;
-  endsAt: Date;
+  endsAt: Date | null;
   isEnabled: boolean;
-  bannerImageUrl: string | null;
   productIds: string[];
   categoryIds: string[];
 };
@@ -56,7 +60,6 @@ type OfferTargeting = {
 };
 
 const DISCOUNT_TYPES = new Set<OfferDiscountType>(["percentage", "fixed_amount"]);
-const SCOPES = new Set<OfferScope>(["product", "category"]);
 const STATUSES = new Set<AdminOfferStatus>(["disabled", "scheduled", "active", "expired"]);
 
 const CLIENT_READ_ERROR = "Unable to load offers. Please try again.";
@@ -75,43 +78,24 @@ function isDiscountType(value: string): value is OfferDiscountType {
   return DISCOUNT_TYPES.has(value as OfferDiscountType);
 }
 
-function isScope(value: string): value is OfferScope {
-  return SCOPES.has(value as OfferScope);
-}
-
 export function isAdminOfferStatus(value: string): value is AdminOfferStatus {
   return STATUSES.has(value as AdminOfferStatus);
 }
 
 export function deriveOfferStatus(
-  offer: { isEnabled: boolean; startsAt: Date | string; endsAt: Date | string },
+  offer: { isEnabled: boolean; startsAt: Date | string; endsAt: Date | string | null },
   now: Date = new Date()
 ): AdminOfferStatus {
   if (!offer.isEnabled) return "disabled";
 
   const startsAt = offer.startsAt instanceof Date ? offer.startsAt : new Date(offer.startsAt);
-  const endsAt = offer.endsAt instanceof Date ? offer.endsAt : new Date(offer.endsAt);
   const nowMs = now.getTime();
 
   if (nowMs < startsAt.getTime()) return "scheduled";
+  if (offer.endsAt == null || offer.endsAt === "") return "active";
+  const endsAt = offer.endsAt instanceof Date ? offer.endsAt : new Date(offer.endsAt);
   if (nowMs > endsAt.getTime()) return "expired";
   return "active";
-}
-
-export function uniqueIds(ids: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const id of ids) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    result.push(id);
-  }
-  return result;
-}
-
-export function findMissingIds(requested: string[], existing: string[]): string[] {
-  const present = new Set(existing);
-  return requested.filter((id) => !present.has(id));
 }
 
 function asTrimmedString(value: unknown): string | null {
@@ -119,32 +103,15 @@ function asTrimmedString(value: unknown): string | null {
   return value.trim();
 }
 
-function parseIdList(value: unknown, field: string): { ok: true; ids: string[] } | { ok: false; error: string } {
-  if (value == null) return { ok: true, ids: [] };
-  if (!Array.isArray(value)) {
-    return { ok: false, error: `${field} must be an array of IDs` };
-  }
-
-  const ids: string[] = [];
-  for (const item of value) {
-    if (typeof item !== "string") {
-      return { ok: false, error: `${field} must contain only string IDs` };
-    }
-    const trimmed = item.trim();
-    if (!trimmed) {
-      return { ok: false, error: `${field} cannot include blank IDs` };
-    }
-    ids.push(trimmed);
-  }
-
-  return { ok: true, ids: uniqueIds(ids) };
+function isEmptyDateInput(value: unknown): boolean {
+  if (value == null || value === "") return true;
+  return typeof value === "string" && value.trim() === "";
 }
 
-function parseRequiredDate(value: unknown, field: string): { ok: true; date: Date } | { ok: false; error: string } {
-  if (value == null || value === "") {
-    return { ok: false, error: `${field} is required` };
-  }
-
+function parseDateValue(
+  value: unknown,
+  field: string
+): { ok: true; date: Date } | { ok: false; error: string } {
   const date = value instanceof Date ? value : new Date(typeof value === "string" ? value : String(value));
   if (Number.isNaN(date.getTime())) {
     return { ok: false, error: `${field} must be a valid date` };
@@ -152,21 +119,16 @@ function parseRequiredDate(value: unknown, field: string): { ok: true; date: Dat
   return { ok: true, date };
 }
 
-function parseOptionalBannerUrl(
-  value: unknown
-): { ok: true; url: string | null } | { ok: false; error: string } {
-  if (value == null || value === "") {
-    return { ok: true, url: null };
+function parseRequiredDate(value: unknown, field: string): { ok: true; date: Date } | { ok: false; error: string } {
+  if (isEmptyDateInput(value)) {
+    return { ok: false, error: `${field} is required` };
   }
-  if (typeof value !== "string") {
-    return { ok: false, error: "bannerImageUrl must be a string or null" };
-  }
-  const trimmed = value.trim();
-  return { ok: true, url: trimmed || null };
+  return parseDateValue(value, field);
 }
 
 export function parseOfferUpsertInput(
-  body: unknown
+  body: unknown,
+  now: Date = new Date()
 ): { ok: true; input: AdminOfferUpsertInput } | { ok: false; error: string } {
   if (!body || typeof body !== "object") {
     return { ok: false, error: "Invalid offer payload" };
@@ -206,18 +168,37 @@ export function parseOfferUpsertInput(
     return { ok: false, error: "Percentage discount cannot be greater than 100" };
   }
 
-  const scopeRaw =
-    typeof row.scope === "string" ? row.scope : "";
-  if (!isScope(scopeRaw)) {
-    return { ok: false, error: "Scope must be product or category" };
+  const scheduleRaw = row.scheduleType ?? row.schedule_type;
+  if (scheduleRaw != null && scheduleRaw !== "" && scheduleRaw !== "limited" && scheduleRaw !== "ongoing") {
+    return { ok: false, error: "scheduleType must be limited or ongoing" };
   }
 
-  const startsAtResult = parseRequiredDate(row.startsAt ?? row.starts_at, "startsAt");
-  if (!startsAtResult.ok) return startsAtResult;
-  const endsAtResult = parseRequiredDate(row.endsAt ?? row.ends_at, "endsAt");
-  if (!endsAtResult.ok) return endsAtResult;
-  if (endsAtResult.date.getTime() <= startsAtResult.date.getTime()) {
-    return { ok: false, error: "endsAt must be later than startsAt" };
+  const startsRaw = row.startsAt ?? row.starts_at;
+  const endsRaw = row.endsAt ?? row.ends_at;
+  const isOngoing = scheduleRaw === "ongoing" || (scheduleRaw !== "limited" && isEmptyDateInput(endsRaw));
+
+  let startsAt: Date;
+  let endsAt: Date | null;
+
+  if (isOngoing) {
+    if (isEmptyDateInput(startsRaw)) {
+      startsAt = now;
+    } else {
+      const startsAtResult = parseDateValue(startsRaw, "startsAt");
+      if (!startsAtResult.ok) return startsAtResult;
+      startsAt = startsAtResult.date;
+    }
+    endsAt = null;
+  } else {
+    const startsAtResult = parseRequiredDate(startsRaw, "startsAt");
+    if (!startsAtResult.ok) return startsAtResult;
+    const endsAtResult = parseRequiredDate(endsRaw, "endsAt");
+    if (!endsAtResult.ok) return endsAtResult;
+    if (endsAtResult.date.getTime() <= startsAtResult.date.getTime()) {
+      return { ok: false, error: "endsAt must be later than startsAt" };
+    }
+    startsAt = startsAtResult.date;
+    endsAt = endsAtResult.date;
   }
 
   const isEnabledRaw = row.isEnabled ?? row.is_enabled;
@@ -226,29 +207,8 @@ export function parseOfferUpsertInput(
   }
   const isEnabled = isEnabledRaw === true;
 
-  const productList = parseIdList(row.productIds ?? row.product_ids, "productIds");
-  if (!productList.ok) return productList;
-  const categoryList = parseIdList(row.categoryIds ?? row.category_ids, "categoryIds");
-  if (!categoryList.ok) return categoryList;
-
-  const bannerResult = parseOptionalBannerUrl(row.bannerImageUrl ?? row.banner_image_url);
-  if (!bannerResult.ok) return bannerResult;
-
-  if (scopeRaw === "product") {
-    if (productList.ids.length === 0) {
-      return { ok: false, error: "Select at least one product for a product offer" };
-    }
-    if (categoryList.ids.length > 0) {
-      return { ok: false, error: "Category targeting cannot be used on a product offer" };
-    }
-  } else {
-    if (categoryList.ids.length === 0) {
-      return { ok: false, error: "Select at least one category for a category offer" };
-    }
-    if (productList.ids.length > 0) {
-      return { ok: false, error: "Product targeting cannot be used on a category offer" };
-    }
-  }
+  const targeting = parseCatalogTargeting(row, "offer");
+  if (!targeting.ok) return targeting;
 
   return {
     ok: true,
@@ -257,13 +217,12 @@ export function parseOfferUpsertInput(
       description,
       discountType: discountTypeRaw,
       discountValue,
-      scope: scopeRaw,
-      startsAt: startsAtResult.date,
-      endsAt: endsAtResult.date,
+      scope: targeting.targeting.scope,
+      startsAt,
+      endsAt,
       isEnabled,
-      bannerImageUrl: bannerResult.url,
-      productIds: productList.ids,
-      categoryIds: categoryList.ids
+      productIds: targeting.targeting.productIds,
+      categoryIds: targeting.targeting.categoryIds
     }
   };
 }
@@ -282,9 +241,8 @@ export function toAdminOfferDto(
     discountValue,
     scope: row.scope,
     startsAt: row.starts_at,
-    endsAt: row.ends_at,
+    endsAt: row.ends_at ?? null,
     isEnabled: row.is_enabled === true,
-    bannerImageUrl: row.banner_image_url?.trim() || null,
     productIds: targeting.productIds,
     categoryIds: targeting.categoryIds,
     status: deriveOfferStatus(
@@ -304,9 +262,8 @@ function offerWriteRow(input: AdminOfferUpsertInput, updatedAt?: Date) {
     discount_value: input.discountValue,
     scope: input.scope,
     starts_at: input.startsAt.toISOString(),
-    ends_at: input.endsAt.toISOString(),
-    is_enabled: input.isEnabled,
-    banner_image_url: input.bannerImageUrl
+    ends_at: input.endsAt ? input.endsAt.toISOString() : null,
+    is_enabled: input.isEnabled
   };
   if (updatedAt) row.updated_at = updatedAt.toISOString();
   return row;
@@ -356,35 +313,7 @@ export async function assertTargetIdsExist(
   db: SupabaseClient,
   input: AdminOfferUpsertInput
 ): Promise<{ ok: true } | { ok: false; error: string; status: 400 | 500 }> {
-  if (input.scope === "product") {
-    const { data, error } = await db.from("products").select("id").in("id", input.productIds);
-    if (error) {
-      logOfferAdminError("verify_products_failed", { code: error.code, message: error.message });
-      return { ok: false, error: CLIENT_WRITE_ERROR, status: 500 };
-    }
-    const missing = findMissingIds(
-      input.productIds,
-      (data ?? []).map((row) => row.id as string)
-    );
-    if (missing.length > 0) {
-      return { ok: false, error: "One or more selected products were not found", status: 400 };
-    }
-    return { ok: true };
-  }
-
-  const { data, error } = await db.from("categories").select("id").in("id", input.categoryIds);
-  if (error) {
-    logOfferAdminError("verify_categories_failed", { code: error.code, message: error.message });
-    return { ok: false, error: CLIENT_WRITE_ERROR, status: 500 };
-  }
-  const missing = findMissingIds(
-    input.categoryIds,
-    (data ?? []).map((row) => row.id as string)
-  );
-  if (missing.length > 0) {
-    return { ok: false, error: "One or more selected categories were not found", status: 400 };
-  }
-  return { ok: true };
+  return assertCatalogTargetIdsExist(db, input, logOfferAdminError, CLIENT_WRITE_ERROR);
 }
 
 async function insertTargeting(
@@ -506,7 +435,7 @@ async function loadOfferRow(
     return { ok: false, error: "Offer not found", status: 404 };
   }
   const row = data as AdminOfferRow;
-  return { ok: true, row: { ...row, banner_image_url: row.banner_image_url ?? null } };
+  return { ok: true, row: { ...row, banner_image_url: row.banner_image_url ?? null, ends_at: row.ends_at ?? null } };
 }
 
 export async function listAdminOffers(

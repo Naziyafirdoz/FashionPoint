@@ -36,9 +36,12 @@ function discountPerUnitForOffer(basePrice: number, offer: OfferCandidate): numb
 
 function isWithinSchedule(offer: OfferCandidate, now: Date): boolean {
   const startsAt = toDate(offer.startsAt);
+  if (Number.isNaN(startsAt.getTime())) return false;
+  if (now.getTime() < startsAt.getTime()) return false;
+  if (offer.endsAt == null) return true;
   const endsAt = toDate(offer.endsAt);
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) return false;
-  return now.getTime() >= startsAt.getTime() && now.getTime() <= endsAt.getTime();
+  if (Number.isNaN(endsAt.getTime())) return false;
+  return now.getTime() <= endsAt.getTime();
 }
 
 function matchesTarget(

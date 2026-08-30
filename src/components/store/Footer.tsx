@@ -1,21 +1,15 @@
 import Link from "next/link";
-import {
-  COPYRIGHT_NOTICE,
-  STORE_ADDRESS,
-  STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_TEL_PRIMARY,
-  STORE_WHATSAPP_URL,
-  SUPPORT_EMAIL
-} from "@/lib/site-config";
 import { BrandLockup } from "@/components/BrandLockup";
 import { getCategoryUrl } from "@/lib/categories/category-url";
+import type { PublicStoreInformation } from "@/lib/settings/store-information";
 import type { Category } from "@/types";
 
 type FooterProps = {
   categories?: Category[];
+  store: PublicStoreInformation;
 };
 
-export function Footer({ categories = [] }: FooterProps) {
+export function Footer({ categories = [], store }: FooterProps) {
   const shopCategories = [...categories]
     .filter((category) => category.slug !== "soon")
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -24,7 +18,7 @@ export function Footer({ categories = [] }: FooterProps) {
     <footer className="mt-0 border-t border-accent/20 bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4">
         <div>
-          <BrandLockup variant="dark" compactOnMobile={false} />
+          <BrandLockup variant="dark" compactOnMobile={false} storeName={store.storeName} />
           <p className="mt-3 text-sm text-foreground/70">
             Premium readymade Indian blouses — daily wear, designer & party collections.
           </p>
@@ -55,19 +49,19 @@ export function Footer({ categories = [] }: FooterProps) {
         <div>
           <h4 className="font-semibold text-primary">Contact</h4>
           <p className="mt-2 text-sm text-foreground/70">
-            {STORE_ADDRESS}
+            {store.address}
             <br />
-            <a href={STORE_TEL_PRIMARY}>{STORE_PHONE_PRIMARY_DISPLAY}</a>
+            <a href={store.telUrl}>{store.phoneDisplay}</a>
             <br />
-            <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            <a href={store.mailtoUrl}>{store.supportEmail}</a>
           </p>
         </div>
       </div>
       <div className="border-t border-accent/20 py-4 text-center text-xs text-foreground/60">
-        {COPYRIGHT_NOTICE}
+        {store.copyrightNotice}
       </div>
       <a
-        href={STORE_WHATSAPP_URL}
+        href={store.whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition hover:scale-105"

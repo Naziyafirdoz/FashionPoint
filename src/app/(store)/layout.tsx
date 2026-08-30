@@ -4,6 +4,7 @@ import { Navbar } from "@/components/store/Navbar";
 import { Footer } from "@/components/store/Footer";
 import { WishlistHydrator } from "@/components/wishlist/WishlistHydrator";
 import { getActiveCategories } from "@/lib/categories/get-categories";
+import { getPublicStoreInformation } from "@/lib/settings/store-information";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   let categories: Awaited<ReturnType<typeof getActiveCategories>> = [];
@@ -14,13 +15,15 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     categories = [];
   }
 
+  const storeInformation = await getPublicStoreInformation();
+
   return (
     <>
       <WishlistHydrator />
-      <AnnouncementBar />
-      <Navbar categories={categories} />
+      <AnnouncementBar phoneDisplay={storeInformation.phoneDisplay} telUrl={storeInformation.telUrl} />
+      <Navbar categories={categories} storeName={storeInformation.storeName} />
       {children}
-      <Footer categories={categories} />
+      <Footer categories={categories} store={storeInformation} />
       <StylistChatbotLazy />
     </>
   );

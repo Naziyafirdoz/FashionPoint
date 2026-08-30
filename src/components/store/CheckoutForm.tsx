@@ -12,7 +12,7 @@ import {
   type CheckoutPaymentMethodId
 } from "@/lib/checkout/payment-methods";
 import { computeCheckoutTotals } from "@/lib/checkout/totals";
-import { STORE_NAME } from "@/lib/site-config";
+import { useOfferCartQuote } from "@/hooks/useOfferCartQuote";
 import { useCheckoutSession } from "@/stores/checkout-session";
 import { useCartStore } from "@/stores/cart";
 import type { CartItem } from "@/types";
@@ -48,6 +48,7 @@ type CheckoutFormProps = {
   initialAddress?: Partial<CheckoutAddress> & { line?: string };
   savedAddresses?: Address[];
   checkoutMode?: "cart" | "buy_now";
+  storeName: string;
 };
 
 declare global {
@@ -166,7 +167,8 @@ function Step1ErrorSummary({
 export function CheckoutForm({
   initialAddress,
   savedAddresses = [],
-  checkoutMode = "cart"
+  checkoutMode = "cart",
+  storeName
 }: CheckoutFormProps) {
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState<CheckoutAddress>(() => emptyAddress(initialAddress));
@@ -196,7 +198,8 @@ export function CheckoutForm({
     () => (isBuyNow && buyNowItem ? [buyNowItem] : cart.items),
     [isBuyNow, buyNowItem, cart.items]
   );
-  const discount = isBuyNow ? 0 : cart.discount;
+  const { quote: offerQuote, linesByKey: offerLinesByKey } = useOfferCartQuote(items);
+  const discount = offerQuote?.totalOfferDiscount ?? 0;
 
   const step1Errors = useMemo(() => {
     if (!showStep1Errors) return [];
@@ -411,7 +414,7 @@ export function CheckoutForm({
           address: orderAddress,
           payment,
           subtotal,
-          discount,
+          discount: 0,
           shipping_amount: shippingAmount,
           total
         })
@@ -472,7 +475,7 @@ export function CheckoutForm({
         key,
         amount: amt,
         currency: "INR",
-        name: STORE_NAME,
+        name: storeName,
         order_id: razorpayOrderId,
         method: checkoutMethod.method,
         config: checkoutMethod.config,
@@ -940,7 +943,10 @@ export function CheckoutForm({
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-medium">
-                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                      ₹{(
+                        offerLinesByKey.get(`${item.productId}::${item.size}::${item.color}`)
+                          ?.lineTotal ?? item.price * item.quantity
+                      ).toLocaleString("en-IN")}
                     </p>
                   </li>
                 ))}

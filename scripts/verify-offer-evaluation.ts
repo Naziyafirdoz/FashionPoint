@@ -168,4 +168,37 @@ assert.equal(
   null
 );
 
+const ongoingActive = offer({
+  id: "ongoing-active",
+  name: "Ongoing Active",
+  startsAt: new Date("2026-08-01T00:00:00.000Z"),
+  endsAt: null
+});
+assert.equal(evaluate(1000, [ongoingActive]).appliedOffer?.id, "ongoing-active");
+
+const ongoingFuture = offer({
+  id: "ongoing-future",
+  name: "Ongoing Future",
+  startsAt: new Date("2026-09-01T00:00:00.000Z"),
+  endsAt: null
+});
+assert.equal(evaluate(1000, [ongoingFuture]).appliedOffer, null);
+
+const ongoingDisabled = offer({
+  id: "ongoing-disabled",
+  name: "Ongoing Disabled",
+  isEnabled: false,
+  startsAt: new Date("2026-08-01T00:00:00.000Z"),
+  endsAt: null
+});
+assert.equal(evaluate(1000, [ongoingDisabled]).appliedOffer, null);
+
+assert.equal(evaluate(1000, []).appliedOffer, null);
+assert.equal(evaluate(1000, [activeProduct], { productId: "other-product" }).appliedOffer, null);
+assert.equal(evaluate(1000, [category30], { categoryId: "other-category" }).appliedOffer, null);
+
+const tiedA = offer({ id: "a-tie", name: "Tie A", discountValue: 20 });
+const tiedB = offer({ id: "b-tie", name: "Tie B", discountValue: 20 });
+assert.equal(evaluate(1000, [tiedB, tiedA]).appliedOffer?.id, "a-tie");
+
 console.log("offer evaluation checks passed");

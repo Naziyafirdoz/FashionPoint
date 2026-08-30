@@ -20,9 +20,15 @@ import type { ProductReviewSummary } from "@/lib/reviews/types";
 import { useReviewRealtimeSync } from "@/lib/reviews/use-review-realtime-sync";
 import {
   discountPercent,
+  findProductVariant,
   isSizeUnavailableForColor,
   resolveVariantDisplay
 } from "@/lib/products/variants";
+import {
+  hasAppliedOffer,
+  offerDiscountLabel,
+  resolveProductOfferPricing
+} from "@/lib/offers/display";
 
 const SIZES = ["XS(32)", "S(34)", "M(36)", "L(38)", "XL(40)", "XXL(42)"];
 
@@ -123,7 +129,12 @@ export function ProductDetail({
   );
 
   const outOfStock = !selection.inStock;
-  const discount = discountPercent(selection.price, selection.compare_price);
+  const compareDiscount = discountPercent(selection.price, selection.compare_price);
+  const selectedVariant = findProductVariant(product.variants, size, color);
+  const offerPricing = resolveProductOfferPricing(product, selectedVariant?.id);
+  const offerActive = !outOfStock && hasAppliedOffer(offerPricing);
+  const payablePrice = offerActive && offerPricing ? offerPricing.effectivePrice : selection.price;
+  const offerLabel = offerPricing ? offerDiscountLabel(offerPricing) : null;
   const attributeFields = buildAttributeFields(product);
   const categoryHref = product.category?.slug
     ? getCategoryUrl(product.category.slug)
@@ -253,17 +264,27 @@ export function ProductDetail({
 
             <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
               <span className="text-[2rem] font-bold leading-none tracking-tight text-primary md:text-[2.25rem]">
-                ₹{selection.price.toLocaleString("en-IN")}
+                ₹{payablePrice.toLocaleString("en-IN")}
               </span>
+              {offerActive && selection.price > payablePrice ? (
+                <span className="text-base text-[#9A9A9A] line-through">
+                  ₹{selection.price.toLocaleString("en-IN")}
+                </span>
+              ) : null}
               {selection.compare_price && selection.compare_price > selection.price ? (
-                <>
-                  <span className="text-base text-[#9A9A9A] line-through">
-                    ₹{selection.compare_price.toLocaleString("en-IN")}
-                  </span>
-                  <span className="rounded-full bg-[#FFF0F4] px-3 py-1 text-sm font-medium text-primary">
-                    {discount}% OFF
-                  </span>
-                </>
+                <span className="text-base text-[#9A9A9A] line-through">
+                  ₹{selection.compare_price.toLocaleString("en-IN")}
+                </span>
+              ) : null}
+              {offerActive && offerLabel ? (
+                <span className="rounded-full bg-[#FFF0F4] px-3 py-1 text-sm font-medium text-primary">
+                  Offer {offerLabel}
+                </span>
+              ) : null}
+              {!offerActive && compareDiscount > 0 ? (
+                <span className="rounded-full bg-[#FFF0F4] px-3 py-1 text-sm font-medium text-primary">
+                  {compareDiscount}% OFF
+                </span>
               ) : null}
             </div>
 

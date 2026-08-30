@@ -5,7 +5,6 @@ import Link from "next/link";
 import Script from "next/script";
 import toast from "react-hot-toast";
 import { AlertCircle, XCircle } from "lucide-react";
-import { STORE_NAME } from "@/lib/site-config";
 import {
   isAllowedCheckoutPaymentMethod,
   razorpayCheckoutDisplayOptions
@@ -24,13 +23,14 @@ type PaymentResultPageProps = {
   variant: "failed" | "cancelled";
   orderNumber?: string;
   reason?: string;
+  storeName: string;
 };
 
 function successUrl(orderNumber: string) {
   return `/order-success/${encodeURIComponent(orderNumber)}`;
 }
 
-export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResultPageProps) {
+export function PaymentResultPage({ variant, orderNumber, reason, storeName }: PaymentResultPageProps) {
   const [retrying, setRetrying] = useState(false);
   const isFailed = variant === "failed";
 
@@ -68,7 +68,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
         key: data.key,
         amount: data.amount,
         currency: "INR",
-        name: STORE_NAME,
+        name: storeName,
         order_id: data.razorpayOrderId,
         method: checkoutMethod.method,
         config: checkoutMethod.config,
@@ -103,7 +103,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
 
       rzp.open();
     },
-    [completePayment, orderNumber]
+    [completePayment, orderNumber, storeName]
   );
 
   const handleRetry = async () => {
@@ -153,7 +153,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="font-display text-2xl font-bold text-primary">{STORE_NAME}</p>
+        <p className="font-display text-2xl font-bold text-primary">{storeName}</p>
 
         {isFailed ? (
           <AlertCircle className="mx-auto mt-8 h-16 w-16 text-red-600" strokeWidth={1.5} />

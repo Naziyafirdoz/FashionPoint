@@ -13,6 +13,7 @@ import { STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
 import type { ProductFilterOptions } from "@/lib/products/extract-filter-options";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 export const PRODUCT_LIST_PAGE_SIZE = 12;
 
@@ -212,9 +213,10 @@ export async function listProductsFromDb(
     const ordered = slugList
       .map((slug) => bySlug.get(slug))
       .filter((product): product is Product => Boolean(product));
+    const products = await withProductOfferPricing(db, ordered);
 
     return {
-      products: ordered,
+      products,
       total: ordered.length,
       page: 1,
       pageSize: ordered.length,
@@ -319,7 +321,10 @@ export async function listProductsFromDb(
 
   const total = facetProducts.length;
   const from = (page - 1) * pageSize;
-  const paginatedProducts = facetProducts.slice(from, from + pageSize);
+  const paginatedProducts = await withProductOfferPricing(
+    db,
+    facetProducts.slice(from, from + pageSize)
+  );
 
   return {
     products: paginatedProducts,

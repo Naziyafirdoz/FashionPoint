@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 const CANDIDATE_LIMIT = 48;
 const RECOMMENDATION_LIMIT = 8;
@@ -96,7 +97,7 @@ export async function getProductRecommendations(product: Product): Promise<Produ
     .map((row) => withPlaceholderImage(normalizeDbProduct(row as DbRow)))
     .filter((entry) => entry.id !== product.id);
 
-  return candidates
+  const ranked = candidates
     .map((candidate) => ({
       candidate,
       score: scoreCandidate(candidate, product)
@@ -107,4 +108,6 @@ export async function getProductRecommendations(product: Product): Promise<Produ
     })
     .slice(0, RECOMMENDATION_LIMIT)
     .map((entry) => entry.candidate);
+
+  return withProductOfferPricing(db, ranked);
 }

@@ -371,3 +371,125 @@
     }
   }
 }
+
+@layer components {
+  .campaign-hero {
+    --hero-heading-color: #fdf8f0;
+    --hero-body-color: rgba(253, 248, 240, 0.88);
+    --hero-accent-color: #d4a820;
+    --hero-button-bg: #7b0d2b;
+    --hero-button-text: #ffffff;
+    --hero-button-hover: #8f1230;
+    --hero-overlay-start: rgba(26, 16, 18, 0.72);
+    --hero-overlay-mid: rgba(26, 16, 18, 0.22);
+    --hero-overlay-end: rgba(26, 16, 18, 0);
+    --hero-content-veil: rgba(18, 10, 12, 0.28);
+    background: #1a1a1a;
+  }
+
+  .campaign-hero-art {
+    color: var(--hero-heading-color);
+  }
+
+  .campaign-hero-scrim {
+    background: linear-gradient(
+      to top,
+      var(--hero-overlay-start) 0%,
+      var(--hero-overlay-mid) 38%,
+      var(--hero-overlay-end) 68%
+    );
+    transition: background 500ms ease;
+  }
+
+  .campaign-hero-copy-veil {
+    width: min(36rem, 100%);
+    background: linear-gradient(
+      to top,
+      var(--hero-content-veil) 0%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+
+  .campaign-hero-accent-rule {
+    background: var(--hero-accent-color);
+    box-shadow: 0 0 14px var(--hero-accent-color);
+  }
+
+  .campaign-hero-offer,
+  .campaign-hero-heading,
+  .campaign-hero-subheading,
+  .campaign-hero-accent-rule {
+    transition: color 500ms ease, background-color 500ms ease, box-shadow 500ms ease;
+  }
+
+  .campaign-hero-offer {
+    color: var(--hero-accent-color);
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28);
+  }
+
+  .campaign-hero-heading {
+    color: var(--hero-heading-color);
+    text-shadow: 0 2px 28px rgba(0, 0, 0, 0.28);
+  }
+
+  .campaign-hero-subheading {
+    color: var(--hero-body-color);
+  }
+
+  .campaign-hero-cta {
+    background-color: var(--hero-button-bg);
+    color: var(--hero-button-text);
+    box-shadow: 0 10px 24px rgba(123, 13, 43, 0.28);
+    transition: background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  }
+
+  .campaign-hero-cta:hover {
+    background-color: var(--hero-button-hover);
+    box-shadow: 0 12px 28px rgba(184, 134, 11, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .campaign-hero-cta:focus-visible {
+    outline: 2px solid var(--hero-accent-color);
+    outline-offset: 3px;
+  }
+
+  .campaign-hero-art--custom .campaign-hero-heading {
+    font-family: var(--hero-heading-font);
+    font-size: var(--hero-heading-size);
+    font-weight: var(--hero-heading-weight);
+    font-style: var(--hero-heading-style);
+    line-height: 1.08;
+  }
+
+  .campaign-hero-art--custom .campaign-hero-subheading {
+    font-family: var(--hero-subheading-font);
+    font-size: var(--hero-subheading-size);
+    color: var(--hero-subheading-color);
+  }
+
+  .campaign-hero-art--custom .campaign-hero-offer {
+    font-family: var(--hero-offer-font);
+    font-size: var(--hero-offer-size);
+    color: var(--hero-offer-color);
+  }
+
+  .campaign-hero-art[data-align="center"] .campaign-hero-accent-rule {
+    margin-inline: auto;
+  }
+
+  .campaign-hero-art[data-align="right"] .campaign-hero-accent-rule {
+    margin-left: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .campaign-hero-scrim,
+    .campaign-hero-cta,
+    .campaign-hero-offer,
+    .campaign-hero-heading,
+    .campaign-hero-subheading,
+    .campaign-hero-accent-rule {
+      transition: none;
+    }
+  }
+}

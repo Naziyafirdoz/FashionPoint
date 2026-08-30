@@ -20,6 +20,7 @@ const STATIC_NAV = [
 
 type NavbarProps = {
   categories?: Category[];
+  storeName: string;
 };
 
 function NavLink({
@@ -115,7 +116,7 @@ function MoreDropdown({
   );
 }
 
-export function Navbar({ categories = [] }: NavbarProps) {
+export function Navbar({ categories = [], storeName }: NavbarProps) {
   const count = useCartStore((s) => s.count());
   const wishlistCount = useWishlistStore((s) => s.ids.size);
   const [mounted, setMounted] = useState(false);
@@ -144,7 +145,7 @@ export function Navbar({ categories = [] }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-accent/20 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
-        <BrandLockup variant="dark" />
+        <BrandLockup variant="dark" storeName={storeName} />
 
         <nav className="ml-4 hidden flex-1 items-center gap-4 text-xs font-medium text-foreground/80 lg:flex">
           <NavLink href={STATIC_NAV[0].href} label={STATIC_NAV[0].label} className={desktopLinkClass} />

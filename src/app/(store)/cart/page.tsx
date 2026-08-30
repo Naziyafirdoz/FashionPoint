@@ -10,10 +10,12 @@ import {
   EXPLORE_COLLECTIONS_HREF,
   handleExploreCollectionsClick
 } from "@/lib/navigation/explore-collections";
+import { useOfferCartQuote } from "@/hooks/useOfferCartQuote";
+
 const STEPS = ["Cart", "Address", "Payment", "Review"];
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, subtotal: getSubtotal, discount } = useCartStore();
+  const { items, updateQuantity, removeItem, subtotal: getSubtotal } = useCartStore();
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
@@ -21,9 +23,10 @@ export default function CartPage() {
   }, []);
 
   const visibleItems = hasHydrated ? items : [];
-  const productsTotal = hasHydrated ? getSubtotal() : 0;
-  const visibleDiscount = hasHydrated ? discount : 0;
-  const total = Math.max(0, productsTotal - visibleDiscount);
+  const { quote, linesByKey } = useOfferCartQuote(visibleItems);
+  const productsTotal = quote?.subtotalBeforeOffers ?? (hasHydrated ? getSubtotal() : 0);
+  const visibleDiscount = quote?.totalOfferDiscount ?? 0;
+  const total = quote?.subtotalAfterOffers ?? Math.max(0, productsTotal - visibleDiscount);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -62,40 +65,44 @@ export default function CartPage() {
                 </tr>
               </thead>
               <tbody>
-                {visibleItems.map((item) => (
-                  <tr key={`${item.productId}-${item.size}-${item.color}`} className="border-b">
-                    <td className="flex items-center gap-3 py-4">
-                      <div className="relative h-16 w-12 overflow-hidden rounded bg-blush">
-                        {item.image && <Image src={item.image} alt="" fill className="object-cover" />}
-                      </div>
-                      <span>{item.name}</span>
-                    </td>
-                    <td>
-                      {item.size} / {item.color}
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.quantity}
-                        className="w-14 rounded border px-1"
-                        onChange={(e) =>
-                          updateQuantity(item.productId, item.size, item.color, Number(e.target.value))
-                        }
-                      />
-                    </td>
-                    <td>₹{(item.price * item.quantity).toLocaleString("en-IN")}</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.productId, item.size, item.color)}
-                        className="text-red-600"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {visibleItems.map((item) => {
+                  const quoted = linesByKey.get(`${item.productId}::${item.size}::${item.color}`);
+                  const lineTotal = quoted?.lineTotal ?? item.price * item.quantity;
+                  return (
+                    <tr key={`${item.productId}-${item.size}-${item.color}`} className="border-b">
+                      <td className="flex items-center gap-3 py-4">
+                        <div className="relative h-16 w-12 overflow-hidden rounded bg-blush">
+                          {item.image && <Image src={item.image} alt="" fill className="object-cover" />}
+                        </div>
+                        <span>{item.name}</span>
+                      </td>
+                      <td>
+                        {item.size} / {item.color}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          className="w-14 rounded border px-1"
+                          onChange={(e) =>
+                            updateQuantity(item.productId, item.size, item.color, Number(e.target.value))
+                          }
+                        />
+                      </td>
+                      <td>₹{lineTotal.toLocaleString("en-IN")}</td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.productId, item.size, item.color)}
+                          className="text-red-600"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

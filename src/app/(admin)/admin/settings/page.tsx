@@ -4,15 +4,21 @@ import {
   getIntegrationStatuses,
   getPaymentsSettingsStatus
 } from "@/lib/settings/integration-status";
+import { loadStoreInformationFromDb } from "@/lib/settings/store-information-store";
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
   const integrations = getIntegrationStatuses();
   const payments = getPaymentsSettingsStatus();
+  const initialStoreInformation = await loadStoreInformationFromDb();
 
   return (
     <>
       <AdminHeader title="Settings" />
-      <AdminSettingsClient integrations={integrations} payments={payments} />
+      <AdminSettingsClient
+        integrations={integrations}
+        payments={payments}
+        initialStoreInformation={initialStoreInformation}
+      />
     </>
   );
 }

@@ -5,6 +5,10 @@ import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import { resolveProductStatus } from "@/lib/products/status";
 import { findProductVariant } from "@/lib/products/variants";
 import type { ParsedOrderItem } from "@/lib/checkout/validation";
+import { productCategoryId } from "@/lib/offers/attach-product-pricing";
+import { loadOfferCandidates } from "@/lib/offers/get-eligible-offers";
+import { priceOfferCart } from "@/lib/offers/price-lines";
+import type { AppliedOffer } from "@/lib/offers/types";
 
 const MONEY_TOLERANCE = 0.01;
 
@@ -19,6 +23,7 @@ const PRODUCT_PRICE_SELECT = `
   is_active,
   stock_quantity,
   sku,
+  category_id,
   product_variants(id, product_id, size, color, sku, stock_quantity, price, compare_price)
 `;
 
@@ -27,20 +32,13 @@ export function moneyAmountsMatch(a: number, b: number): boolean {
 }
 
 /**
- * No coupon/offer engine exists. Client-supplied discounts must not reduce the payable amount.
- * A positive client discount is rejected so checkout is not charged a different total than displayed.
+ * Client-supplied discounts are never payable. Offer discounts are computed later
+ * from catalog identity + the server offer engine.
  */
 export function resolveAuthoritativeDiscount(
-  clientDiscount: unknown
-): { ok: true; discount: 0 } | { ok: false; error: string } {
-  const raw = Number(clientDiscount ?? 0);
-  if (!Number.isFinite(raw) || raw <= MONEY_TOLERANCE) {
-    return { ok: true, discount: 0 };
-  }
-  return {
-    ok: false,
-    error: "This discount is no longer valid. Please review your order and try again."
-  };
+  _clientDiscount: unknown
+): { ok: true; discount: 0 } {
+  return { ok: true, discount: 0 };
 }
 
 function firstImage(product: Product, fallback: string): string {
@@ -81,7 +79,13 @@ function isPurchasable(product: Product): { ok: true } | { ok: false; error: str
 }
 
 export type AuthoritativePricingResult =
-  | { ok: true; items: CartItem[]; subtotal: number }
+  | {
+      ok: true;
+      items: CartItem[];
+      subtotal: number;
+      offerDiscount: number;
+      subtotalAfterOffers: number;
+    }
   | {
       ok: false;
       error: string;
@@ -90,10 +94,40 @@ export type AuthoritativePricingResult =
       items?: Array<{ productId: string; size: string; color: string; price: number }>;
     };
 
+export type ResolveAuthoritativeOrderItemsOptions = {
+  /** When false, skip catalog vs client price comparison (display quotes). Default true. */
+  compareClientPrices?: boolean;
+};
+
+function withOfferSnapshot(
+  item: CartItem,
+  priced: {
+    catalogUnitPrice: number;
+    discountPerUnit: number;
+    effectiveUnitPrice: number;
+    lineDiscount: number;
+    lineTotal: number;
+    appliedOffer: AppliedOffer | null;
+  }
+): CartItem {
+  return {
+    ...item,
+    price: priced.catalogUnitPrice,
+    catalogUnitPrice: priced.catalogUnitPrice,
+    discountPerUnit: priced.discountPerUnit,
+    effectiveUnitPrice: priced.effectiveUnitPrice,
+    lineDiscount: priced.lineDiscount,
+    lineTotal: priced.lineTotal,
+    appliedOffer: priced.appliedOffer
+  };
+}
+
 export async function resolveAuthoritativeOrderItems(
   db: SupabaseClient,
-  lines: ParsedOrderItem[]
+  lines: ParsedOrderItem[],
+  options: ResolveAuthoritativeOrderItemsOptions = {}
 ): Promise<AuthoritativePricingResult> {
+  const compareClientPrices = options.compareClientPrices !== false;
   const productIds = [...new Set(lines.map((line) => line.productId))];
 
   const { data, error } = await db
@@ -111,7 +145,7 @@ export async function resolveAuthoritativeOrderItems(
     productsById.set(product.id, product);
   }
 
-  const pricedItems: CartItem[] = [];
+  const catalogItems: CartItem[] = [];
   const mismatches: Array<{ productId: string; size: string; color: string; price: number }> = [];
 
   for (const line of lines) {
@@ -145,7 +179,11 @@ export async function resolveAuthoritativeOrderItems(
       };
     }
 
-    if (line.clientPrice != null && !moneyAmountsMatch(line.clientPrice, unitPrice)) {
+    if (
+      compareClientPrices &&
+      line.clientPrice != null &&
+      !moneyAmountsMatch(line.clientPrice, unitPrice)
+    ) {
       mismatches.push({
         productId: product.id,
         size: line.size,
@@ -154,7 +192,7 @@ export async function resolveAuthoritativeOrderItems(
       });
     }
 
-    pricedItems.push({
+    catalogItems.push({
       productId: product.id,
       name: product.name,
       price: unitPrice,
@@ -176,10 +214,50 @@ export async function resolveAuthoritativeOrderItems(
     };
   }
 
-  const subtotal = itemsSubtotal(pricedItems);
-  if (subtotal <= 0) {
+  const catalogSubtotal = itemsSubtotal(catalogItems);
+  if (catalogSubtotal <= 0) {
     return { ok: false, error: "Order subtotal must be greater than zero", status: 400 };
   }
 
-  return { ok: true, items: pricedItems, subtotal };
+  const now = new Date();
+  const categoryIds = [
+    ...new Set(
+      catalogItems
+        .map((item) => {
+          const product = productsById.get(item.productId);
+          return product ? productCategoryId(product) : null;
+        })
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
+  const offers = await loadOfferCandidates(db, {
+    now,
+    productIds: catalogItems.map((item) => item.productId),
+    categoryIds
+  });
+
+  const offered = priceOfferCart(
+    catalogItems.map((item) => {
+      const product = productsById.get(item.productId);
+      return {
+        productId: item.productId,
+        categoryId: product ? productCategoryId(product) : null,
+        catalogUnitPrice: item.price,
+        quantity: item.quantity
+      };
+    }),
+    offers,
+    now
+  );
+
+  const items = catalogItems.map((item, index) => withOfferSnapshot(item, offered.lines[index]));
+
+  return {
+    ok: true,
+    items,
+    subtotal: offered.subtotalBeforeOffers,
+    offerDiscount: offered.totalOfferDiscount,
+    subtotalAfterOffers: offered.subtotalAfterOffers
+  };
 }

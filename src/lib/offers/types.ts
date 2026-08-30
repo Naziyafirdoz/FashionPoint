@@ -10,7 +10,7 @@ export type OfferCandidate = {
   scope: OfferScope;
   isEnabled: boolean;
   startsAt: Date;
-  endsAt: Date;
+  endsAt: Date | null;
   productIds: string[];
   categoryIds: string[];
 };
@@ -36,4 +36,38 @@ export type OfferEvaluationResult = {
   effectivePrice: number;
   discountPerUnit: number;
   appliedOffer: AppliedOffer | null;
+};
+
+/** Display-only summary attached to storefront products. Never persisted to catalog rows. */
+export type ProductOfferPricing = {
+  basePrice: number;
+  effectivePrice: number;
+  discountPerUnit: number;
+  appliedOffer: AppliedOffer | null;
+};
+
+export type OfferLineInput = {
+  productId: string;
+  categoryId: string | null;
+  catalogUnitPrice: number;
+  quantity: number;
+};
+
+export type OfferPricedLine = {
+  productId: string;
+  categoryId: string | null;
+  quantity: number;
+  catalogUnitPrice: number;
+  discountPerUnit: number;
+  effectiveUnitPrice: number;
+  lineDiscount: number;
+  lineTotal: number;
+  appliedOffer: AppliedOffer | null;
+};
+
+export type OfferCartPricing = {
+  lines: OfferPricedLine[];
+  subtotalBeforeOffers: number;
+  totalOfferDiscount: number;
+  subtotalAfterOffers: number;
 };

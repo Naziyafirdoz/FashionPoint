@@ -12,6 +12,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import type { IntegrationStatusItem, PaymentsSettingsStatus } from "@/lib/settings/integration-status";
+import type { StoreInformation } from "@/lib/settings/store-information";
 import { AdminGeneralSettings } from "./AdminGeneralSettings";
 import { AdminIntegrationsSettings } from "./AdminIntegrationsSettings";
 import { AdminNotificationSettings } from "./AdminNotificationSettings";
@@ -56,9 +57,14 @@ const FUTURE_SECTIONS = [
 type AdminSettingsClientProps = {
   integrations: IntegrationStatusItem[];
   payments: PaymentsSettingsStatus;
+  initialStoreInformation: StoreInformation;
 };
 
-export function AdminSettingsClient({ integrations, payments }: AdminSettingsClientProps) {
+export function AdminSettingsClient({
+  integrations,
+  payments,
+  initialStoreInformation
+}: AdminSettingsClientProps) {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("general");
 
   return (
@@ -98,7 +104,9 @@ export function AdminSettingsClient({ integrations, payments }: AdminSettingsCli
 
       <div className="min-w-0 flex-1">
         {activeSection === "general" && <AdminGeneralSettings />}
-        {activeSection === "store" && <AdminStoreInformation />}
+        {activeSection === "store" && (
+          <AdminStoreInformation initialStoreInformation={initialStoreInformation} />
+        )}
         {activeSection === "shipping" && <AdminShippingSettings />}
         {activeSection === "branches" && <AdminBranchesSettings />}
         {activeSection === "payments" && <AdminPaymentsSettings status={payments} />}

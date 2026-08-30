@@ -8,23 +8,25 @@ export type BrandLockupProps = {
   className?: string;
   /** Hide tagline below md (navbar mobile). Footer should pass false. */
   compactOnMobile?: boolean;
+  storeName?: string;
 };
 
 export function BrandLockup({
   variant = "dark",
   className,
-  compactOnMobile = true
+  compactOnMobile = true,
+  storeName = STORE_NAME
 }: BrandLockupProps) {
   return (
     <Link
       href="/"
       className={cn("inline-flex shrink-0 items-center gap-3", className)}
-      aria-label={STORE_NAME}
+      aria-label={storeName}
     >
       <BrandLogo variant={variant} />
       <div className="flex flex-col leading-tight">
         <span className="font-display text-2xl font-bold text-[#7B0D2B] md:text-[28px] lg:text-[30px]">
-          {STORE_NAME}
+          {storeName}
         </span>
         <span
           className={cn(

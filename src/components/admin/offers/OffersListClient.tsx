@@ -35,7 +35,8 @@ function formatDiscount(offer: AdminOfferDto) {
   return `₹${Number(offer.discountValue).toLocaleString("en-IN")} OFF`;
 }
 
-function formatScheduleInstant(iso: string) {
+function formatScheduleInstant(iso: string | null) {
+  if (!iso) return "—";
   try {
     return new Date(iso).toLocaleString("en-IN", {
       day: "numeric",
@@ -206,7 +207,9 @@ export function OffersListClient() {
                     <td className="p-3 pr-4 capitalize">{offer.scope}</td>
                     <td className="p-3 pr-4 whitespace-nowrap">
                       <div>{formatScheduleInstant(offer.startsAt)}</div>
-                      <div className="text-foreground/50">{formatScheduleInstant(offer.endsAt)}</div>
+                      <div className="text-foreground/50">
+                        {offer.endsAt ? formatScheduleInstant(offer.endsAt) : "Ongoing"}
+                      </div>
                     </td>
                     <td className="p-3 pr-4">{offer.isEnabled ? "Yes" : "No"}</td>
                     <td className="p-3 pr-4">

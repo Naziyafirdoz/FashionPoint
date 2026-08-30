@@ -188,66 +188,22 @@ const dto = toAdminOfferDto(
 );
 assert.equal(dto.status, "active");
 assert.equal(dto.discountType, "fixed_amount");
-assert.equal(dto.bannerImageUrl, "https://res.cloudinary.com/demo/offer-banner.jpg");
 assert.deepEqual(dto.productIds, [PRODUCT_A]);
 assert.deepEqual(dto.categoryIds, []);
 
-const dtoNoBanner = toAdminOfferDto(
-  {
-    id: "offer-2",
-    name: "No Banner",
-    description: null,
-    discount_type: "percentage",
-    discount_value: 10,
-    scope: "product",
-    starts_at: "2026-10-01T00:00:00.000Z",
-    ends_at: "2026-10-31T00:00:00.000Z",
-    is_enabled: true,
-    banner_image_url: null,
-    created_at: "2026-08-01T00:00:00.000Z",
-    updated_at: "2026-08-02T00:00:00.000Z"
-  },
-  { productIds: [PRODUCT_A], categoryIds: [] },
-  now
-);
-assert.equal(dtoNoBanner.bannerImageUrl, null);
-
 assert.equal(parseOfferUpsertInput(baseProductBody()).ok, true);
-const omittedBanner = parseOfferUpsertInput(baseProductBody());
-assert.equal(omittedBanner.ok, true);
-if (omittedBanner.ok) assert.equal(omittedBanner.input.bannerImageUrl, null);
-
-const emptyBanner = parseOfferUpsertInput(baseProductBody({ bannerImageUrl: "" }));
-assert.equal(emptyBanner.ok, true);
-if (emptyBanner.ok) assert.equal(emptyBanner.input.bannerImageUrl, null);
-
-const nullBanner = parseOfferUpsertInput(baseProductBody({ bannerImageUrl: null }));
-assert.equal(nullBanner.ok, true);
-if (nullBanner.ok) assert.equal(nullBanner.input.bannerImageUrl, null);
-
-const whitespaceBanner = parseOfferUpsertInput(baseProductBody({ bannerImageUrl: "   " }));
-assert.equal(whitespaceBanner.ok, true);
-if (whitespaceBanner.ok) assert.equal(whitespaceBanner.input.bannerImageUrl, null);
-
-const invalidBanner = parseOfferUpsertInput(baseProductBody({ bannerImageUrl: 12 }));
-assert.equal(invalidBanner.ok, false);
-if (!invalidBanner.ok) assert.match(invalidBanner.error, /bannerImageUrl/);
-
-const validBanner = parseOfferUpsertInput(
-  baseProductBody({ bannerImageUrl: "  https://res.cloudinary.com/demo/offer.jpg  " })
+assert.equal(
+  parseOfferUpsertInput(baseProductBody({ bannerImageUrl: 12 })).ok,
+  true,
+  "legacy banner fields are ignored"
 );
-assert.equal(validBanner.ok, true);
-if (validBanner.ok) {
-  assert.equal(validBanner.input.bannerImageUrl, "https://res.cloudinary.com/demo/offer.jpg");
-}
-
-const snakeBanner = parseOfferUpsertInput(
-  baseProductBody({ banner_image_url: "https://res.cloudinary.com/demo/snake.jpg" })
+assert.equal(
+  parseOfferUpsertInput(
+    baseProductBody({ banner_image_url: "https://res.cloudinary.com/demo/snake.jpg" })
+  ).ok,
+  true,
+  "legacy snake_case banner fields are ignored"
 );
-assert.equal(snakeBanner.ok, true);
-if (snakeBanner.ok) {
-  assert.equal(snakeBanner.input.bannerImageUrl, "https://res.cloudinary.com/demo/snake.jpg");
-}
 
 const snapshot = offerSnapshotWrite({
   id: "offer-1",
@@ -281,6 +237,98 @@ const snapshotNullBanner = offerSnapshotWrite({
   updated_at: "2026-08-02T00:00:00.000Z"
 });
 assert.equal(snapshotNullBanner.banner_image_url, null);
+
+assert.equal(
+  parseOfferUpsertInput(baseProductBody({ startsAt: null })).ok,
+  false,
+  "limited time missing start rejected"
+);
+assert.equal(
+  parseOfferUpsertInput(baseProductBody({ scheduleType: "limited", endsAt: null })).ok,
+  false,
+  "limited time missing end rejected"
+);
+
+const frozenNow = new Date("2026-10-15T12:00:00.000Z");
+const ongoingNoDates = parseOfferUpsertInput(
+  baseProductBody({ scheduleType: "ongoing", startsAt: null, endsAt: "2026-10-31T23:59:59.000Z" }),
+  frozenNow
+);
+assert.equal(ongoingNoDates.ok, true);
+if (ongoingNoDates.ok) {
+  assert.equal(ongoingNoDates.input.startsAt.toISOString(), frozenNow.toISOString());
+  assert.equal(ongoingNoDates.input.endsAt, null);
+}
+
+const ongoingEmptyStart = parseOfferUpsertInput(
+  baseProductBody({ endsAt: null, startsAt: "" }),
+  frozenNow
+);
+assert.equal(ongoingEmptyStart.ok, true);
+if (ongoingEmptyStart.ok) {
+  assert.equal(ongoingEmptyStart.input.startsAt.toISOString(), frozenNow.toISOString());
+  assert.equal(ongoingEmptyStart.input.endsAt, null);
+}
+
+const ongoingWithStart = parseOfferUpsertInput(
+  baseProductBody({
+    scheduleType: "ongoing",
+    startsAt: "2026-10-01T00:00:00.000Z",
+    endsAt: "2026-10-31T23:59:59.000Z"
+  }),
+  frozenNow
+);
+assert.equal(ongoingWithStart.ok, true);
+if (ongoingWithStart.ok) {
+  assert.equal(ongoingWithStart.input.startsAt.toISOString(), "2026-10-01T00:00:00.000Z");
+  assert.equal(ongoingWithStart.input.endsAt, null, "ongoing does not retain an end date");
+}
+
+assert.equal(
+  deriveOfferStatus(
+    { isEnabled: true, startsAt: "2026-10-01T00:00:00.000Z", endsAt: null },
+    now
+  ),
+  "active",
+  "enabled ongoing with past start is active"
+);
+assert.equal(
+  deriveOfferStatus(
+    { isEnabled: true, startsAt: "2026-11-01T00:00:00.000Z", endsAt: null },
+    now
+  ),
+  "scheduled",
+  "future ongoing is scheduled"
+);
+assert.equal(
+  deriveOfferStatus(
+    { isEnabled: false, startsAt: "2026-10-01T00:00:00.000Z", endsAt: null },
+    now
+  ),
+  "disabled",
+  "disabled ongoing stays disabled"
+);
+
+const dtoOngoing = toAdminOfferDto(
+  {
+    id: "offer-ongoing",
+    name: "Ongoing",
+    description: null,
+    discount_type: "percentage",
+    discount_value: 10,
+    scope: "product",
+    starts_at: "2026-10-01T00:00:00.000Z",
+    ends_at: null,
+    is_enabled: true,
+    banner_image_url: null,
+    created_at: "2026-08-01T00:00:00.000Z",
+    updated_at: "2026-08-02T00:00:00.000Z"
+  },
+  { productIds: [PRODUCT_A], categoryIds: [] },
+  now
+);
+assert.equal(dtoOngoing.status, "active");
+assert.equal(dtoOngoing.endsAt, null);
 
 const omittedEnabled = parseOfferUpsertInput(
   baseProductBody({ isEnabled: undefined })

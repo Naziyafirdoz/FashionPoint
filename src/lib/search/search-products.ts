@@ -4,6 +4,7 @@ import { rankSearchProducts } from "@/lib/search/match-products";
 import { SEARCH_DEFAULT_PRODUCT_LIMIT } from "@/lib/search/search-config";
 import { buildSearchSuggestions } from "@/lib/search/suggestions";
 import type { Product } from "@/types";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 export type SearchProductsOptions = {
   query: string;
@@ -34,9 +35,13 @@ export async function searchProducts(
   const ranked = rankSearchProducts(index.products, query);
   const offset = (page - 1) * pageSize;
   const slice = ranked.slice(offset, offset + pageSize);
+  const products = await withProductOfferPricing(
+    db,
+    slice.map((result) => result.entry.product)
+  );
 
   return {
-    products: slice.map((result) => result.entry.product),
+    products,
     total: ranked.length,
     page,
     pageSize

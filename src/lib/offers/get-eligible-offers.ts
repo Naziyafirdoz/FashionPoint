@@ -9,7 +9,7 @@ type OfferRow = {
   scope: string;
   is_enabled: boolean;
   starts_at: string;
-  ends_at: string;
+  ends_at: string | null;
 };
 
 type OfferProductRow = {
@@ -47,15 +47,15 @@ function toCandidate(
     scope: row.scope,
     isEnabled: row.is_enabled === true,
     startsAt: new Date(row.starts_at),
-    endsAt: new Date(row.ends_at),
+    endsAt: row.ends_at ? new Date(row.ends_at) : null,
     productIds,
     categoryIds
   };
 }
 
 /**
- * Loads currently enabled, in-window offers for catalog evaluation.
- * Not wired to checkout. Callers must pass database catalog identity, never client money.
+ * Loads currently enabled, in-window offers for catalog and checkout evaluation.
+ * Callers must pass database catalog identity, never client money.
  */
 export async function loadOfferCandidates(
   db: SupabaseClient,
@@ -74,7 +74,7 @@ export async function loadOfferCandidates(
     .select("id, name, discount_type, discount_value, scope, is_enabled, starts_at, ends_at")
     .eq("is_enabled", true)
     .lte("starts_at", nowIso)
-    .gte("ends_at", nowIso);
+    .or(`ends_at.is.null,ends_at.gte."${nowIso}"`);
 
   if (offerError || !offerRows?.length) {
     return [];

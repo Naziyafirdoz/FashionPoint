@@ -19,8 +19,6 @@ import {
 import { resolveCustomerDeliveryEstimate } from "@/lib/orders/customer-order-display";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 
-import { STORE_NAME } from "@/lib/site-config";
-
 import { useCheckoutSession } from "@/stores/checkout-session";
 
 import { FinalSalePolicyNotice } from "@/components/store/FinalSalePolicyNotice";
@@ -36,6 +34,8 @@ type OrderSuccessViewProps = {
   hasOrderRef: boolean;
 
   orderNumber?: string;
+
+  storeName: string;
 
 };
 
@@ -77,7 +77,7 @@ function formatEstimatedDelivery(
   });
 }
 
-export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSuccessViewProps) {
+export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName }: OrderSuccessViewProps) {
 
   const endCheckoutSession = useCheckoutSession((s) => s.endSession);
 
@@ -104,7 +104,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         <p className="font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
 
-          {STORE_NAME}
+          {storeName}
 
         </p>
 
@@ -179,7 +179,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
       <p className="text-center font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
 
-        {STORE_NAME}
+        {storeName}
 
       </p>
 

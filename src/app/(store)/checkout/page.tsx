@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutForm } from "@/components/store/CheckoutForm";
 import { addressToCheckoutAddress } from "@/lib/checkout/saved-addresses";
+import { getStoreInformation } from "@/lib/settings/store-information";
 import type { Address } from "@/types";
 
 export const metadata = { title: "Checkout" };
@@ -59,11 +60,14 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     }
   }
 
+  const { storeName } = await getStoreInformation();
+
   return (
     <CheckoutForm
       initialAddress={initialAddress}
       savedAddresses={savedAddresses}
       checkoutMode={checkoutMode}
+      storeName={storeName}
     />
   );
 }

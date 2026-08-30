@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ExploreCollectionsScrollHandler } from "@/components/store/ExploreCollectionsScrollHandler";
-import { HeroBanner } from "@/components/store/HeroBanner";
+import { HomeHeroSlot } from "@/components/store/HomeHeroSlot";
 import { CategoryCards } from "@/components/store/CategoryCards";
 import { UspStrip } from "@/components/store/UspStrip";
 import { TrendingNowSectionBackground } from "@/components/store/TrendingNowSectionBackground";
@@ -15,7 +15,7 @@ export default async function HomePage() {
   return (
     <>
       <ExploreCollectionsScrollHandler />
-      <HeroBanner />
+      <HomeHeroSlot />
       <CategoryCards />
       <UspStrip />
       <section className="relative w-full overflow-hidden py-12">

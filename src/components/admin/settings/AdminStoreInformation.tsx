@@ -1,21 +1,192 @@
+"use client";
+
 import { Store } from "lucide-react";
-import {
-  STORE_ADDRESS,
-  STORE_NAME,
-  STORE_PHONE_PRIMARY_DISPLAY,
-  SUPPORT_EMAIL
-} from "@/lib/site-config";
+import { useCallback, useState } from "react";
+import toast from "react-hot-toast";
+import { isValidEmail, isValidIndianMobile, normalizeIndianMobile } from "@/lib/checkout/contact-validation";
+import type { StoreInformation } from "@/lib/settings/store-information";
 import { SettingsField, SettingsFieldList, SettingsSection } from "./settings-shared";
 
-export function AdminStoreInformation() {
+type StoreInformationForm = StoreInformation;
+
+type AdminStoreInformationProps = {
+  initialStoreInformation: StoreInformation;
+};
+
+function formatPhoneDisplay(phone: string): string {
+  const digits = normalizeIndianMobile(phone);
+  if (digits.length !== 10) return phone.trim();
+  return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+}
+
+function mapSettings(raw: unknown): StoreInformationForm | null {
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  if (
+    typeof row.storeName !== "string" ||
+    typeof row.address !== "string" ||
+    typeof row.primaryPhone !== "string" ||
+    typeof row.supportEmail !== "string"
+  ) {
+    return null;
+  }
+  return {
+    storeName: row.storeName,
+    address: row.address,
+    primaryPhone: row.primaryPhone,
+    supportEmail: row.supportEmail
+  };
+}
+
+function validateForm(form: StoreInformationForm): string | null {
+  if (!form.storeName.trim()) return "Store name is required";
+  if (!form.address.trim()) return "Address is required";
+  if (!isValidIndianMobile(form.primaryPhone)) {
+    return "Primary phone must be a valid 10-digit Indian mobile number";
+  }
+  if (!isValidEmail(form.supportEmail.trim())) return "Enter a valid support email";
+  return null;
+}
+
+const inputClassName = "mt-1 w-full rounded-lg border px-3 py-2 text-sm";
+
+export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInformationProps) {
+  const [saved, setSaved] = useState<StoreInformationForm>(initialStoreInformation);
+  const [form, setForm] = useState<StoreInformationForm>(initialStoreInformation);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const applySettings = useCallback((next: StoreInformationForm) => {
+    setSaved(next);
+    setForm(next);
+  }, []);
+
+  const startEdit = () => {
+    setForm(saved);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setForm(saved);
+    setEditing(false);
+  };
+
+  const save = async () => {
+    const error = validateForm(form);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/store-information", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeName: form.storeName.trim(),
+          address: form.address.trim(),
+          primaryPhone: form.primaryPhone,
+          supportEmail: form.supportEmail.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to save store information");
+        return;
+      }
+      const mapped = mapSettings(data.settings);
+      if (mapped) applySettings(mapped);
+      setEditing(false);
+      toast.success("Store information saved");
+    } catch {
+      toast.error("Failed to save store information");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <SettingsSection title="Store Information" icon={Store}>
-      <SettingsFieldList>
-        <SettingsField label="Store name" value={STORE_NAME} />
-        <SettingsField label="Address" value={STORE_ADDRESS} />
-        <SettingsField label="Primary phone" value={STORE_PHONE_PRIMARY_DISPLAY} />
-        <SettingsField label="Support email" value={SUPPORT_EMAIL} />
-      </SettingsFieldList>
+      {editing ? (
+        <div className="space-y-3 text-sm">
+          <div>
+            <label htmlFor="store-info-name" className="text-foreground/60">
+              Store name
+            </label>
+            <input
+              id="store-info-name"
+              className={inputClassName}
+              value={form.storeName}
+              onChange={(e) => setForm((current) => ({ ...current, storeName: e.target.value }))}
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label htmlFor="store-info-address" className="text-foreground/60">
+              Address
+            </label>
+            <textarea
+              id="store-info-address"
+              rows={3}
+              className={inputClassName}
+              value={form.address}
+              onChange={(e) => setForm((current) => ({ ...current, address: e.target.value }))}
+              disabled={saving}
+            />
+          </div>
+          <div>
+            <label htmlFor="store-info-phone" className="text-foreground/60">
+              Primary phone
+            </label>
+            <input
+              id="store-info-phone"
+              className={inputClassName}
+              value={form.primaryPhone}
+              onChange={(e) => setForm((current) => ({ ...current, primaryPhone: e.target.value }))}
+              disabled={saving}
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </div>
+          <div>
+            <label htmlFor="store-info-email" className="text-foreground/60">
+              Support email
+            </label>
+            <input
+              id="store-info-email"
+              type="email"
+              className={inputClassName}
+              value={form.supportEmail}
+              onChange={(e) => setForm((current) => ({ ...current, supportEmail: e.target.value }))}
+              disabled={saving}
+              autoComplete="email"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button type="button" className="btn-outline px-4 py-2 text-sm" onClick={cancelEdit} disabled={saving}>
+              Cancel
+            </button>
+            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={() => void save()} disabled={saving}>
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <SettingsFieldList>
+            <SettingsField label="Store name" value={saved.storeName} />
+            <SettingsField label="Address" value={saved.address} />
+            <SettingsField label="Primary phone" value={formatPhoneDisplay(saved.primaryPhone)} />
+            <SettingsField label="Support email" value={saved.supportEmail} />
+          </SettingsFieldList>
+          <div className="mt-4">
+            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={startEdit}>
+              Edit
+            </button>
+          </div>
+        </>
+      )}
     </SettingsSection>
   );
 }

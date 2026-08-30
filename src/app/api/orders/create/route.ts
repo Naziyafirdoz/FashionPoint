@@ -42,11 +42,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: itemValidation.error }, { status: 400 });
   }
 
-  const discountCheck = resolveAuthoritativeDiscount(body.discount ?? body.discount_amount);
-  if (!discountCheck.ok) {
-    return NextResponse.json({ error: discountCheck.error }, { status: 400 });
-  }
-  const discountAmount = discountCheck.discount;
+  resolveAuthoritativeDiscount(body.discount ?? body.discount_amount);
 
   const addressValidation = await resolveValidatedOrderAddress(body.address);
   if (!addressValidation.ok) {
@@ -82,6 +78,7 @@ export async function POST(req: Request) {
   }
   const items = pricing.items;
   const subtotal = pricing.subtotal;
+  const discountAmount = pricing.offerDiscount;
   const total = Math.max(0, subtotal + shippingAmount - discountAmount);
   const amountPaise = amountToPaise(total);
 
