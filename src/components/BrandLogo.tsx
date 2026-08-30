@@ -4,6 +4,8 @@ import logoPaths from "../../scripts/logo-paths.json";
 export type BrandLogoProps = {
   variant?: "dark" | "light";
   className?: string;
+  src?: string;
+  alt?: string;
 };
 
 const VARIANT_COLORS = {
@@ -17,8 +19,21 @@ const VARIANT_COLORS = {
   }
 } as const;
 
-export function BrandLogo({ variant = "dark", className }: BrandLogoProps) {
+export function BrandLogo({ variant = "dark", className, src, alt = "Fashion Point" }: BrandLogoProps) {
   const colors = VARIANT_COLORS[variant];
+
+  if (src) {
+    return (
+      // Custom store logos may come from any https host; avoid next/image domain config.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        height={44}
+        className={cn("h-[44px] w-auto shrink-0 object-contain", className)}
+      />
+    );
+  }
 
   return (
     <svg
@@ -26,7 +41,7 @@ export function BrandLogo({ variant = "dark", className }: BrandLogoProps) {
       viewBox={logoPaths.viewBox}
       height={44}
       className={cn("h-[44px] w-auto shrink-0", className)}
-      aria-label="Fashion Point"
+      aria-label={alt}
       role="img"
     >
       <path d={logoPaths.bodyPath} fill={colors.body} fillRule="evenodd" />

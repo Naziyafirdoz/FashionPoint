@@ -4,7 +4,13 @@ import { Store } from "lucide-react";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { isValidEmail, isValidIndianMobile, normalizeIndianMobile } from "@/lib/checkout/contact-validation";
-import type { StoreInformation } from "@/lib/settings/store-information";
+import {
+  DEFAULT_STORE_INFORMATION,
+  isAllowedLogoUrl,
+  parseStoredStoreInformation,
+  resolveSeoTitle,
+  type StoreInformation
+} from "@/lib/settings/store-information";
 import { SettingsField, SettingsFieldList, SettingsSection } from "./settings-shared";
 
 type StoreInformationForm = StoreInformation;
@@ -30,12 +36,7 @@ function mapSettings(raw: unknown): StoreInformationForm | null {
   ) {
     return null;
   }
-  return {
-    storeName: row.storeName,
-    address: row.address,
-    primaryPhone: row.primaryPhone,
-    supportEmail: row.supportEmail
-  };
+  return parseStoredStoreInformation(raw);
 }
 
 function validateForm(form: StoreInformationForm): string | null {
@@ -45,6 +46,13 @@ function validateForm(form: StoreInformationForm): string | null {
     return "Primary phone must be a valid 10-digit Indian mobile number";
   }
   if (!isValidEmail(form.supportEmail.trim())) return "Enter a valid support email";
+  if (form.tagline.trim().length > 80) return "Tagline must be 80 characters or fewer";
+  if (form.description.trim().length > 300) return "Store description must be 300 characters or fewer";
+  if (!isAllowedLogoUrl(form.logoUrl.trim())) {
+    return "Logo URL must be a http(s) link or a site path starting with /";
+  }
+  if (form.seoTitle.trim().length > 80) return "SEO title must be 80 characters or fewer";
+  if (form.seoDescription.trim().length > 220) return "SEO description must be 220 characters or fewer";
   return null;
 }
 
@@ -87,7 +95,12 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
           storeName: form.storeName.trim(),
           address: form.address.trim(),
           primaryPhone: form.primaryPhone,
-          supportEmail: form.supportEmail.trim()
+          supportEmail: form.supportEmail.trim(),
+          tagline: form.tagline.trim(),
+          description: form.description.trim(),
+          logoUrl: form.logoUrl.trim(),
+          seoTitle: form.seoTitle.trim(),
+          seoDescription: form.seoDescription.trim()
         })
       });
       const data = await res.json();
@@ -163,6 +176,83 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               autoComplete="email"
             />
           </div>
+          <div>
+            <label htmlFor="store-info-tagline" className="text-foreground/60">
+              Tagline
+            </label>
+            <input
+              id="store-info-tagline"
+              className={inputClassName}
+              value={form.tagline}
+              onChange={(e) => setForm((current) => ({ ...current, tagline: e.target.value }))}
+              disabled={saving}
+              maxLength={80}
+              placeholder={DEFAULT_STORE_INFORMATION.tagline}
+            />
+          </div>
+          <div>
+            <label htmlFor="store-info-description" className="text-foreground/60">
+              Store description
+            </label>
+            <textarea
+              id="store-info-description"
+              rows={3}
+              className={inputClassName}
+              value={form.description}
+              onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))}
+              disabled={saving}
+              maxLength={300}
+              placeholder={DEFAULT_STORE_INFORMATION.description}
+            />
+          </div>
+          <div>
+            <label htmlFor="store-info-logo" className="text-foreground/60">
+              Logo URL
+            </label>
+            <input
+              id="store-info-logo"
+              className={inputClassName}
+              value={form.logoUrl}
+              onChange={(e) => setForm((current) => ({ ...current, logoUrl: e.target.value }))}
+              disabled={saving}
+              placeholder="Leave blank to keep the Fashion Point logo"
+            />
+            <p className="mt-1 text-xs text-foreground/50">
+              Optional image URL or site path. Leave blank to use the current Fashion Point logo.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="store-info-seo-title" className="text-foreground/60">
+              SEO title
+            </label>
+            <input
+              id="store-info-seo-title"
+              className={inputClassName}
+              value={form.seoTitle}
+              onChange={(e) => setForm((current) => ({ ...current, seoTitle: e.target.value }))}
+              disabled={saving}
+              maxLength={80}
+              placeholder={resolveSeoTitle({ storeName: form.storeName.trim() || DEFAULT_STORE_INFORMATION.storeName, seoTitle: "" })}
+            />
+            <p className="mt-1 text-xs text-foreground/50">
+              Leave blank to use the store name with the Fashion Point title suffix.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="store-info-seo-description" className="text-foreground/60">
+              SEO description
+            </label>
+            <textarea
+              id="store-info-seo-description"
+              rows={3}
+              className={inputClassName}
+              value={form.seoDescription}
+              onChange={(e) => setForm((current) => ({ ...current, seoDescription: e.target.value }))}
+              disabled={saving}
+              maxLength={220}
+              placeholder={DEFAULT_STORE_INFORMATION.seoDescription}
+            />
+          </div>
           <div className="flex flex-wrap gap-2 pt-1">
             <button type="button" className="btn-outline px-4 py-2 text-sm" onClick={cancelEdit} disabled={saving}>
               Cancel
@@ -176,6 +266,11 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
         <>
           <SettingsFieldList>
             <SettingsField label="Store name" value={saved.storeName} />
+            <SettingsField label="Tagline" value={saved.tagline} />
+            <SettingsField label="Store description" value={saved.description} />
+            <SettingsField label="Logo URL" value={saved.logoUrl || "Fashion Point default logo"} />
+            <SettingsField label="SEO title" value={resolveSeoTitle(saved)} />
+            <SettingsField label="SEO description" value={saved.seoDescription} />
             <SettingsField label="Address" value={saved.address} />
             <SettingsField label="Primary phone" value={formatPhoneDisplay(saved.primaryPhone)} />
             <SettingsField label="Support email" value={saved.supportEmail} />

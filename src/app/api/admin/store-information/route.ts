@@ -28,7 +28,9 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const result = await saveStoreInformationToDb(parsed.input);
+  const result = await saveStoreInformationToDb(parsed.input, {
+    replaceBranding: parsed.brandingSpecified
+  });
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? "Failed to save store information" }, { status: 500 });
   }

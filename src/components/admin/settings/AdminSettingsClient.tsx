@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   CreditCard,
   Bell,
+  Palette,
   PlugZap,
   Settings,
   Store,
@@ -19,11 +20,13 @@ import { AdminNotificationSettings } from "./AdminNotificationSettings";
 import { AdminPaymentsSettings } from "./AdminPaymentsSettings";
 import { AdminShippingSettings } from "./AdminShippingSettings";
 import { AdminStoreInformation } from "./AdminStoreInformation";
+import { AdminBrandingSettings } from "./AdminBrandingSettings";
 import { AdminBranchesSettings } from "./AdminBranchesSettings";
 
 type SettingsSectionId =
   | "general"
   | "store"
+  | "branding"
   | "shipping"
   | "branches"
   | "payments"
@@ -39,6 +42,7 @@ type ActiveSection = {
 const ACTIVE_SECTIONS: ActiveSection[] = [
   { id: "general", label: "General", icon: Settings },
   { id: "store", label: "Store Information", icon: Store },
+  { id: "branding", label: "Branding", icon: Palette },
   { id: "shipping", label: "Shipping", icon: Truck },
   { id: "branches", label: "Branches", icon: Package },
   { id: "payments", label: "Payments", icon: CreditCard },
@@ -103,9 +107,14 @@ export function AdminSettingsClient({
       </nav>
 
       <div className="min-w-0 flex-1">
-        {activeSection === "general" && <AdminGeneralSettings />}
+        {activeSection === "general" && (
+          <AdminGeneralSettings storeInformation={initialStoreInformation} />
+        )}
         {activeSection === "store" && (
           <AdminStoreInformation initialStoreInformation={initialStoreInformation} />
+        )}
+        {activeSection === "branding" && (
+          <AdminBrandingSettings initialStoreInformation={initialStoreInformation} />
         )}
         {activeSection === "shipping" && <AdminShippingSettings />}
         {activeSection === "branches" && <AdminBranchesSettings />}

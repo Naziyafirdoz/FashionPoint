@@ -3,8 +3,8 @@ import "./globals.css";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { Analytics } from "@/components/analytics/Analytics";
-import { SITE_URL } from "@/lib/site-config";
-import { getStoreInformation } from "@/lib/settings/store-information";
+import { SITE_URL, STORE_SEO_DESCRIPTION, STORE_SEO_OG_DESCRIPTION } from "@/lib/site-config";
+import { getStoreInformation, resolveSeoTitle } from "@/lib/settings/store-information";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -17,23 +17,27 @@ const inter = Inter({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { storeName } = await getStoreInformation();
+  const store = await getStoreInformation();
+  const defaultTitle = resolveSeoTitle(store);
+  const ogDescription =
+    store.seoDescription === STORE_SEO_DESCRIPTION
+      ? STORE_SEO_OG_DESCRIPTION
+      : store.seoDescription;
 
   return {
     title: {
-      default: `${storeName} | Premium Ready-Made Indian Blouses`,
-      template: `%s | ${storeName}`
+      default: defaultTitle,
+      template: `%s | ${store.storeName}`
     },
-    description:
-      "Shop premium readymade blouses — daily wear, designer & party collections. AI size finder, saree color matcher & style assistant.",
+    description: store.seoDescription,
     metadataBase: new URL(SITE_URL),
     openGraph: {
-      title: storeName,
-      description: "Premium readymade Indian blouses with AI-powered shopping",
+      title: store.storeName,
+      description: ogDescription,
       type: "website",
-      siteName: storeName
+      siteName: store.storeName
     },
-    twitter: { card: "summary_large_image", title: storeName },
+    twitter: { card: "summary_large_image", title: store.storeName },
     robots: { index: true, follow: true }
   };
 }

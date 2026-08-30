@@ -11,12 +11,14 @@ export async function loadStoreInformationFromDb(): Promise<StoreInformation> {
 }
 
 export async function saveStoreInformationToDb(
-  input: StoreInformation
+  input: StoreInformation,
+  options?: { replaceBranding?: boolean }
 ): Promise<{ ok: true; settings: StoreInformation } | { ok: false; error: string }> {
   const db = createServiceClient();
   if (!db) return { ok: false, error: "Database not configured" };
 
-  const value = storeInformationWriteValue(input);
+  const branding = options?.replaceBranding ? input.branding : (await fetchStoreInformation()).branding;
+  const value = storeInformationWriteValue({ ...input, branding });
 
   const { error } = await db.from("store_settings").upsert({
     key: STORE_INFORMATION_KEY,

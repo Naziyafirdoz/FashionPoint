@@ -17,10 +17,17 @@ export function Footer({ categories = [], store }: FooterProps) {
   return (
     <footer className="mt-0 border-t border-accent/20 bg-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4">
-        <div>
-          <BrandLockup variant="dark" compactOnMobile={false} storeName={store.storeName} />
+        <div className={store.branding?.brandAlign === "center" ? "text-center" : undefined}>
+          <BrandLockup
+            variant="dark"
+            compactOnMobile={false}
+            storeName={store.storeName}
+            tagline={store.tagline}
+            logoUrl={store.logoUrl}
+            align={store.branding?.brandAlign}
+          />
           <p className="mt-3 text-sm text-foreground/70">
-            Premium readymade Indian blouses — daily wear, designer & party collections.
+            {store.description}
           </p>
         </div>
         <div>
