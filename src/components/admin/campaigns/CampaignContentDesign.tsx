@@ -142,7 +142,7 @@ function FontFamilyField({
   );
 }
 
-function FontSizeField({
+function FontSizeField<TSize extends string>({
   value,
   customSize,
   options,
@@ -150,16 +150,18 @@ function FontSizeField({
   fallbackPreset,
   onChange
 }: {
-  value: string;
+  value: TSize;
   customSize?: CampaignCustomSize;
   options: readonly string[];
   defaultCustom: CampaignCustomSize;
-  fallbackPreset: string;
-  onChange: (size: string, customFontSize?: CampaignCustomSize) => void;
+  fallbackPreset: TSize;
+  onChange: (size: TSize, customFontSize?: CampaignCustomSize) => void;
 }) {
   const isCustom = value === CAMPAIGN_CUSTOM_OPTION;
   const custom = customSize ?? defaultCustom;
-  const [lastPreset, setLastPreset] = useState(value !== CAMPAIGN_CUSTOM_OPTION ? value : fallbackPreset);
+  const [lastPreset, setLastPreset] = useState<TSize>(
+    value !== CAMPAIGN_CUSTOM_OPTION ? value : fallbackPreset
+  );
 
   useEffect(() => {
     if (value !== CAMPAIGN_CUSTOM_OPTION) setLastPreset(value);
@@ -171,7 +173,7 @@ function FontSizeField({
         <span className="text-sm">Font size</span>
         <CustomModeToggle
           active={isCustom}
-          onEnable={() => onChange(CAMPAIGN_CUSTOM_OPTION, custom)}
+          onEnable={() => onChange(CAMPAIGN_CUSTOM_OPTION as TSize, custom)}
           onDisable={() => onChange(lastPreset, customSize)}
         />
       </div>
@@ -187,7 +189,7 @@ function FontSizeField({
               step={custom.unit === "px" ? 1 : 0.05}
               value={custom.value}
               onChange={(e) =>
-                onChange(CAMPAIGN_CUSTOM_OPTION, {
+                onChange(CAMPAIGN_CUSTOM_OPTION as TSize, {
                   value: Number(e.target.value),
                   unit: custom.unit
                 })
@@ -197,7 +199,7 @@ function FontSizeField({
               className="rounded-lg border px-3 py-2"
               value={custom.unit}
               onChange={(e) =>
-                onChange(CAMPAIGN_CUSTOM_OPTION, {
+                onChange(CAMPAIGN_CUSTOM_OPTION as TSize, {
                   value: custom.value,
                   unit: e.target.value as CampaignSizeUnit
                 })
@@ -216,7 +218,7 @@ function FontSizeField({
           className="w-full rounded-lg border px-3 py-2 text-sm"
           value={value}
           onChange={(e) => {
-            const next = e.target.value;
+            const next = e.target.value as TSize;
             setLastPreset(next);
             onChange(next, customSize);
           }}
