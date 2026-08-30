@@ -19,7 +19,14 @@ export const siteConfig = {
   whatsappUrl: "https://wa.me/918340973376",
   currency: "INR",
   timezone: "Asia/Kolkata",
-  maintenanceMode: false
+  maintenanceMode: false,
+  storeDescription:
+    "Premium readymade Indian blouses — daily wear, designer & party collections.",
+  logoUrl: "",
+  seoTitleSuffix: "Premium Ready-Made Indian Blouses",
+  seoDescription:
+    "Shop premium readymade blouses — daily wear, designer & party collections. AI size finder, saree color matcher & style assistant.",
+  seoOgDescription: "Premium readymade Indian blouses with AI-powered shopping"
 } as const;
 
 export const STORE_NAME = siteConfig.storeName;
@@ -50,5 +57,15 @@ export const SITE_URL = siteConfig.siteUrl;
 export const STORE_CURRENCY = siteConfig.currency;
 export const STORE_TIMEZONE = siteConfig.timezone;
 export const STORE_MAINTENANCE_MODE = siteConfig.maintenanceMode;
+
+export const STORE_DESCRIPTION = siteConfig.storeDescription;
+export const STORE_LOGO_URL = siteConfig.logoUrl;
+export const STORE_SEO_TITLE_SUFFIX = siteConfig.seoTitleSuffix;
+export const STORE_SEO_DESCRIPTION = siteConfig.seoDescription;
+export const STORE_SEO_OG_DESCRIPTION = siteConfig.seoOgDescription;
+
+export function formatDefaultSeoTitle(storeName: string): string {
+  return `${storeName} | ${STORE_SEO_TITLE_SUFFIX}`;
+}
 
 export const COPYRIGHT_NOTICE = `© 2026 ${STORE_NAME}. All Rights Reserved.`;
