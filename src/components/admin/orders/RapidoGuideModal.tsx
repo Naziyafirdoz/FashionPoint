@@ -18,6 +18,7 @@ type RapidoGuideModalProps = {
   onClose: () => void;
   orderId: string;
   order: Order;
+  storeName: string;
   onOrderUpdated?: (order: Order) => void;
 };
 
@@ -68,7 +69,14 @@ function buildDropToBlock(address?: ShippingAddressRecord | null): string {
   return [area, city, state, pincode].filter(Boolean).join("\n");
 }
 
-export function RapidoGuideModal({ open, onClose, orderId, order, onOrderUpdated }: RapidoGuideModalProps) {
+export function RapidoGuideModal({
+  open,
+  onClose,
+  orderId,
+  order,
+  storeName,
+  onOrderUpdated
+}: RapidoGuideModalProps) {
   const address = order.shipping_address;
   const dropToBlock = buildDropToBlock(address);
   const building = resolveHouseFlat(address);
@@ -177,9 +185,9 @@ export function RapidoGuideModal({ open, onClose, orderId, order, onOrderUpdated
     {
       number: 6,
       shortTitle: "Mark Shipped",
-      title: "Return to Fashion Point",
+      title: `Return to ${storeName}`,
       description:
-        "After giving parcel to rider,\n\ncome back to Fashion Point admin panel and click:\n\n🚚 Mark Shipped"
+        `After giving parcel to rider,\n\ncome back to ${storeName} admin panel and click:\n\n🚚 Mark Shipped`
     }
   ];
 

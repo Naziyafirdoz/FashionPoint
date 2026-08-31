@@ -1,13 +1,16 @@
+import { STORE_NAME } from "@/lib/site-config";
 import { FINAL_SALE_CHECKOUT_NOTICE, FINAL_SALE_SUPPORT_NOTE } from "@/lib/store-policy";
 
 type FinalSalePolicyNoticeProps = {
   variant?: "checkout" | "success" | "inline";
   className?: string;
+  storeName?: string;
 };
 
 export function FinalSalePolicyNotice({
   variant = "inline",
-  className = ""
+  className = "",
+  storeName = STORE_NAME
 }: FinalSalePolicyNoticeProps) {
   if (variant === "checkout") {
     return (
@@ -28,7 +31,7 @@ export function FinalSalePolicyNotice({
         role="note"
       >
         <p>
-          Please note that Fashion Point does not offer returns, exchanges, or refunds once an
+          Please note that {storeName} does not offer returns, exchanges, or refunds once an
           order has been placed.
         </p>
         <p>For any delivery issues, please contact customer support.</p>

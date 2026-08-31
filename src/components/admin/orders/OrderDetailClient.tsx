@@ -97,9 +97,10 @@ async function persistAutoStartPacking(orderId: string, oldStatus: string): Prom
 
 type OrderDetailClientProps = {
   orderId: string;
+  storeName: string;
 };
 
-export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
+export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -366,6 +367,10 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
   const primaryAction = displayOrder ? resolveDetailPrimaryAction(displayOrder) : null;
   const isReadyToShip =
     displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "ready_to_ship";
+  const isHandedToCourier =
+    displayOrder != null &&
+    (normalizeLegacyStatus(displayOrder.status) === "shipped" ||
+      normalizeLegacyStatus(displayOrder.status) === "out_for_delivery");
 
   const runPrimaryAction = () => {
     if (!displayOrder || !primaryAction) return;
@@ -436,6 +441,16 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 }
                 primaryActionDisabled={updating}
               />
+
+              {isHandedToCourier ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-emerald-900">Handed to Courier</p>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    {storeName} responsibility is complete. Rapido or DTDC handles delivery from
+                    here.
+                  </p>
+                </div>
+              ) : null}
 
               {isReadyToShip ? (
                 <div className="flex flex-wrap justify-end gap-2">
@@ -512,7 +527,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
 
                 <DeliveryInformationCard shippingAddress={addr} order={displayOrder} />
 
-                <OrderTimelineFinancialCard order={displayOrder} />
+                <OrderTimelineFinancialCard order={displayOrder} storeName={storeName} />
 
                 {showRefundEligible && !refundTrackingAvailable ? (
                   <RefundTrackingUnavailable />
@@ -570,7 +585,13 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
           onClose={() => setShowRapidoGuide(false)}
           orderId={displayOrder.id}
           order={displayOrder}
-          onOrderUpdated={(updated) => setOrder(updated)}
+          storeName={storeName}
+          onOrderUpdated={(updated) =>
+            setOrder((prev) => ({
+              ...updated,
+              fulfillment_zone: updated.fulfillment_zone ?? prev?.fulfillment_zone
+            }))
+          }
         />
       ) : null}
 

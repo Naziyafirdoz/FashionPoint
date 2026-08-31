@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import type { StylistProductResult, StylistSessionFilters } from "@/lib/stylist-assistant/types";
 import { StylistChatProductCard } from "@/components/ai/StylistChatProductCard";
+import { STORE_NAME } from "@/lib/site-config";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -21,13 +22,16 @@ const QUICK_CHIPS = [
   "Blouses below ₹1,500"
 ] as const;
 
-const INITIAL_MESSAGE =
-  "Hi! I'm your Fashion Point Shopping Assistant. Tell me the occasion, color, fabric, or budget and I'll search our live catalog.";
+function shoppingAssistantGreeting(storeName: string) {
+  return `Hi! I'm your ${storeName} Shopping Assistant. Tell me the occasion, color, fabric, or budget and I'll search our live catalog.`;
+}
 
-export function StylistChatbot() {
+export function StylistChatbot({ storeName = STORE_NAME }: { storeName?: string }) {
+  const greeting = shoppingAssistantGreeting(storeName);
+  const assistantLabel = `${storeName} Shopping Assistant`;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: INITIAL_MESSAGE }
+    { role: "assistant", text: greeting }
   ]);
   const [sessionFilters, setSessionFilters] = useState<StylistSessionFilters>({ inStockOnly: true });
   const [input, setInput] = useState("");
@@ -54,7 +58,7 @@ export function StylistChatbot() {
         ...current,
         {
           role: "assistant",
-          text: typeof data.reply === "string" ? data.reply : INITIAL_MESSAGE,
+          text: typeof data.reply === "string" ? data.reply : greeting,
           products: Array.isArray(data.products) ? data.products : []
         }
       ]);
@@ -83,7 +87,7 @@ export function StylistChatbot() {
         type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-24 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        aria-label="Fashion Point Shopping Assistant"
+        aria-label={assistantLabel}
       >
         <MessageCircle className="h-6 w-6" />
       </button>
@@ -92,10 +96,10 @@ export function StylistChatbot() {
         <div
           className="fixed bottom-24 right-6 z-50 flex h-[min(520px,calc(100vh-7rem))] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl"
           role="dialog"
-          aria-label="Fashion Point Shopping Assistant"
+          aria-label={assistantLabel}
         >
           <div className="flex items-center justify-between bg-primary px-4 py-3 text-white">
-            <span className="font-semibold">Fashion Point Assistant</span>
+            <span className="font-semibold">{storeName} Assistant</span>
             <button
               type="button"
               onClick={() => setOpen(false)}

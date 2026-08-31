@@ -2,15 +2,17 @@
 
 import { buildFulfillmentMilestoneSteps } from "@/lib/orders/timeline";
 import { formatRefundDateTime } from "@/lib/orders/refunds";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order } from "@/types";
 
 type OrderDetailTimelineProps = {
   order: Order;
   variant?: "standalone" | "embedded";
+  storeName?: string;
 };
 
-function TimelineContent({ order }: { order: Order }) {
-  const steps = buildFulfillmentMilestoneSteps(order);
+function TimelineContent({ order, storeName }: { order: Order; storeName: string }) {
+  const steps = buildFulfillmentMilestoneSteps(order, storeName);
 
   if (steps.length === 0) {
     return <p className="text-sm text-gray-500">No timeline events yet.</p>;
@@ -81,7 +83,11 @@ function TimelineContent({ order }: { order: Order }) {
   );
 }
 
-export function OrderDetailTimeline({ order, variant = "standalone" }: OrderDetailTimelineProps) {
+export function OrderDetailTimeline({
+  order,
+  variant = "standalone",
+  storeName = STORE_NAME
+}: OrderDetailTimelineProps) {
   const heading = (
     <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Order Timeline</h2>
   );
@@ -91,7 +97,7 @@ export function OrderDetailTimeline({ order, variant = "standalone" }: OrderDeta
       <div id="timeline">
         {heading}
         <div className="mt-2">
-          <TimelineContent order={order} />
+          <TimelineContent order={order} storeName={storeName} />
         </div>
       </div>
     );
@@ -101,7 +107,7 @@ export function OrderDetailTimeline({ order, variant = "standalone" }: OrderDeta
     <section id="timeline" className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 lg:col-span-2">
       {heading}
       <div className="mt-3">
-        <TimelineContent order={order} />
+        <TimelineContent order={order} storeName={storeName} />
       </div>
     </section>
   );

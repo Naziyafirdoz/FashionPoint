@@ -1,6 +1,7 @@
 "use client";
 
 import toast, { type Toast } from "react-hot-toast";
+import { STORE_NAME } from "@/lib/site-config";
 
 export type WorkflowSuccessKind = "pack" | "ship" | "deliver";
 
@@ -28,16 +29,26 @@ const WORKFLOW_TOAST_CONFIG: Record<
   }
 };
 
+function nextStepFor(kind: WorkflowSuccessKind, storeName: string): string {
+  if (kind === "ship") {
+    return `${storeName} responsibility is complete. The courier handles delivery.`;
+  }
+  return WORKFLOW_TOAST_CONFIG[kind].nextStep;
+}
+
 function WorkflowToastCard({
   t,
   kind,
-  onNavigate
+  onNavigate,
+  storeName
 }: {
   t: Toast;
   kind: WorkflowSuccessKind;
   onNavigate: (tab: string) => void;
+  storeName: string;
 }) {
   const cfg = WORKFLOW_TOAST_CONFIG[kind];
+  const nextStep = nextStepFor(kind, storeName);
 
   return (
     <div
@@ -48,7 +59,7 @@ function WorkflowToastCard({
     >
       <p className="font-semibold text-primary">✓ {cfg.title}</p>
       <p className="mt-1 text-sm text-gray-700">
-        <span className="font-medium text-gray-900">Next step:</span> {cfg.nextStep}
+        <span className="font-medium text-gray-900">Next step:</span> {nextStep}
       </p>
       <button
         type="button"
@@ -66,14 +77,18 @@ function WorkflowToastCard({
 
 export function showWorkflowSuccessToast(
   kind: WorkflowSuccessKind,
-  onNavigate: (tab: string) => void
+  onNavigate: (tab: string) => void,
+  storeName: string = STORE_NAME
 ) {
   const cfg = WORKFLOW_TOAST_CONFIG[kind];
   onNavigate(cfg.tab);
 
-  toast.custom((t) => <WorkflowToastCard t={t} kind={kind} onNavigate={onNavigate} />, {
-    duration: 8000
-  });
+  toast.custom(
+    (t) => <WorkflowToastCard t={t} kind={kind} onNavigate={onNavigate} storeName={storeName} />,
+    {
+      duration: 8000
+    }
+  );
 }
 
 export function workflowTabForKind(kind: WorkflowSuccessKind): string {

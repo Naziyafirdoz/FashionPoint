@@ -210,7 +210,7 @@ export function AboutPageContent() {
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
             <MediaPlaceholder
               variant="hero"
-              label="Fashion Point Boutique"
+              label={`${storeName} Boutique`}
               hint="Premium ready-made blouses"
               className="shadow-card"
             />
