@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { STORE_NAME } from "@/lib/site-config";
 import logoPaths from "../../scripts/logo-paths.json";
 
 export type BrandLogoProps = {
@@ -19,7 +20,7 @@ const VARIANT_COLORS = {
   }
 } as const;
 
-export function BrandLogo({ variant = "dark", className, src, alt = "Fashion Point" }: BrandLogoProps) {
+export function BrandLogo({ variant = "dark", className, src, alt = STORE_NAME }: BrandLogoProps) {
   const colors = VARIANT_COLORS[variant];
 
   if (src) {

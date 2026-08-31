@@ -142,7 +142,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName }:
 
         )}
 
-        <FinalSalePolicyNotice variant="success" className="mt-6 text-left" />
+        <FinalSalePolicyNotice variant="success" className="mt-6 text-left" storeName={storeName} />
 
         <Link href="/account/orders" className="btn-primary mt-8 inline-block">
 
@@ -428,7 +428,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName }:
 
 
 
-      <FinalSalePolicyNotice variant="success" className="mt-6" />
+      <FinalSalePolicyNotice variant="success" className="mt-6" storeName={storeName} />
 
 
 

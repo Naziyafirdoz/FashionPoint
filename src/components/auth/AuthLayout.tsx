@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/store/BrandLogo";
+import { STORE_NAME } from "@/lib/site-config";
 
 type AuthLayoutProps = {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  storeName?: string;
 };
 
-export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
+export function AuthLayout({
+  title,
+  subtitle,
+  children,
+  footer,
+  storeName = STORE_NAME
+}: AuthLayoutProps) {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
       <div className="mb-8 text-center">
-        <BrandLogo href="/" variant="dark" className="mx-auto" />
+        <BrandLogo href="/" variant="dark" className="mx-auto" storeName={storeName} />
         <h1 className="mt-6 font-display text-2xl font-bold text-primary">{title}</h1>
         {subtitle ? <p className="mt-2 text-sm text-foreground/70">{subtitle}</p> : null}
       </div>

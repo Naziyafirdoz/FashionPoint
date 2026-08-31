@@ -34,7 +34,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       />
       {children}
       <Footer categories={categories} store={storeInformation} />
-      <StylistChatbotLazy />
+      <StylistChatbotLazy storeName={storeInformation.storeName} />
     </StorefrontBrandingScope>
   );
 }

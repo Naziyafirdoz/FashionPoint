@@ -98,9 +98,10 @@ async function persistAutoStartPacking(orderId: string, oldStatus: string): Prom
 
 type OrderDetailClientProps = {
   orderId: string;
+  storeName: string;
 };
 
-export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
+export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -405,7 +406,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                   <p className="text-sm font-semibold text-emerald-900">Handed to Courier</p>
                   <p className="mt-1 text-sm text-emerald-800">
-                    Fashion Point responsibility is complete. Rapido or DTDC handles delivery from
+                    {storeName} responsibility is complete. Rapido or DTDC handles delivery from
                     here.
                   </p>
                 </div>
@@ -512,7 +513,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
 
                 <DeliveryInformationCard shippingAddress={addr} order={displayOrder} />
 
-                <OrderTimelineFinancialCard order={displayOrder} />
+                <OrderTimelineFinancialCard order={displayOrder} storeName={storeName} />
 
                 {showRefundEligible && !refundTrackingAvailable ? (
                   <RefundTrackingUnavailable />
@@ -570,6 +571,7 @@ export function OrderDetailClient({ orderId }: OrderDetailClientProps) {
           onClose={() => setShowRapidoGuide(false)}
           orderId={displayOrder.id}
           order={displayOrder}
+          storeName={storeName}
           onOrderUpdated={(updated) =>
             setOrder((prev) => ({
               ...updated,
