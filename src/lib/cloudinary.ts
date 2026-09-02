@@ -24,6 +24,7 @@ export async function uploadImage(
 
 export const CAMPAIGN_CLOUDINARY_FOLDER = "fashionpoint/campaigns";
 export const DTDC_CLOUDINARY_FOLDER = "fashionpoint/dtdc";
+export const STORE_LOGO_CLOUDINARY_FOLDER = "fashionpoint/store-logo";
 
 const DTDC_OPTIMIZATION = {
   width: 2000,
@@ -47,6 +48,17 @@ export async function uploadCampaignHeroImage(file: string): Promise<string | nu
 
   const result = await cloudinary.uploader.upload(file, {
     folder: CAMPAIGN_CLOUDINARY_FOLDER,
+    resource_type: "image"
+  });
+
+  return isHttpsCloudinaryUrl(result.secure_url) ? result.secure_url : null;
+}
+
+export async function uploadStoreLogo(file: string): Promise<string | null> {
+  if (!configured) return null;
+
+  const result = await cloudinary.uploader.upload(file, {
+    folder: STORE_LOGO_CLOUDINARY_FOLDER,
     resource_type: "image"
   });
 

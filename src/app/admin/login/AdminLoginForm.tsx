@@ -11,7 +11,7 @@ import {
   authLabelClassName
 } from "@/components/auth/AuthLayout";
 
-function AdminLoginFormFields({ storeName }: { storeName: string }) {
+function AdminLoginFormFields({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/admin/dashboard";
@@ -73,7 +73,7 @@ function AdminLoginFormFields({ storeName }: { storeName: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-blush/30 px-4">
       <div className="w-full max-w-md">
-        <AuthLayout title="Admin Login" subtitle={`${storeName} staff portal`} storeName={storeName}>
+        <AuthLayout title="Admin Login" subtitle={`${storeName} staff portal`} storeName={storeName} logoUrl={logoUrl}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <AuthError message={error} />
             <div>
@@ -119,10 +119,10 @@ function AdminLoginFormFields({ storeName }: { storeName: string }) {
   );
 }
 
-export function AdminLoginForm({ storeName }: { storeName: string }) {
+export function AdminLoginForm({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   return (
     <Suspense fallback={<div className="py-24 text-center text-sm">Loading…</div>}>
-      <AdminLoginFormFields storeName={storeName} />
+      <AdminLoginFormFields storeName={storeName} logoUrl={logoUrl} />
     </Suspense>
   );
 }

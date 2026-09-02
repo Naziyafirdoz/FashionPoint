@@ -16,7 +16,7 @@ import {
 const SIGNUP_EMAIL_CONTINUE_MESSAGE =
   "Check your email to continue. If you already have an account, sign in or reset your password.";
 
-export function SignupForm({ storeName }: { storeName: string }) {
+export function SignupForm({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -105,6 +105,7 @@ export function SignupForm({ storeName }: { storeName: string }) {
       title="Create Account"
       subtitle={`Join ${storeName} for a personalized blouse shopping experience`}
       storeName={storeName}
+      logoUrl={logoUrl}
       footer={
         <>
           Already have an account?{" "}

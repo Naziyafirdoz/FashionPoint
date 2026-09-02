@@ -11,7 +11,7 @@ import {
   authLabelClassName
 } from "@/components/auth/AuthLayout";
 
-function LoginFormFields({ storeName }: { storeName: string }) {
+function LoginFormFields({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") ?? "/account/dashboard";
@@ -52,6 +52,7 @@ function LoginFormFields({ storeName }: { storeName: string }) {
       title="Welcome Back"
       subtitle={`Sign in to your ${storeName} account`}
       storeName={storeName}
+      logoUrl={logoUrl}
       footer={
         <>
           Don&apos;t have an account?{" "}
@@ -104,10 +105,10 @@ function LoginFormFields({ storeName }: { storeName: string }) {
   );
 }
 
-export function LoginForm({ storeName }: { storeName: string }) {
+export function LoginForm({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   return (
     <Suspense fallback={<div className="py-24 text-center text-sm">Loading…</div>}>
-      <LoginFormFields storeName={storeName} />
+      <LoginFormFields storeName={storeName} logoUrl={logoUrl} />
     </Suspense>
   );
 }

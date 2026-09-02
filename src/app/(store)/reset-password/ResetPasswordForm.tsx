@@ -15,7 +15,7 @@ import {
 const INVALID_RESET_MESSAGE =
   "This reset link is invalid or has expired. Request a new link and try again.";
 
-function ResetPasswordFormFields({ storeName }: { storeName: string }) {
+function ResetPasswordFormFields({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlError = searchParams.get("error");
@@ -92,7 +92,7 @@ function ResetPasswordFormFields({ storeName }: { storeName: string }) {
 
   if (!sessionReady) {
     return (
-      <AuthLayout title="Reset Password" subtitle="Enter your new password" storeName={storeName}>
+      <AuthLayout title="Reset Password" subtitle="Enter your new password" storeName={storeName} logoUrl={logoUrl}>
         <p className="text-sm text-foreground/70">Checking your reset link…</p>
       </AuthLayout>
     );
@@ -104,6 +104,7 @@ function ResetPasswordFormFields({ storeName }: { storeName: string }) {
         title="Reset Password"
         subtitle="Enter your new password"
         storeName={storeName}
+        logoUrl={logoUrl}
         footer={
           <Link href="/forgot-password" className="font-medium text-primary hover:underline">
             Request a new reset link
@@ -120,6 +121,7 @@ function ResetPasswordFormFields({ storeName }: { storeName: string }) {
       title="Reset Password"
       subtitle="Enter your new password"
       storeName={storeName}
+      logoUrl={logoUrl}
       footer={
         <Link href="/login" className="font-medium text-primary hover:underline">
           Back to sign in
@@ -167,10 +169,10 @@ function ResetPasswordFormFields({ storeName }: { storeName: string }) {
   );
 }
 
-export function ResetPasswordForm({ storeName }: { storeName: string }) {
+export function ResetPasswordForm({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   return (
     <Suspense fallback={<div className="py-24 text-center text-sm">Loading…</div>}>
-      <ResetPasswordFormFields storeName={storeName} />
+      <ResetPasswordFormFields storeName={storeName} logoUrl={logoUrl} />
     </Suspense>
   );
 }

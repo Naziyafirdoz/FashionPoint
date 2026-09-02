@@ -8,6 +8,7 @@ type AuthLayoutProps = {
   children: React.ReactNode;
   footer?: React.ReactNode;
   storeName?: string;
+  logoUrl?: string;
 };
 
 export function AuthLayout({
@@ -15,12 +16,13 @@ export function AuthLayout({
   subtitle,
   children,
   footer,
-  storeName = STORE_NAME
+  storeName = STORE_NAME,
+  logoUrl
 }: AuthLayoutProps) {
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
       <div className="mb-8 text-center">
-        <BrandLogo href="/" variant="dark" className="mx-auto" storeName={storeName} />
+        <BrandLogo href="/" variant="dark" className="mx-auto" storeName={storeName} logoUrl={logoUrl} />
         <h1 className="mt-6 font-display text-2xl font-bold text-primary">{title}</h1>
         {subtitle ? <p className="mt-2 text-sm text-foreground/70">{subtitle}</p> : null}
       </div>

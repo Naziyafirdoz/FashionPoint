@@ -11,7 +11,7 @@ import {
   authLabelClassName
 } from "@/components/auth/AuthLayout";
 
-export function ForgotPasswordForm({ storeName }: { storeName: string }) {
+export function ForgotPasswordForm({ storeName, logoUrl }: { storeName: string; logoUrl?: string }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export function ForgotPasswordForm({ storeName }: { storeName: string }) {
       title="Forgot Password"
       subtitle="We'll send you a link to reset your password"
       storeName={storeName}
+      logoUrl={logoUrl}
       footer={
         <>
           Remember your password?{" "}

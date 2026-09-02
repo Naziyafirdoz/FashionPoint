@@ -5,15 +5,19 @@ import { STORE_NAME } from "@/lib/site-config";
 type StoreBrandLogoProps = BrandLogoProps & {
   href?: string;
   storeName?: string;
+  logoUrl?: string;
 };
 
 export function BrandLogo({
   href = "/",
   variant = "dark",
   className,
-  storeName = STORE_NAME
+  storeName = STORE_NAME,
+  logoUrl
 }: StoreBrandLogoProps) {
-  const logo = <BrandLogoMark variant={variant} className={className} alt={storeName} />;
+  const logo = (
+    <BrandLogoMark variant={variant} className={className} alt={storeName} src={logoUrl || undefined} />
+  );
 
   if (href) {
     return (
