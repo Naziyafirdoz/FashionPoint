@@ -26,14 +26,6 @@ import {
 import { Button } from "@/components/ui/Button";
 import { EXPLORE_COLLECTIONS_HREF } from "@/lib/navigation/explore-collections";
 import { MediaPlaceholder } from "@/components/placeholders/MediaPlaceholder";
-import {
-  STORE_ADDRESS,
-  STORE_NAME,
-  STORE_PHONE_PRIMARY_DISPLAY,
-  STORE_TEL_PRIMARY,
-  STORE_TAGLINE,
-  SUPPORT_EMAIL
-} from "@/lib/site-config";
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -132,7 +124,23 @@ function AnimatedStat({
   );
 }
 
-export function AboutPageContent() {
+type AboutPageContentProps = {
+  storeName: string;
+  tagline: string;
+  address: string;
+  phoneDisplay: string;
+  telUrl: string;
+  supportEmail: string;
+};
+
+export function AboutPageContent({
+  storeName,
+  tagline,
+  address,
+  phoneDisplay,
+  telUrl,
+  supportEmail
+}: AboutPageContentProps) {
   return (
     <div className="bg-background">
       {/* 1. Hero */}
@@ -161,13 +169,13 @@ export function AboutPageContent() {
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20 lg:py-24">
           <motion.div {...fadeUp} className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-              {STORE_TAGLINE}
+              {tagline}
             </p>
             <h1
               id="about-hero-heading"
               className="mt-4 font-display text-4xl font-bold leading-tight text-primary sm:text-5xl lg:text-[3.25rem]"
             >
-              About {STORE_NAME}
+              About {storeName}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-foreground/75 sm:text-lg">
               Premium ready-made Indian blouses crafted for the modern woman — where elegance meets
@@ -194,7 +202,7 @@ export function AboutPageContent() {
             </h2>
             <div className="mt-2 h-1 w-12 rounded-full bg-secondary/80" aria-hidden="true" />
             <p className="mt-6 text-base leading-relaxed text-foreground/75">
-              {STORE_NAME} began with a simple belief: every woman deserves access to beautifully
+              {storeName} began with a simple belief: every woman deserves access to beautifully
               finished, ready-made blouses without compromising on quality or comfort.
             </p>
             <p className="mt-4 text-base leading-relaxed text-foreground/75">
@@ -226,7 +234,7 @@ export function AboutPageContent() {
         <div className="mx-auto max-w-6xl px-5 sm:px-6">
           <motion.div {...fadeUp} className="text-center">
             <h2 id="why-choose-heading" className="font-display text-3xl font-bold text-primary sm:text-4xl">
-              Why Choose {STORE_NAME}
+              Why Choose {storeName}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-foreground/70">
               A premium shopping experience built around quality, trust, and thoughtful design.
@@ -411,7 +419,7 @@ export function AboutPageContent() {
               AI-Powered Shopping
             </h2>
             <p className="mt-4 text-foreground/70">
-              Intelligent tools already built into {STORE_NAME} to help you shop with clarity and
+              Intelligent tools already built into {storeName} to help you shop with clarity and
               confidence.
             </p>
           </motion.div>
@@ -461,15 +469,15 @@ export function AboutPageContent() {
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                 <div>
                   <p className="font-semibold text-primary">Address</p>
-                  <p className="mt-1 leading-relaxed text-foreground/75">{STORE_ADDRESS}</p>
+                  <p className="mt-1 leading-relaxed text-foreground/75">{address}</p>
                 </div>
               </li>
               <li className="flex gap-3">
                 <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                 <div>
                   <p className="font-semibold text-primary">Phone</p>
-                  <a href={STORE_TEL_PRIMARY} className="mt-1 text-foreground/75 hover:text-primary">
-                    {STORE_PHONE_PRIMARY_DISPLAY}
+                  <a href={telUrl} className="mt-1 text-foreground/75 hover:text-primary">
+                    {phoneDisplay}
                   </a>
                 </div>
               </li>
@@ -478,10 +486,10 @@ export function AboutPageContent() {
                 <div>
                   <p className="font-semibold text-primary">Email</p>
                   <a
-                    href={`mailto:${SUPPORT_EMAIL}`}
+                    href={`mailto:${supportEmail}`}
                     className="mt-1 text-foreground/75 hover:text-primary"
                   >
-                    {SUPPORT_EMAIL}
+                    {supportEmail}
                   </a>
                 </div>
               </li>
@@ -508,10 +516,10 @@ export function AboutPageContent() {
               <MapPin className="h-10 w-10 text-primary/60" aria-hidden="true" />
               <p className="mt-4 font-display text-lg font-semibold text-primary">Google Maps</p>
               <p className="mt-2 max-w-xs text-sm text-foreground/65">
-                Find us in Vijayawada — map integration coming soon.
+                Find us at our store.
               </p>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Fashion+Point+Vijayawada"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${storeName} ${address}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary mt-6 inline-flex text-sm"
