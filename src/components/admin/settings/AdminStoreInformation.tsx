@@ -1,8 +1,9 @@
 "use client";
 
 import { Store } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { BrandLogo } from "@/components/BrandLogo";
 import { isValidEmail, isValidIndianMobile, normalizeIndianMobile } from "@/lib/checkout/contact-validation";
 import {
   DEFAULT_STORE_INFORMATION,
@@ -11,6 +12,10 @@ import {
   resolveSeoTitle,
   type StoreInformation
 } from "@/lib/settings/store-information";
+import {
+  STORE_LOGO_ACCEPT,
+  validateStoreLogoFile
+} from "@/lib/settings/store-logo-upload";
 import { SettingsField, SettingsFieldList, SettingsSection } from "./settings-shared";
 
 type StoreInformationForm = StoreInformation;
@@ -56,13 +61,70 @@ function validateForm(form: StoreInformationForm): string | null {
   return null;
 }
 
+function uploadStoreLogoFile(file: File, onProgress: (percent: number) => void): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/admin/store-information/logo");
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText) as { url?: string; error?: string };
+        if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+          resolve(data.url);
+          return;
+        }
+        reject(new Error(data.error ?? "Unable to upload store logo"));
+      } catch {
+        reject(new Error("Unable to upload store logo"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Unable to upload store logo"));
+    xhr.onabort = () => reject(new Error("Logo upload was cancelled"));
+    const body = new FormData();
+    body.append("file", file);
+    xhr.send(body);
+  });
+}
+
 const inputClassName = "mt-1 w-full rounded-lg border px-3 py-2 text-sm";
+
+function StoreLogoPreview({
+  storeName,
+  logoUrl,
+  uploading,
+  progress
+}: {
+  storeName: string;
+  logoUrl: string;
+  uploading?: boolean;
+  progress?: number;
+}) {
+  return (
+    <div className="relative mt-1 inline-flex min-h-[68px] min-w-[68px] items-center justify-center rounded-lg border border-accent/20 bg-white p-3">
+      <BrandLogo variant="dark" src={logoUrl || undefined} alt={storeName} />
+      {uploading ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-lg bg-white/85 text-xs font-medium text-primary">
+          <span>Uploading…</span>
+          <span>{Math.max(0, Math.min(100, progress ?? 0))}%</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInformationProps) {
   const [saved, setSaved] = useState<StoreInformationForm>(initialStoreInformation);
   const [form, setForm] = useState<StoreInformationForm>(initialStoreInformation);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applySettings = useCallback((next: StoreInformationForm) => {
     setSaved(next);
@@ -77,9 +139,42 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
   const cancelEdit = () => {
     setForm(saved);
     setEditing(false);
+    setUploading(false);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleLogoFile = async (file: File | undefined) => {
+    if (!file) return;
+
+    const validation = validateStoreLogoFile(file);
+    if (!validation.ok) {
+      toast.error(validation.message);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const url = await uploadStoreLogoFile(file, setUploadProgress);
+      setForm((current) => ({ ...current, logoUrl: url }));
+      toast.success("Logo uploaded. Save changes to apply it.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to upload store logo");
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const save = async () => {
+    if (uploading) {
+      toast.error("Wait for the logo upload to finish before saving.");
+      return;
+    }
+
     const error = validateForm(form);
     if (error) {
       toast.error(error);
@@ -119,6 +214,9 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
     }
   };
 
+  const busy = saving || uploading;
+  const hasCustomLogo = Boolean(form.logoUrl.trim());
+
   return (
     <SettingsSection title="Store Information" icon={Store}>
       {editing ? (
@@ -132,7 +230,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.storeName}
               onChange={(e) => setForm((current) => ({ ...current, storeName: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
             />
           </div>
           <div>
@@ -145,7 +243,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.address}
               onChange={(e) => setForm((current) => ({ ...current, address: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
             />
           </div>
           <div>
@@ -157,7 +255,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.primaryPhone}
               onChange={(e) => setForm((current) => ({ ...current, primaryPhone: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               inputMode="tel"
               autoComplete="tel"
             />
@@ -172,7 +270,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.supportEmail}
               onChange={(e) => setForm((current) => ({ ...current, supportEmail: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               autoComplete="email"
             />
           </div>
@@ -185,7 +283,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.tagline}
               onChange={(e) => setForm((current) => ({ ...current, tagline: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               maxLength={80}
               placeholder={DEFAULT_STORE_INFORMATION.tagline}
             />
@@ -200,25 +298,53 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.description}
               onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               maxLength={300}
               placeholder={DEFAULT_STORE_INFORMATION.description}
             />
           </div>
           <div>
-            <label htmlFor="store-info-logo" className="text-foreground/60">
-              Logo URL
-            </label>
-            <input
-              id="store-info-logo"
-              className={inputClassName}
-              value={form.logoUrl}
-              onChange={(e) => setForm((current) => ({ ...current, logoUrl: e.target.value }))}
-              disabled={saving}
-              placeholder="Leave blank to keep the Fashion Point logo"
+            <p id="store-info-logo-label" className="text-foreground/60">
+              Store Logo
+            </p>
+            <StoreLogoPreview
+              storeName={form.storeName}
+              logoUrl={form.logoUrl}
+              uploading={uploading}
+              progress={uploadProgress}
             />
+            <input
+              ref={fileInputRef}
+              id="store-info-logo"
+              type="file"
+              accept={STORE_LOGO_ACCEPT}
+              className="sr-only"
+              disabled={busy}
+              aria-labelledby="store-info-logo-label"
+              onChange={(e) => void handleLogoFile(e.target.files?.[0])}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-outline px-3 py-1.5 text-sm disabled:opacity-60"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={busy}
+              >
+                {hasCustomLogo ? "Replace Logo" : "Choose File"}
+              </button>
+              {hasCustomLogo ? (
+                <button
+                  type="button"
+                  className="btn-outline px-3 py-1.5 text-sm disabled:opacity-60"
+                  onClick={() => setForm((current) => ({ ...current, logoUrl: "" }))}
+                  disabled={busy}
+                >
+                  Use default logo
+                </button>
+              ) : null}
+            </div>
             <p className="mt-1 text-xs text-foreground/50">
-              Optional image URL or site path. Leave blank to use the current Fashion Point logo.
+              Upload PNG, JPG or WebP (max 5 MB).
             </p>
           </div>
           <div>
@@ -230,7 +356,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.seoTitle}
               onChange={(e) => setForm((current) => ({ ...current, seoTitle: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               maxLength={80}
               placeholder={resolveSeoTitle({ storeName: form.storeName.trim() || DEFAULT_STORE_INFORMATION.storeName, seoTitle: "" })}
             />
@@ -248,17 +374,17 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               className={inputClassName}
               value={form.seoDescription}
               onChange={(e) => setForm((current) => ({ ...current, seoDescription: e.target.value }))}
-              disabled={saving}
+              disabled={busy}
               maxLength={220}
               placeholder={DEFAULT_STORE_INFORMATION.seoDescription}
             />
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
-            <button type="button" className="btn-outline px-4 py-2 text-sm" onClick={cancelEdit} disabled={saving}>
+            <button type="button" className="btn-outline px-4 py-2 text-sm" onClick={cancelEdit} disabled={busy}>
               Cancel
             </button>
-            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={() => void save()} disabled={saving}>
-              {saving ? "Saving…" : "Save Changes"}
+            <button type="button" className="btn-primary px-4 py-2 text-sm disabled:opacity-60" onClick={() => void save()} disabled={busy}>
+              {saving ? "Saving…" : uploading ? "Uploading…" : "Save Changes"}
             </button>
           </div>
         </div>
@@ -268,7 +394,17 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
             <SettingsField label="Store name" value={saved.storeName} />
             <SettingsField label="Tagline" value={saved.tagline} />
             <SettingsField label="Store description" value={saved.description} />
-            <SettingsField label="Logo URL" value={saved.logoUrl || "Fashion Point default logo"} />
+            <SettingsField
+              label="Store Logo"
+              value={
+                <div className="space-y-1">
+                  <StoreLogoPreview storeName={saved.storeName} logoUrl={saved.logoUrl} />
+                  <p className="text-xs text-foreground/50">
+                    {saved.logoUrl ? "Custom logo" : "Default logo"}
+                  </p>
+                </div>
+              }
+            />
             <SettingsField label="SEO title" value={resolveSeoTitle(saved)} />
             <SettingsField label="SEO description" value={saved.seoDescription} />
             <SettingsField label="Address" value={saved.address} />
