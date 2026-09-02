@@ -4,6 +4,7 @@ type SizeFinderHeroProps = {
   hasSaved: boolean;
   lastSavedSize: string | null;
   lastSavedAt: string | null;
+  storeName: string;
 };
 
 const TRUST_BADGES = ["AI Powered", "Accurate Fit", "Personalized Recommendation"] as const;
@@ -11,7 +12,8 @@ const TRUST_BADGES = ["AI Powered", "Accurate Fit", "Personalized Recommendation
 export function SizeFinderHero({
   hasSaved,
   lastSavedSize,
-  lastSavedAt
+  lastSavedAt,
+  storeName
 }: SizeFinderHeroProps) {
   return (
     <header className="relative overflow-hidden rounded-[18px] border border-[#F3E5E8] bg-gradient-to-br from-white via-[#FFFBFC] to-[#FFF5F7] px-4 py-4 shadow-[0_4px_20px_rgba(122,13,43,0.05)] sm:px-5 sm:py-5">
@@ -20,7 +22,7 @@ export function SizeFinderHero({
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-white/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
               <Sparkles className="h-3 w-3 text-secondary" aria-hidden="true" />
-              Fashion Point AI
+              {storeName} AI
             </span>
             <ul className="flex flex-wrap gap-1.5">
               {TRUST_BADGES.map((badge) => (
