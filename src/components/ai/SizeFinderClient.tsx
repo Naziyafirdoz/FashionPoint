@@ -43,6 +43,7 @@ type SizeFinderClientProps = {
   savedMeasurements?: SavedMeasurements | null;
   savedSizeProfile?: SavedSizeProfile | null;
   isLoggedIn?: boolean;
+  storeName: string;
 };
 
 const FIELD_ORDER: MeasurementField[] = ["bust", "underbust", "waist", "shoulder"];
@@ -79,7 +80,8 @@ function formatSavedAt(iso?: string | null) {
 export function SizeFinderClient({
   savedMeasurements,
   savedSizeProfile,
-  isLoggedIn = false
+  isLoggedIn = false,
+  storeName
 }: SizeFinderClientProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
@@ -266,6 +268,7 @@ export function SizeFinderClient({
   return (
     <div className="mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 sm:py-5">
       <SizeFinderHero
+        storeName={storeName}
         hasSaved={hasSaved}
         lastSavedSize={lastSavedSize}
         lastSavedAt={lastSavedAt}
