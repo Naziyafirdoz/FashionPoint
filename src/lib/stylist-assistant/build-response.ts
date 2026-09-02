@@ -8,6 +8,10 @@ import type {
   StylistSessionFilters
 } from "@/lib/stylist-assistant/types";
 
+export function buildOffTopicReply(storeName: string): string {
+  return `I'm the ${storeName} Shopping Assistant and can help you find blouses, compare products, and answer questions about our collection.`;
+}
+
 const OFF_TOPIC_REPLY =
   "I'm the Fashion Point Shopping Assistant and can help you find blouses, compare products, and answer questions about our collection.";
 
