@@ -166,7 +166,7 @@ export async function getCategoryPageBundle(slug: string): Promise<{
 }
 
 export function buildCategoryMetadata(category: CategoryPageData) {
-  const title = `${category.name} | Fashion Point`;
+  const title = `${category.name}`;
   const description =
     category.hero_subtitle?.trim() ||
     category.description?.trim() ||

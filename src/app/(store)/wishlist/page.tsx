@@ -8,7 +8,7 @@ import {
 } from "@/components/wishlist/WishlistPageClient";
 import type { Product } from "@/types";
 
-export const metadata = { title: "Wishlist | Fashion Point" };
+export const metadata = { title: "Wishlist" };
 
 export default async function WishlistPage() {
   const supabase = await createClient();
