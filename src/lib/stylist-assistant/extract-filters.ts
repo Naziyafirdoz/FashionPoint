@@ -112,7 +112,10 @@ export function detectIntent(message: string): StylistIntent {
   const lower = message.toLowerCase();
 
   if (
-    /capital of|weather in|who is the president|javascript tutorial|write a poem|solve this math/.test(
+    /\b(weather|forecast|temperature)\b/.test(lower) ||
+    /\bwhat time\b|\btime is it\b|\bwhat date\b|\bdate is it\b/.test(lower) ||
+    /\b(joke|riddle)\b/.test(lower) ||
+    /prime minister|who is the president|capital of|javascript tutorial|write a poem|solve this math/.test(
       lower
     )
   ) {
