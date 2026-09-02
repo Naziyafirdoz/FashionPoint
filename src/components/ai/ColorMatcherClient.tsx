@@ -10,7 +10,7 @@ import { ColorMatcherResultsPanel } from "./color-matcher/ColorMatcherResultsPan
 
 const AUTO_ANALYZE_DELAY_MS = 400;
 
-export function ColorMatcherClient() {
+export function ColorMatcherClient({ storeName }: { storeName: string }) {
   const analyzingRef = useRef(false);
   const runAnalysisRef = useRef<() => Promise<void>>(async () => {});
   const [guideOpen, setGuideOpen] = useState(false);
@@ -167,7 +167,7 @@ export function ColorMatcherClient() {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-3 pb-6 pt-4 sm:px-5">
-      <ColorMatcherHero onOpenGuide={() => setGuideOpen(true)} />
+      <ColorMatcherHero storeName={storeName} onOpenGuide={() => setGuideOpen(true)} />
 
       <div className="mt-3 grid items-start gap-3 lg:grid-cols-2 lg:gap-4">
         <ColorMatcherUploadPanel
