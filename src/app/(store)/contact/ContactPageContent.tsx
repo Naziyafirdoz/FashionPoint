@@ -29,7 +29,6 @@ import {
   isValidFullName,
   isValidIndianMobile
 } from "@/lib/checkout/contact-validation";
-import { STORE_ADDRESS_SHORT } from "@/lib/site-config";
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -47,13 +46,13 @@ type ContactPageContentProps = {
   whatsappUrl: string;
 };
 
-function buildContactCards(store: Pick<ContactPageContentProps, "address" | "phoneDisplay" | "telUrl" | "supportEmail">) {
+function buildContactCards(store: Pick<ContactPageContentProps, "storeName" | "address" | "phoneDisplay" | "telUrl" | "supportEmail">) {
   return [
     {
       icon: MapPin,
       title: "Store Address",
       content: store.address,
-      href: "https://www.google.com/maps/search/?api=1&query=Fashion+Point+Vijayawada",
+      href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.storeName} ${store.address}`)}`,
       linkLabel: "Get directions"
     },
     {
@@ -125,10 +124,6 @@ const FAQ_ITEMS = [
     question: "Do you help with blouse sizing?",
     answer:
       "Absolutely. Use our AI Size Finder online or message us with your measurements — we're happy to guide you."
-  },
-  {
-    question: "Where is your store located?",
-    answer: `Our store is in ${STORE_ADDRESS_SHORT}. Visit us opposite Lion School on Brahmin Street, Mallikarjunapeta.`
   }
 ] as const;
 
@@ -334,14 +329,21 @@ function ContactForm({ supportEmail }: { supportEmail: string }) {
   );
 }
 
-function FaqAccordion() {
+function FaqAccordion({ address }: { address: string }) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [expandAll, setExpandAll] = useState(false);
+  const items = [
+    ...FAQ_ITEMS,
+    {
+      question: "Where is your store located?",
+      answer: `Our store is located at ${address}.`
+    }
+  ];
 
   return (
     <div id="faq-section">
       <div className="space-y-3">
-        {FAQ_ITEMS.map((item, index) => {
+        {items.map((item, index) => {
           const isOpen = expandAll || openIndex === index;
           const panelId = `faq-panel-${index}`;
           const buttonId = `faq-button-${index}`;
@@ -399,7 +401,7 @@ export function ContactPageContent({
   supportEmail,
   whatsappUrl
 }: ContactPageContentProps) {
-  const contactCards = buildContactCards({ address, phoneDisplay, telUrl, supportEmail });
+  const contactCards = buildContactCards({ storeName, address, phoneDisplay, telUrl, supportEmail });
   return (
     <div className="bg-background">
       {/* 1. Hero */}
@@ -558,7 +560,7 @@ export function ContactPageContent({
               <p className="mt-4 font-display text-lg font-semibold text-primary">Google Maps</p>
               <p className="mt-2 text-sm text-foreground/60">Interactive map — coming soon</p>
               <a
-                href="https://www.google.com/maps/dir/?api=1&destination=Fashion+Point+Vijayawada"
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${storeName} ${address}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary mt-6 inline-flex text-sm"
@@ -576,13 +578,6 @@ export function ContactPageContent({
             <h3 className="font-display text-xl font-semibold text-primary">Visit Our Store</h3>
             <p className="mt-4 text-sm leading-relaxed text-foreground/75">{address}</p>
             <ul className="mt-6 space-y-4 text-sm text-foreground/70">
-              <li className="flex gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
-                <span>
-                  <strong className="text-foreground/85">Nearby landmark:</strong> Opposite Lion School,
-                  Brahmin Street, Mallikarjunapeta
-                </span>
-              </li>
               <li className="flex gap-3">
                 <span className="mt-0.5 text-secondary" aria-hidden="true">
                   🅿️
@@ -673,7 +668,7 @@ export function ContactPageContent({
             Frequently Asked Questions
           </motion.h2>
           <motion.div {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.08 }} className="mt-10">
-            <FaqAccordion />
+            <FaqAccordion address={address} />
           </motion.div>
         </div>
       </section>

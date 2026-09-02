@@ -26,7 +26,6 @@ import {
 import { Button } from "@/components/ui/Button";
 import { EXPLORE_COLLECTIONS_HREF } from "@/lib/navigation/explore-collections";
 import { MediaPlaceholder } from "@/components/placeholders/MediaPlaceholder";
-import { STORE_TAGLINE } from "@/lib/site-config";
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -127,6 +126,7 @@ function AnimatedStat({
 
 type AboutPageContentProps = {
   storeName: string;
+  tagline: string;
   address: string;
   phoneDisplay: string;
   telUrl: string;
@@ -135,6 +135,7 @@ type AboutPageContentProps = {
 
 export function AboutPageContent({
   storeName,
+  tagline,
   address,
   phoneDisplay,
   telUrl,
@@ -168,7 +169,7 @@ export function AboutPageContent({
         <div className="relative mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20 lg:py-24">
           <motion.div {...fadeUp} className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-              {STORE_TAGLINE}
+              {tagline}
             </p>
             <h1
               id="about-hero-heading"
@@ -515,10 +516,10 @@ export function AboutPageContent({
               <MapPin className="h-10 w-10 text-primary/60" aria-hidden="true" />
               <p className="mt-4 font-display text-lg font-semibold text-primary">Google Maps</p>
               <p className="mt-2 max-w-xs text-sm text-foreground/65">
-                Find us in Vijayawada — map integration coming soon.
+                Find us at our store.
               </p>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Fashion+Point+Vijayawada"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${storeName} ${address}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-primary mt-6 inline-flex text-sm"
