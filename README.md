@@ -6,7 +6,9 @@
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres-3FCF8E?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwindcss)](https://tailwindcss.com/)
 
-Production e-commerce platform for **Fashion Point** — a premium readymade Indian blouse storefront with admin operations, order fulfillment, and AI-assisted shopping tools.
+Production e-commerce platform for **Fashion Point** — a premium readymade Indian blouse storefront with admin operations, order fulfillment, and AI-assisted shopping tools. Fashion Point copy in `src/lib/site-config.ts` is the **reusable template default** for a single-client-at-a-time white-label deployment.
+
+**New client (Client #2):** do not clone Fashion Point production data or copy production environment variables. Follow **[docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md](docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md)** (isolation, env matrix, URL precedence, migrations, Auth, smoke tests).
 
 **License:** Private Client Project — proprietary software. Not licensed for redistribution or public use without written permission from the client.
 
@@ -135,7 +137,7 @@ FashionPoint/
 │   ├── migrations/           # Incremental SQL migrations (apply in order)
 │   └── seed-categories.sql   # Optional category seed data
 ├── public/                   # Static assets
-├── docs/                     # Supplemental documentation
+├── docs/                     # Supplemental docs (Client #2 runbook, refunds)
 ├── .env.local.example        # Environment variable template
 └── package.json
 ```
@@ -164,7 +166,8 @@ npm install
 # Copy environment template
 cp .env.local.example .env.local
 
-# Edit .env.local with your credentials (see Environment Variables below)
+# Edit .env.local with THIS client's credentials (see Environment Variables below).
+# Never copy Fashion Point production .env.local or Vercel env into another client.
 
 # Apply database schema (see Database section)
 
@@ -178,49 +181,23 @@ Open [http://localhost:3000](http://localhost:3000) for the storefront. Admin pa
 
 ## Environment Variables
 
-Copy `.env.local.example` to `.env.local`. **Never commit secrets.** Variable names only:
+Copy `.env.local.example` to `.env.local`. **Never commit secrets.** Use placeholders for **this** deployment’s Supabase, domain, and vendors — not Fashion Point production values.
+
+**Full matrix, URL precedence, and Client #2 isolation:** [docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md](docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md).
+
+Required for a working store (plus `SUPABASE_SERVICE_ROLE_KEY` on the server):
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous (public) key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server only) |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
-| `RAZORPAY_KEY_ID` | Razorpay key ID (server) |
-| `RAZORPAY_KEY_SECRET` | Razorpay key secret |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Razorpay key ID (client checkout) |
-| `GOOGLE_CLOUD_VISION_API_KEY` | Listed in env template (not used by current color matcher; extraction is client-side) |
-| `OPENAI_API_KEY` | OpenAI API key (admin product-generator route) |
-| `RESEND_API_KEY` | Resend email API key |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_WHATSAPP_FROM` | Twilio WhatsApp sender |
-| `TWILIO_WHATSAPP_NUMBER` | Twilio WhatsApp number alias |
-| `APP_URL` | Canonical app URL for email action links |
-| `NEXT_PUBLIC_APP_URL` | Optional public app URL fallback |
-| `ADMIN_EMAIL` | Admin alert email recipient |
-| `WORKER_EMAILS` | Comma-separated worker email inboxes |
-| `ADMIN_PHONE` | Admin phone (WhatsApp alerts) |
-| `ADMIN_WHATSAPP_TO` | Optional WhatsApp destination override |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase client config |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
-| `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Firebase VAPID public key |
-| `FIREBASE_SERVER_KEY` | Optional FCM legacy server key |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push VAPID public key |
-| `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
-| `CRON_SECRET` | Bearer token for cron API routes |
-| `REMINDER_DELAY_MINUTES` | Admin order approval reminder delay |
-| `REPLICATE_API_TOKEN` | Replicate API (virtual try-on backend route) |
-| `NEXT_PUBLIC_SITE_URL` | Public site URL |
-| `NEXT_PUBLIC_GA_ID` | Google Analytics measurement ID |
-| `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel ID |
-| `NEXT_PUBLIC_CLARITY_ID` | Microsoft Clarity ID |
+| `NEXT_PUBLIC_SUPABASE_URL` | This client’s Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | This client’s anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server only) |
+| `APP_URL` | Canonical origin for **email action links** (first in precedence) |
+| `NEXT_PUBLIC_SITE_URL` | Public origin for **metadata, sitemap, robots**; also email fallback |
+
+If `NEXT_PUBLIC_SITE_URL` is unset, `src/lib/site-config.ts` falls back to the Fashion Point template domain. Client #2 **must** set its own HTTPS origin in production.
+
+Also commonly required for production email/pay/uploads: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, Razorpay key trio, Cloudinary trio. Optional services (Twilio, Meta WhatsApp, SMS, Firebase, Rapido, analytics, cron, OpenAI, Replicate) are listed in `.env.local.example` and the runbook.
 
 ---
 
@@ -228,11 +205,12 @@ Copy `.env.local.example` to `.env.local`. **Never commit secrets.** Variable na
 
 ### Setup
 
-1. Create a Supabase project at [supabase.com](https://supabase.com).
+1. Create a **new** Supabase project at [supabase.com](https://supabase.com). Do **not** clone Fashion Point production.
 2. Run `supabase/schema.sql` in the **SQL Editor** to create base tables.
 3. Apply migrations in `supabase/migrations/` **in filename order** (timestamped SQL files).
 4. Optionally run `supabase/seed-categories.sql` for initial categories.
-5. Ensure an admin user exists in `admin_users` linked to a Supabase Auth user.
+5. Ensure an admin user exists in `admin_users` linked to a **new** Supabase Auth user (this client only).
+6. After `supabase/migrations/202608140001_branches.sql`, review **Vijayawada / Bangalore** seeded branches and replace them with this client’s branches, PINs, and rates before go-live. Details: [white-label runbook](docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md).
 
 ### Core tables
 
@@ -464,18 +442,20 @@ git push -u origin main
 
 ### 3. Environment variables
 
-Add **all** variables from `.env.local.example` in Vercel → **Settings → Environment Variables** for Production (and Preview/Development as needed).
+Add variables from `.env.local.example` in Vercel → **Settings → Environment Variables** for Production (and Preview/Development as needed). Create **new** values for this project. Never paste another client’s production env.
 
 | Important | Value |
 |-----------|-------|
-| `APP_URL` | Production domain (e.g. `https://fashionpointvijayawada.com`) — not a preview URL |
+| `APP_URL` | This client’s production HTTPS origin (e.g. `https://YOUR-CLIENT-DOMAIN.com`) — not a Vercel preview URL |
 | `NEXT_PUBLIC_SITE_URL` | Same canonical public URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only; never expose to client |
+| `NEXT_PUBLIC_APP_URL` | Recommended: same origin (email/push fallback) |
+| `RESEND_FROM_EMAIL` | Verified mailbox on this client’s domain |
+| `SUPABASE_SERVICE_ROLE_KEY` | This project’s service role; never expose to the client |
 
 ### 4. Supabase production
 
-- Apply the same migrations as development.
-- Add production redirect URLs in Supabase Auth settings (`/auth/callback`).
+- Apply the same schema + migrations as development on **this** project’s database.
+- Add production redirect URLs in Supabase Auth (**Site URL** + `/auth/callback` on this client’s domain). See the runbook.
 - Confirm RLS policies and Realtime publications (orders, reviews) are active.
 
 ### 5. Cron (optional)
@@ -536,6 +516,7 @@ This repository and all associated code, design assets, and documentation are pr
 
 ## Support & Handover Notes
 
+- **Client #2 / white-label:** [docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md](docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md).
 - **Admin access:** Users must exist in Supabase Auth and the `admin_users` table.
 - **Refund schema:** See `docs/REFUND_MIGRATION.md` if refund tracking columns are missing.
 - **Blog & marketing admin pages:** Present in routing; marketing and blog admin UIs are minimal placeholders.
