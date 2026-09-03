@@ -141,17 +141,28 @@ export type Product = {
   seo_description?: string;
   rating?: number;
   review_count?: number;
+  /** Display-only. Catalog `price` is never overwritten. */
+  offerPricing?: import("@/lib/offers/types").ProductOfferPricing;
+  /** Display-only, keyed by variant id. */
+  variantOfferPricing?: Record<string, import("@/lib/offers/types").ProductOfferPricing>;
 };
 
 export type CartItem = {
   productId: string;
   name: string;
+  /** Catalog unit price at add-to-cart time. Never an offer price. */
   price: number;
   size: string;
   color: string;
   quantity: number;
   image: string;
   slug: string;
+  catalogUnitPrice?: number;
+  effectiveUnitPrice?: number;
+  discountPerUnit?: number;
+  lineDiscount?: number;
+  lineTotal?: number;
+  appliedOffer?: import("@/lib/offers/types").AppliedOffer | null;
 };
 
 export type Order = {

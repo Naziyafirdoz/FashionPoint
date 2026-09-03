@@ -1,6 +1,6 @@
 import { Sparkles } from "lucide-react";
 
-export function StyleRecommenderHero() {
+export function StyleRecommenderHero({ storeName }: { storeName: string }) {
   return (
     <header className="rounded-[14px] border border-[#F3E5E8] bg-gradient-to-r from-white to-[#FFFBFC] px-3 py-3 sm:px-4">
       <div className="flex items-start gap-2.5">
@@ -12,7 +12,7 @@ export function StyleRecommenderHero() {
         </span>
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-secondary">
-            Powered by Fashion Point Smart Styling
+            Powered by {storeName} Smart Styling
           </p>
           <h1 className="mt-0.5 font-display text-xl font-bold text-primary sm:text-2xl">
             AI Style Recommender

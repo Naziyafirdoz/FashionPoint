@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 const TRENDING_LIMIT = 4;
 const PLACEHOLDER_IMAGE = "/images/product-placeholder.jpg";
@@ -28,5 +29,6 @@ export async function getTrendingProducts(): Promise<Product[]> {
 
   if (error || !data) return [];
 
-  return data.map((row) => withPlaceholderImage(normalizeDbProduct(row as DbRow)));
+  const products = data.map((row) => withPlaceholderImage(normalizeDbProduct(row as DbRow)));
+  return withProductOfferPricing(db, products);
 }

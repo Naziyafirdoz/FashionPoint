@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase";
 import { normalizeDbProduct, type DbRow } from "@/lib/products/get-by-slug";
 import type { Product } from "@/types";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 const CANDIDATE_LIMIT = 48;
 const RECOMMENDATION_LIMIT = 4;
@@ -112,7 +113,7 @@ export async function getWishlistRecommendations(
 
   const avgWishlistPrice = averagePrice(wishlistProducts);
 
-  return candidates
+  const ranked = candidates
     .map((candidate) => ({
       candidate,
       score: scoreCandidate(candidate, wishlistProducts, avgWishlistPrice)
@@ -123,4 +124,6 @@ export async function getWishlistRecommendations(
     })
     .slice(0, RECOMMENDATION_LIMIT)
     .map((entry) => entry.candidate);
+
+  return withProductOfferPricing(db, ranked);
 }

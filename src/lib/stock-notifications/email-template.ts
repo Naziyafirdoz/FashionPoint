@@ -1,5 +1,6 @@
 import { toAbsoluteHttpsUrl } from "@/lib/server/notifications/email-image";
-import { STORE_NAME } from "@/lib/site-config";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME, STORE_TAGLINE } from "@/lib/site-config";
 import { buildProductPageUrl } from "@/lib/stock-notifications/product-url";
 
 const MAROON = "#7B0D2B";
@@ -17,8 +18,27 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function emailShell(title: string, body: string): string {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:20px 16px;text-align:center;"><p style="margin:0;font-size:20px;font-weight:700;color:#fff;letter-spacing:0.02em;">Fashion Point</p><p style="margin:4px 0 0;font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.12em;">Style. Confidence. You.</p></td></tr><tr><td style="padding:24px 20px;">${body}</td></tr><tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 4px;font-size:14px;color:${MAROON};font-weight:600;">Thanks,</p><p style="margin:0;font-size:14px;color:${TEXT};font-weight:600;">${escapeHtml(STORE_NAME)}</p><p style="margin:8px 0 0;font-size:12px;color:${MUTED};">Vijayawada</p></td></tr></table></td></tr></table></body></html>`;
+function emailShell(
+  title: string,
+  body: string,
+  store: { storeName: string; tagline: string; cityLine: string }
+): string {
+  const storeName = store.storeName.trim() || STORE_NAME;
+  const tagline = store.tagline.trim() || STORE_TAGLINE;
+  const cityLine = store.cityLine.trim();
+  const cityHtml = cityLine
+    ? `<p style="margin:8px 0 0;font-size:12px;color:${MUTED};">${escapeHtml(cityLine)}</p>`
+    : "";
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:20px 16px;text-align:center;"><p style="margin:0;font-size:20px;font-weight:700;color:#fff;letter-spacing:0.02em;">${escapeHtml(storeName)}</p><p style="margin:4px 0 0;font-size:11px;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.12em;">${escapeHtml(tagline)}</p></td></tr><tr><td style="padding:24px 20px;">${body}</td></tr><tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 4px;font-size:14px;color:${MAROON};font-weight:600;">Thanks,</p><p style="margin:0;font-size:14px;color:${TEXT};font-weight:600;">${escapeHtml(storeName)}</p>${cityHtml}</td></tr></table></td></tr></table></body></html>`;
+}
+
+async function stockEmailStore() {
+  const store = await getStoreInformation();
+  return {
+    storeName: store.storeName.trim() || STORE_NAME,
+    tagline: store.tagline.trim() || STORE_TAGLINE,
+    cityLine: ""
+  };
 }
 
 function primaryButtonHtml(label: string, href: string): string {
@@ -40,12 +60,12 @@ function formatRequestTime(iso: string): string {
   }
 }
 
-export function buildBackInStockEmail(params: {
+export async function buildBackInStockEmail(params: {
   customerName: string;
   productName: string;
   productSlug: string;
   productImageUrl?: string | null;
-}): { subject: string; html: string } {
+}): Promise<{ subject: string; html: string }> {
   const productUrl = buildProductPageUrl(params.productSlug);
   const subject = `🎉 Your requested ${params.productName} is back in stock!`;
 
@@ -68,17 +88,17 @@ export function buildBackInStockEmail(params: {
     ${buttonBlock}
   `;
 
-  return { subject, html: emailShell("Back In Stock", body) };
+  return { subject, html: emailShell("Back In Stock", body, await stockEmailStore()) };
 }
 
-export function buildAdminBackInStockRequestEmail(params: {
+export async function buildAdminBackInStockRequestEmail(params: {
   customerName: string;
   customerEmail: string;
   productName: string;
   requestedAt: string;
   inventoryUrl: string;
   requestsPageUrl: string;
-}): { subject: string; html: string } {
+}): Promise<{ subject: string; html: string }> {
   const subject = "New Back In Stock Request";
 
   const body = `
@@ -94,14 +114,14 @@ export function buildAdminBackInStockRequestEmail(params: {
     <p style="margin:20px 0 0;text-align:center;font-size:13px;"><a href="${params.inventoryUrl}" style="color:${MAROON};font-weight:600;">Open Admin Inventory</a></p>
   `;
 
-  return { subject, html: emailShell(subject, body) };
+  return { subject, html: emailShell(subject, body, await stockEmailStore()) };
 }
 
-export function buildDiscontinuedProductEmail(params: {
+export async function buildDiscontinuedProductEmail(params: {
   customerName: string;
   productName: string;
   browseUrl: string;
-}): { subject: string; html: string } {
+}): Promise<{ subject: string; html: string }> {
   const subject = `Update on ${params.productName}`;
 
   const body = `
@@ -112,14 +132,15 @@ export function buildDiscontinuedProductEmail(params: {
     ${primaryButtonHtml("Browse Similar Products", params.browseUrl)}
   `;
 
-  return { subject, html: emailShell("Product Discontinued", body) };
+  return { subject, html: emailShell("Product Discontinued", body, await stockEmailStore()) };
 }
 
-export function buildManualCancellationEmail(params: {
+export async function buildManualCancellationEmail(params: {
   customerName: string;
   productName: string;
   browseUrl: string;
-}): { subject: string; html: string } {
+}): Promise<{ subject: string; html: string }> {
+  const store = await stockEmailStore();
   const subject = "Unfortunately, We Couldn't Restock Your Requested Product";
 
   const body = `
@@ -130,8 +151,8 @@ export function buildManualCancellationEmail(params: {
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">We sincerely apologize for the inconvenience.</p>
     <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${MUTED};">You can explore similar products from our collection using the button below.</p>
     ${primaryButtonHtml("Browse Similar Products", params.browseUrl)}
-    <p style="margin:28px 0 0;font-size:14px;line-height:1.7;color:${MUTED};text-align:center;">Thank you for choosing Fashion Point.</p>
+    <p style="margin:28px 0 0;font-size:14px;line-height:1.7;color:${MUTED};text-align:center;">Thank you for choosing ${escapeHtml(store.storeName)}.</p>
   `;
 
-  return { subject, html: emailShell("Request Cancelled", body) };
+  return { subject, html: emailShell("Request Cancelled", body, store) };
 }

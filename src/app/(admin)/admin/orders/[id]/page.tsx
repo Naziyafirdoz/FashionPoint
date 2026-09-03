@@ -1,4 +1,5 @@
 import { OrderDetailClient } from "@/components/admin/orders/OrderDetailClient";
+import { getStoreInformation } from "@/lib/settings/store-information";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -6,5 +7,6 @@ type PageProps = {
 
 export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
-  return <OrderDetailClient orderId={id} />;
+  const { storeName } = await getStoreInformation();
+  return <OrderDetailClient orderId={id} storeName={storeName} />;
 }

@@ -20,13 +20,19 @@ type PaymentResultPageProps = {
   variant: "failed" | "cancelled";
   orderNumber?: string;
   reason?: string;
+  storeName?: string;
 };
 
 function successUrl(orderNumber: string) {
   return `/order-success/${encodeURIComponent(orderNumber)}`;
 }
 
-export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResultPageProps) {
+export function PaymentResultPage({
+  variant,
+  orderNumber,
+  reason,
+  storeName = STORE_NAME
+}: PaymentResultPageProps) {
   const [retrying, setRetrying] = useState(false);
   const isFailed = variant === "failed";
 
@@ -66,7 +72,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
         key: data.key,
         amount: data.amount,
         currency: "INR",
-        name: STORE_NAME,
+        name: storeName.trim() || STORE_NAME,
         order_id: data.razorpayOrderId,
         handler: async (response: {
           razorpay_order_id: string;
@@ -96,7 +102,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
 
       rzp.open();
     },
-    [completePayment, orderNumber]
+    [completePayment, orderNumber, storeName]
   );
 
   const handleRetry = async () => {
@@ -150,7 +156,7 @@ export function PaymentResultPage({ variant, orderNumber, reason }: PaymentResul
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="font-display text-2xl font-bold text-primary">{STORE_NAME}</p>
+        <p className="font-display text-2xl font-bold text-primary">{storeName.trim() || STORE_NAME}</p>
 
         {isFailed ? (
           <AlertCircle className="mx-auto mt-8 h-16 w-16 text-red-600" strokeWidth={1.5} />

@@ -37,6 +37,8 @@ type OrderSuccessViewProps = {
 
   orderNumber?: string;
 
+  storeName?: string;
+
 };
 
 
@@ -77,7 +79,7 @@ function formatEstimatedDelivery(
   });
 }
 
-export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSuccessViewProps) {
+export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = STORE_NAME }: OrderSuccessViewProps) {
 
   const endCheckoutSession = useCheckoutSession((s) => s.endSession);
 
@@ -90,7 +92,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
   const handleInvoice = () => {
     if (!order) return;
     void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
-      downloadInvoicePdf(order);
+      downloadInvoicePdf(order, storeName);
     });
   };
 
@@ -102,9 +104,9 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
 
-        <p className="font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
+        <p className="font-display text-2xl font-bold text-primary">
 
-          {STORE_NAME}
+          {storeName}
 
         </p>
 
@@ -142,7 +144,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         )}
 
-        <FinalSalePolicyNotice variant="success" className="mt-6 text-left" />
+        <FinalSalePolicyNotice variant="success" className="mt-6 text-left" storeName={storeName} />
 
         <Link href="/account/orders" className="btn-primary mt-8 inline-block">
 
@@ -177,9 +179,9 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
     <div className="mx-auto max-w-2xl px-4 py-12">
 
-      <p className="text-center font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
+      <p className="text-center font-display text-2xl font-bold text-primary">
 
-        {STORE_NAME}
+        {storeName}
 
       </p>
 
@@ -199,7 +201,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         </h1>
 
-        <p className="mt-3 text-lg font-semibold" style={{ color: "#B8860B" }}>
+        <p className="mt-3 text-lg font-semibold text-secondary">
 
           {order.order_number}
 
@@ -428,7 +430,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
 
 
-      <FinalSalePolicyNotice variant="success" className="mt-6" />
+      <FinalSalePolicyNotice variant="success" className="mt-6" storeName={storeName} />
 
 
 

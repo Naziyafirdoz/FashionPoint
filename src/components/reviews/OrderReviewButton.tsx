@@ -63,7 +63,7 @@ export function OrderReviewButton({
         onClick={() => setOpen(true)}
         className={
           compact
-            ? "inline-flex h-9 shrink-0 items-center self-center rounded-lg border border-[#7B0D2B] bg-white px-3 text-xs font-medium text-[#7B0D2B] hover:bg-[#7B0D2B]/5"
+            ? "inline-flex h-9 shrink-0 items-center self-center rounded-lg border border-primary bg-white px-3 text-xs font-medium text-primary hover:bg-primary/5"
             : "btn-primary shrink-0 self-center"
         }
       >

@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getAdminEmail } from "@/lib/admin/admin-contacts";
 import { resolveNotificationRecipientEmails } from "@/lib/admin/notification-recipient-resolver";
-import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlerts } from "@/lib/server/resend-from-addresses";
 import { buildAdminBackInStockRequestEmail } from "@/lib/stock-notifications/email-template";
 import { buildAdminBackInStockRequestsUrl, buildAdminInventoryUrl } from "@/lib/stock-notifications/product-url";
 
@@ -71,7 +71,7 @@ export async function sendBackInStockAdminEmail(
   }
 
   const requestsPageUrl = buildAdminBackInStockRequestsUrl();
-  const { subject, html } = buildAdminBackInStockRequestEmail({
+  const { subject, html } = await buildAdminBackInStockRequestEmail({
     customerName: input.customerName,
     customerEmail: input.customerEmail,
     productName: input.productName,
@@ -82,7 +82,7 @@ export async function sendBackInStockAdminEmail(
 
   try {
     await resend.emails.send({
-      from: RESEND_FROM_ALERTS,
+      from: await getResendFromAlerts(),
       to: recipients,
       subject,
       html

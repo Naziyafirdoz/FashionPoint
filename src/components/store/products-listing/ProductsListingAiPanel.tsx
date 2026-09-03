@@ -7,7 +7,7 @@ export function ProductsListingAiPanel() {
       <div className="w-full rounded-[20px] border border-[#F2E4E8] bg-white p-5 shadow-[0_4px_20px_rgba(122,13,43,0.05)] lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)]">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-secondary" aria-hidden="true" />
-          <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#7B0D2B]">AI Features</h2>
+          <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-primary">AI Features</h2>
         </div>
         <p className="mt-3 text-sm leading-relaxed text-[#666666]">Need help choosing a size?</p>
         <Link

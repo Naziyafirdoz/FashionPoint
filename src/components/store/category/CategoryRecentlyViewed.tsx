@@ -48,7 +48,7 @@ export function CategoryRecentlyViewed() {
   return (
     <section className="border-t border-[#F2E4E8] bg-[#FFF8F8] py-10">
       <div className="mx-auto w-full max-w-[1600px] px-6">
-        <h2 className="font-display text-2xl font-bold text-[#7B0D2B]">Recently Viewed</h2>
+        <h2 className="font-display text-2xl font-bold text-primary">Recently Viewed</h2>
         <p className="mt-1 text-sm text-[#666666]">Pick up where you left off.</p>
         <div className="mt-6">
           <ProductGrid products={products} layout="recommendation" />

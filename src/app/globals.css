@@ -5,9 +5,13 @@
 :root {
   color-scheme: light;
   --primary: #7b0d2b;
+  --primary-rgb: 123 13 43;
   --secondary: #b8860b;
+  --secondary-rgb: 184 134 11;
   --background: #fff5f7;
   --foreground: #1a1a1a;
+  --foreground-rgb: 26 26 26;
+  --heading: #7b0d2b;
   --accent: #ff6b9d;
 }
 

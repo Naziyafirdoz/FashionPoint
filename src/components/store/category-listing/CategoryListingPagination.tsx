@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getPaginationRange } from "@/lib/products/pagination-range";
 
 const HOVER_PILL =
-  "transition duration-200 hover:border-[#7B0D2B]/40 hover:bg-[#FFF5F7] hover:text-[#7B0D2B]";
+  "transition duration-200 hover:border-primary/40 hover:bg-[#FFF5F7] hover:text-primary";
 
 type CategoryListingPaginationProps = {
   page: number;
@@ -34,7 +34,7 @@ export function CategoryListingPagination({ page, totalPages }: CategoryListingP
   const pageButtonClass = (active: boolean) =>
     `flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition duration-200 ${
       active
-        ? "bg-[#7B0D2B] text-white"
+        ? "bg-primary text-white"
         : `border border-[#F2E4E8] bg-white text-[#2A2A2A] ${HOVER_PILL}`
     }`;
 

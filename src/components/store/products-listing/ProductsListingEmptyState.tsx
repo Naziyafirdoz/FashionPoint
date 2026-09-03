@@ -28,7 +28,7 @@ export function ProductsListingEmptyState() {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FFF0F3] text-primary">
         <PackageOpen className="h-7 w-7" aria-hidden="true" />
       </div>
-      <p className="mt-4 font-display text-lg font-bold text-[#7B0D2B]">No products match your filters.</p>
+      <p className="mt-4 font-display text-lg font-bold text-primary">No products match your filters.</p>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-[#666666]">
         Try adjusting or clearing your filters to discover more styles.
       </p>
@@ -44,7 +44,7 @@ export function ProductsListingEmptyState() {
         ) : null}
         <Link
           href="/products"
-          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-[#8f1230] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Browse All Products
         </Link>

@@ -5,11 +5,29 @@ node_modules
 .next
 
 # env files
-.env.local
 .env
+.env.local
+.env.*
+!.env.example
+!.env.local.example
+
+# private keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# credential / service-account files
+*firebase-adminsdk*.json
+*service-account*.json
+*serviceaccount*.json
+credentials.json
 
 # logs
 *.log
 
 # typescript
 *.tsbuildinfo
+
+# database dumps (PII / tokens) — do not commit
+supabase/backups/

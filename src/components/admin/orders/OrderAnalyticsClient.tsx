@@ -488,7 +488,7 @@ export function OrderAnalyticsClient() {
                 <div className="flex h-full flex-col justify-center gap-3">
                   {[
                     {
-                      label: "Local Orders (Vijayawada)",
+                      label: "Local Orders",
                       data: deliveryInsights.local,
                       bar: "bg-primary"
                     },

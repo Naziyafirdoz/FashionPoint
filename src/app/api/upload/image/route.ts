@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { uploadImage, isCloudinaryConfigured } from "@/lib/cloudinary";
 
+function getFormFile(form: unknown, name: string): File | null {
+  if (!form || typeof form !== "object") return null;
+  const getter = form as { get?: (field: string) => unknown };
+  if (typeof getter.get !== "function") return null;
+  const uploaded = getter.get(name);
+  return uploaded instanceof File ? uploaded : null;
+}
+
 export async function POST(req: Request) {
   const form = await req.formData();
-  const file = form.get("file") as File | null;
+  const file = getFormFile(form, "file");
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
   const buffer = Buffer.from(await file.arrayBuffer());

@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { resolveProductColorSwatches } from "@/lib/products/color-swatches";
 import { resolveProductStatus, STOREFRONT_PRODUCT_STATUSES } from "@/lib/products/status";
 import type { Product, ProductVariant } from "@/types";
+import { withProductOfferPricing } from "@/lib/offers/attach-product-pricing";
 
 export type DbRow = Record<string, unknown> & {
   product_variants?: Array<Record<string, unknown>>;
@@ -87,5 +88,7 @@ export const getProductBySlugFromDb = cache(async (slug: string): Promise<Produc
     .maybeSingle();
 
   if (error || !data) return null;
-  return normalizeDbProduct(data as DbRow);
+  const product = normalizeDbProduct(data as DbRow);
+  const [withOffers] = await withProductOfferPricing(db, [product]);
+  return withOffers ?? product;
 });

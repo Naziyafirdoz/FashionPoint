@@ -73,7 +73,7 @@ const CANCELLED_SUB_FILTERS = [
   { id: "cancelled_refunded", label: "Cancelled & Refunded" }
 ] as const;
 
-export function AdminOrdersClient() {
+export function AdminOrdersClient({ storeName }: { storeName: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlTab = searchParams.get("tab") ?? searchParams.get("status") ?? "all";
@@ -338,7 +338,7 @@ export function AdminOrdersClient() {
         triggerPostShipSideEffects(order.id);
       }
       if (toastKind) {
-        showWorkflowSuccessToast(toastKind, setFilter);
+        showWorkflowSuccessToast(toastKind, setFilter, storeName);
       } else {
         toast.success(data.message ?? successMessage);
       }
@@ -594,12 +594,12 @@ export function AdminOrdersClient() {
               updatingOrderId={updatingOrderId}
               onPrint={(order) => {
                 void import("@/lib/orders/admin-order-invoice").then(({ printOrder }) => {
-                  printOrder(order);
+                  printOrder(order, storeName);
                 });
               }}
               onDownloadInvoice={(order) => {
                 void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
-                  downloadInvoicePdf(order);
+                  downloadInvoicePdf(order, storeName);
                 });
               }}
               onStartProcessing={startProcessing}

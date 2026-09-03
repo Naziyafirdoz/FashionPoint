@@ -4,9 +4,10 @@ const TRUST_BADGES = ["Photo-Based Analysis", "Color Guidance", "Style Tips"] as
 
 type ColorMatcherHeroProps = {
   onOpenGuide: () => void;
+  storeName: string;
 };
 
-export function ColorMatcherHero({ onOpenGuide }: ColorMatcherHeroProps) {
+export function ColorMatcherHero({ onOpenGuide, storeName }: ColorMatcherHeroProps) {
   return (
     <header className="rounded-[14px] border border-[#F3E5E8] bg-gradient-to-r from-white to-[#FFFBFC] px-3 py-3 sm:px-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -14,7 +15,7 @@ export function ColorMatcherHero({ onOpenGuide }: ColorMatcherHeroProps) {
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
               <Sparkles className="h-3 w-3 text-secondary" aria-hidden="true" />
-              Fashion Point AI
+              {storeName} AI
             </span>
             {TRUST_BADGES.map((badge) => (
               <span

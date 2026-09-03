@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { RESEND_FROM_ALERTS_STORE } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlertsStore } from "@/lib/server/resend-from-addresses";
 import { buildBackInStockEmail } from "@/lib/stock-notifications/email-template";
 import { processDiscontinuedProductNotifications } from "@/lib/stock-notifications/process-discontinued";
 import { buildProductPageUrl } from "@/lib/stock-notifications/product-url";
@@ -202,7 +202,7 @@ async function sendRestockEmailToRequest(
     return;
   }
 
-  const { subject, html } = buildBackInStockEmail({
+  const { subject, html } = await buildBackInStockEmail({
     customerName: fresh.customer_name,
     productName: product.productName,
     productSlug: product.productSlug,
@@ -211,7 +211,7 @@ async function sendRestockEmailToRequest(
 
   try {
     const response = await resend!.emails.send({
-      from: RESEND_FROM_ALERTS_STORE,
+      from: await getResendFromAlertsStore(),
       to: recipient,
       subject,
       html

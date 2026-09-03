@@ -9,10 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#7B0D2B",
-        secondary: "#B8860B",
+        primary: "rgb(var(--primary-rgb) / <alpha-value>)",
+        secondary: "rgb(var(--secondary-rgb) / <alpha-value>)",
         background: "#FFF5F7",
-        foreground: "#1A1A1A",
+        foreground: "rgb(var(--foreground-rgb) / <alpha-value>)",
         accent: "#FF6B9D",
         maroon: "#7B0D2B",
         gold: "#B8860B",

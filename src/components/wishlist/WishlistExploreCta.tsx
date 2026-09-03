@@ -15,7 +15,7 @@ export function WishlistExploreCta() {
     >
       <Link
         href="/"
-        className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#7B0D2B] px-8 text-sm font-semibold text-white shadow-[0_5px_18px_rgba(123,13,43,0.18)] transition duration-300 hover:bg-[#8f1230] hover:shadow-[0_8px_24px_rgba(123,13,43,0.24)]"
+        className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-white shadow-[0_5px_18px_rgb(var(--primary-rgb)/0.18)] transition duration-300 hover:bg-primary/90 hover:shadow-[0_8px_24px_rgb(var(--primary-rgb)/0.24)]"
       >
         Explore More Collections
         <ArrowRight

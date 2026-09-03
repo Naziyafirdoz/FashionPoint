@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildCustomerOrderDeliveredEmail } from "@/lib/server/notifications/email-templates";
-import { RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { getResendFromOrders } from "@/lib/server/resend-from-addresses";
 import type { Order } from "@/types";
 
 export const DELIVERY_CONFIRMATION_EMAIL_EVENT = "delivery_confirmation_email";
@@ -57,7 +57,7 @@ export async function sendDeliveryConfirmationEmail(
     const resend = new Resend(resendKey);
     const template = await buildCustomerOrderDeliveredEmail(order);
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: email,
       subject: template.subject,
       html: template.html

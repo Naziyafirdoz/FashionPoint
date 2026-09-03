@@ -1,3 +1,4 @@
+import { STORE_NAME } from "@/lib/site-config";
 import type { Category } from "@/types";
 import type { Product } from "@/types";
 import { formatInr } from "@/lib/style-recommender-ui";
@@ -8,8 +9,10 @@ import type {
   StylistSessionFilters
 } from "@/lib/stylist-assistant/types";
 
-const OFF_TOPIC_REPLY =
-  "I'm the Fashion Point Shopping Assistant and can help you find blouses, compare products, and answer questions about our collection.";
+export function buildOffTopicReply(storeName: string): string {
+  const name = storeName.trim() || STORE_NAME;
+  return `I'm the ${name} Shopping Assistant and can help you find blouses, compare products, and answer questions about our collection.`;
+}
 
 const NO_MATCH_REPLY =
   "I couldn't find a matching product in our current collection.";
@@ -32,11 +35,13 @@ export function buildStylistReply(params: {
   alternatives: StylistProductResult[];
   categories: Category[];
   products: Product[];
+  storeName?: string;
 }): string {
   const { intent, filters, exact, alternatives, categories, products } = params;
+  const storeName = params.storeName?.trim() || STORE_NAME;
 
   if (intent === "unsupported") {
-    return OFF_TOPIC_REPLY;
+    return buildOffTopicReply(storeName);
   }
 
   if (intent === "shipping_policy") {

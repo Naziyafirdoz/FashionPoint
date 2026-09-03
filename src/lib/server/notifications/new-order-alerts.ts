@@ -13,7 +13,7 @@ import {
 } from "@/lib/server/notifications/customer-email-dedup";
 import { dispatchOrderNotification } from "@/lib/server/notifications/notification-service";
 
-import { RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { getResendFromOrders } from "@/lib/server/resend-from-addresses";
 import { createServiceClient } from "@/lib/supabase";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
 
@@ -164,7 +164,7 @@ export async function notifyCustomerOrderShipped(
 
   try {
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: email,
       subject: template.subject,
       html: template.html

@@ -26,6 +26,7 @@ export function stylistChat(params: {
   products: Product[];
   categories: Category[];
   fromQuickChip?: boolean;
+  storeName?: string;
 }): StylistChatResponse {
   return processStylistMessage(params);
 }

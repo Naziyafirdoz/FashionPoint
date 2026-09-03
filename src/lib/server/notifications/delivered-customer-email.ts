@@ -7,7 +7,9 @@ import {
 } from "@/lib/server/notifications/customer-email-dedup";
 import { resolveCustomerEmailBranchCopy } from "@/lib/server/notifications/customer-email-branch-copy";
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
-import { RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
+import { getResendFromOrders } from "@/lib/server/resend-from-addresses";
 import type { Order } from "@/types";
 
 const MAROON = "#7B0D2B";
@@ -27,13 +29,14 @@ function deliveredEmailShell(
   title: string,
   body: string,
   preheader: string,
-  copy: { thankYou: string; locationLine: string }
+  copy: { thankYou: string; locationLine: string },
+  storeName: string
 ): string {
   const filler = "&#847;&zwnj;&nbsp;".repeat(48);
   const preheaderBlock = `<div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;">${escapeHtml(preheader)}${filler}</div>`;
   const footer = `<tr><td style="padding:24px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0 0 6px;font-size:14px;color:${MAROON};font-weight:600;">${escapeHtml(copy.thankYou)}</p><p style="margin:0;font-size:12px;color:${MUTED};">${escapeHtml(copy.locationLine)}</p></td></tr>`;
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title><style type="text/css">a.fp-my-orders-link,a.fp-my-orders-link span{color:${MAROON}!important;text-decoration:underline!important;font-weight:600!important;}</style></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">Fashion Point</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title><style type="text/css">a.fp-my-orders-link,a.fp-my-orders-link span{color:${MAROON}!important;text-decoration:underline!important;font-weight:600!important;}</style></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">${escapeHtml(storeName)}</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
 }
 
 function myOrdersPageLink(url: string): string {
@@ -43,7 +46,11 @@ function myOrdersPageLink(url: string): string {
 }
 
 export async function buildDeliveredNotificationEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, store] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    getStoreInformation()
+  ]);
+  const storeName = store.storeName.trim() || STORE_NAME;
   const name = escapeHtml(customerName(order));
   const myOrdersUrl = emailAppUrl("/account/orders");
   const body = `
@@ -57,7 +64,7 @@ export async function buildDeliveredNotificationEmail(order: Order): Promise<{ s
 
   return {
     subject: `✅ Order Delivered — ${order.order_number}`,
-    html: deliveredEmailShell(`Order Delivered — ${order.order_number}`, body, preheader, customerCopy)
+    html: deliveredEmailShell(`Order Delivered — ${order.order_number}`, body, preheader, customerCopy, storeName)
   };
 }
 
@@ -97,7 +104,7 @@ export async function sendDeliveredCustomerEmail(
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: email,
       subject: template.subject,
       html: template.html

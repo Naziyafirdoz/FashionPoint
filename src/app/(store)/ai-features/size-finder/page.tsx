@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { SizeFinderClient } from "@/components/ai/SizeFinderClient";
+import { getStoreInformation } from "@/lib/settings/store-information";
 
 export const metadata = { title: "AI Size Finder" };
 
 export default async function SizeFinderPage() {
+  const { storeName } = await getStoreInformation();
   const supabase = await createClient();
   const {
     data: { user }
@@ -39,6 +41,7 @@ export default async function SizeFinderPage() {
 
   return (
     <SizeFinderClient
+      storeName={storeName}
       savedMeasurements={savedMeasurements}
       savedSizeProfile={savedSizeProfile}
       isLoggedIn={Boolean(user)}

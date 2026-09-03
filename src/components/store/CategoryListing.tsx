@@ -188,7 +188,7 @@ export function CategoryListing({ category, subCategories = [] }: Props) {
                 {loading ? (
                   <ProductListingSkeleton />
                 ) : error ? (
-                  <p className="w-full text-sm font-medium text-[#7B0D2B]">{error}</p>
+                  <p className="w-full text-sm font-medium text-primary">{error}</p>
                 ) : products.length === 0 ? (
                   <CategoryEmptyState hasActiveFilters={hasActiveFilters} />
                 ) : (

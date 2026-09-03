@@ -25,14 +25,14 @@ export async function GET(req: Request) {
   const db = createServiceClient();
   if (!db) {
     console.error("[order-actions/approve] service client unavailable");
-    return htmlResponse(renderInvalidTokenPage());
+    return htmlResponse(await renderInvalidTokenPage());
   }
 
   const meta = getRequestMeta(req);
 
   if (!token) {
     console.warn("[order-actions/approve] missing token query param");
-    return htmlResponse(renderInvalidTokenPage());
+    return htmlResponse(await renderInvalidTokenPage());
   }
 
   const lookup = await lookupActionToken(db, token);
@@ -63,16 +63,16 @@ export async function GET(req: Request) {
         validation.failure.record.order_id
       );
       if (confirmed) {
-        return htmlResponse(renderAlreadyApprovedPage(confirmed.orderNumber));
+        return htmlResponse(await renderAlreadyApprovedPage(confirmed.orderNumber));
       }
-      return htmlResponse(renderTokenUsedPage());
+      return htmlResponse(await renderTokenUsedPage());
     }
 
     if (validation.failure.reason === "expired") {
-      return htmlResponse(renderTokenExpiredPage());
+      return htmlResponse(await renderTokenExpiredPage());
     }
 
-    return htmlResponse(renderInvalidTokenPage());
+    return htmlResponse(await renderInvalidTokenPage());
   }
 
   const result = await executeOrderApproval(db, validation.record.order_id, {
@@ -97,17 +97,17 @@ export async function GET(req: Request) {
   }
 
   if (result.ok && result.status === "already_approved") {
-    return htmlResponse(renderAlreadyApprovedPage(result.order.order_number));
+    return htmlResponse(await renderAlreadyApprovedPage(result.order.order_number));
   }
 
   if (result.ok && result.status === "approved") {
     return htmlResponse(
-      renderApproveSuccessPage(result.order.order_number, result.order.id)
+      await renderApproveSuccessPage(result.order.order_number, result.order.id)
     );
   }
 
   if (result.ok === false && result.status === "not_awaiting") {
-    return htmlResponse(renderAlreadyApprovedPage());
+    return htmlResponse(await renderAlreadyApprovedPage());
   }
 
   if (result.ok === false) {
@@ -118,7 +118,7 @@ export async function GET(req: Request) {
     });
   }
 
-  return htmlResponse(renderInvalidTokenPage());
+  return htmlResponse(await renderInvalidTokenPage());
 }
 
 export async function POST() {

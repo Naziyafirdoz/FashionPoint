@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { fetchCustomerOrdersForUser, CUSTOMER_ORDER_LIST_SELECT } from "@/lib/orders/customer-order-retrieval";
 import { redirect } from "next/navigation";
 import { OrdersPageShell } from "@/components/account/OrdersList";
+import { getStoreInformation } from "@/lib/settings/store-information";
 import type { Order } from "@/types";
 
 export const metadata = { title: "My Orders" };
@@ -55,5 +56,14 @@ export default async function AccountOrdersPage() {
     count: orders.length
   });
 
-  return <OrdersPageShell title="My Orders" orders={orders} userId={user.id} />;
+  const store = await getStoreInformation();
+
+  return (
+    <OrdersPageShell
+      title="My Orders"
+      orders={orders}
+      userId={user.id}
+      storeName={store.storeName}
+    />
+  );
 }

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Download,
   FolderTree,
+  Images,
   LayoutDashboard,
   Lightbulb,
   ListTodo,
@@ -26,6 +27,7 @@ import {
   ShoppingCart,
   Star,
   Stars,
+  Tag,
   TrendingUp,
   Warehouse,
   X
@@ -43,6 +45,20 @@ type ProductChild = {
   label: string;
   icon: typeof LayoutDashboard;
   isActive: (path: string, featured: boolean) => boolean;
+};
+
+type OfferChild = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  isActive: (path: string) => boolean;
+};
+
+type CampaignChild = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  isActive: (path: string) => boolean;
 };
 
 type AnalyticsChild = {
@@ -213,13 +229,43 @@ const PRODUCT_SECTION_PATHS = [
   "/admin/products/back-in-stock-requests"
 ];
 
+const OFFER_CHILDREN: OfferChild[] = [
+  {
+    href: "/admin/offers",
+    label: "All Offers",
+    icon: Boxes,
+    isActive: (path) => path === "/admin/offers" || /^\/admin\/offers\/[^/]+\/edit$/.test(path)
+  },
+  {
+    href: "/admin/offers/new",
+    label: "Create Offer",
+    icon: PackagePlus,
+    isActive: (path) => path === "/admin/offers/new"
+  }
+];
+
+const CAMPAIGN_CHILDREN: CampaignChild[] = [
+  {
+    href: "/admin/campaigns",
+    label: "All Campaigns",
+    icon: Boxes,
+    isActive: (path) => path === "/admin/campaigns" || /^\/admin\/campaigns\/[^/]+\/edit$/.test(path)
+  },
+  {
+    href: "/admin/campaigns/new",
+    label: "Create Campaign",
+    icon: PackagePlus,
+    isActive: (path) => path === "/admin/campaigns/new"
+  }
+];
+
 const LINKS: NavLink[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/settings", label: "Settings", icon: Settings }
 ];
 
-type FlyoutId = "products" | "analytics" | "reports";
+type FlyoutId = "products" | "offers" | "campaigns" | "analytics" | "reports";
 
 function isAIGrowthSectionActive(path: string) {
   return path === AI_GROWTH_SECTION_PATH || path.startsWith(`${AI_GROWTH_SECTION_PATH}/`);
@@ -241,6 +287,14 @@ function isProductSectionActive(path: string) {
   return PRODUCT_SECTION_PATHS.some(
     (prefix) => path === prefix || path.startsWith(`${prefix}/`)
   );
+}
+
+function isOfferSectionActive(path: string) {
+  return path === "/admin/offers" || path.startsWith("/admin/offers/");
+}
+
+function isCampaignSectionActive(path: string) {
+  return path === "/admin/campaigns" || path.startsWith("/admin/campaigns/");
 }
 
 function CollapsedFlyout({
@@ -289,22 +343,36 @@ function AdminSidebarNav({ collapsed, onNavigate }: AdminSidebarNavProps) {
   const searchParams = useSearchParams();
   const featured = searchParams.get("featured") === "true";
   const productSectionActive = isProductSectionActive(path);
+  const offerSectionActive = isOfferSectionActive(path);
+  const campaignSectionActive = isCampaignSectionActive(path);
   const analyticsSectionActive = isAnalyticsSectionActive(path);
   const aiGrowthSectionActive = isAIGrowthSectionActive(path);
   const reportSectionActive = isReportSectionActive(path);
   const [productsOpen, setProductsOpen] = useState(productSectionActive);
+  const [offersOpen, setOffersOpen] = useState(offerSectionActive);
+  const [campaignsOpen, setCampaignsOpen] = useState(campaignSectionActive);
   const [analyticsOpen, setAnalyticsOpen] = useState(analyticsSectionActive);
   const [aiGrowthOpen, setAiGrowthOpen] = useState(aiGrowthSectionActive);
   const [reportsOpen, setReportsOpen] = useState(reportSectionActive);
   const [activeFlyout, setActiveFlyout] = useState<FlyoutId | null>(null);
 
   const productsRef = useRef<HTMLDivElement>(null);
+  const offersRef = useRef<HTMLDivElement>(null);
+  const campaignsRef = useRef<HTMLDivElement>(null);
   const analyticsRef = useRef<HTMLDivElement>(null);
   const reportsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (productSectionActive) setProductsOpen(true);
   }, [productSectionActive]);
+
+  useEffect(() => {
+    if (offerSectionActive) setOffersOpen(true);
+  }, [offerSectionActive]);
+
+  useEffect(() => {
+    if (campaignSectionActive) setCampaignsOpen(true);
+  }, [campaignSectionActive]);
 
   useEffect(() => {
     if (analyticsSectionActive) setAnalyticsOpen(true);
@@ -422,6 +490,140 @@ function AdminSidebarNav({ collapsed, onNavigate }: AdminSidebarNavProps) {
             <div className="mt-1 space-y-0.5">
               {PRODUCT_CHILDREN.map((child) => {
                 const active = child.isActive(path, featured);
+                const Icon = child.icon;
+                return (
+                  <Link key={child.href} href={child.href} className={childLinkClass(active)} onClick={handleNavClick}>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )
+        )}
+      </div>
+
+      <div className="relative" ref={offersRef}>
+        <button
+          type="button"
+          onClick={() => {
+            if (collapsed) {
+              toggleFlyout("offers");
+              return;
+            }
+            setOffersOpen((open) => !open);
+          }}
+          className={sectionButtonClass(offerSectionActive)}
+          aria-expanded={collapsed ? activeFlyout === "offers" : offersOpen}
+          title={collapsed ? "Offers" : undefined}
+        >
+          <Tag className="h-4 w-4 shrink-0" />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">Offers</span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${offersOpen ? "rotate-180" : ""}`}
+              />
+            </>
+          )}
+        </button>
+
+        {collapsed ? (
+          <CollapsedFlyout
+            open={activeFlyout === "offers"}
+            onClose={() => setActiveFlyout(null)}
+            anchorRef={offersRef}
+          >
+            <div className="space-y-0.5">
+              {OFFER_CHILDREN.map((child) => {
+                const active = child.isActive(path);
+                const Icon = child.icon;
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={flyoutLinkClass(active)}
+                    onClick={handleNavClick}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </CollapsedFlyout>
+        ) : (
+          offersOpen && (
+            <div className="mt-1 space-y-0.5">
+              {OFFER_CHILDREN.map((child) => {
+                const active = child.isActive(path);
+                const Icon = child.icon;
+                return (
+                  <Link key={child.href} href={child.href} className={childLinkClass(active)} onClick={handleNavClick}>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )
+        )}
+      </div>
+
+      <div className="relative" ref={campaignsRef}>
+        <button
+          type="button"
+          onClick={() => {
+            if (collapsed) {
+              toggleFlyout("campaigns");
+              return;
+            }
+            setCampaignsOpen((open) => !open);
+          }}
+          className={sectionButtonClass(campaignSectionActive)}
+          aria-expanded={collapsed ? activeFlyout === "campaigns" : campaignsOpen}
+          title={collapsed ? "Campaigns" : undefined}
+        >
+          <Images className="h-4 w-4 shrink-0" />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left">Campaigns</span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${campaignsOpen ? "rotate-180" : ""}`}
+              />
+            </>
+          )}
+        </button>
+
+        {collapsed ? (
+          <CollapsedFlyout
+            open={activeFlyout === "campaigns"}
+            onClose={() => setActiveFlyout(null)}
+            anchorRef={campaignsRef}
+          >
+            <div className="space-y-0.5">
+              {CAMPAIGN_CHILDREN.map((child) => {
+                const active = child.isActive(path);
+                const Icon = child.icon;
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={flyoutLinkClass(active)}
+                    onClick={handleNavClick}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {child.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </CollapsedFlyout>
+        ) : (
+          campaignsOpen && (
+            <div className="mt-1 space-y-0.5">
+              {CAMPAIGN_CHILDREN.map((child) => {
+                const active = child.isActive(path);
                 const Icon = child.icon;
                 return (
                   <Link key={child.href} href={child.href} className={childLinkClass(active)} onClick={handleNavClick}>

@@ -1,6 +1,7 @@
 import { customerName, customerPhone, paymentMethodLabel, paymentStatusLabel } from "@/lib/orders/admin-orders";
 import { formatShippingAddress } from "@/lib/orders/fulfillment-workflow";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order } from "@/types";
 
 function formatCurrency(amount: number): string {
@@ -18,7 +19,12 @@ export type OrderAlertContent = {
   lines: string[];
 };
 
-export function buildNewOrderAlertContent(order: Order, baseUrl: string): OrderAlertContent {
+export function buildNewOrderAlertContent(
+  order: Order,
+  baseUrl: string,
+  storeName: string = STORE_NAME
+): OrderAlertContent {
+  const brand = storeName.trim() || STORE_NAME;
   const items = normalizeOrderItems(order.items);
   const first = items[0];
   const name = customerName(order);
@@ -37,7 +43,7 @@ export function buildNewOrderAlertContent(order: Order, baseUrl: string): OrderA
   });
 
   const lines = [
-    "🛍 New Order Alert - Fashion Point",
+    `🛍 New Order Alert - ${brand}`,
     "",
     `Order ID: ${order.order_number}`,
     `Payment Method: ${paymentMethodLabel(order.payment_method)}`,
@@ -74,7 +80,7 @@ export function buildNewOrderAlertContent(order: Order, baseUrl: string): OrderA
     .join("");
 
   const html = `
-    <h2>🛍 New Order Alert - Fashion Point</h2>
+    <h2>🛍 New Order Alert - ${brand}</h2>
     <p><strong>Order ID:</strong> ${order.order_number}<br/>
     <strong>Payment Method:</strong> ${paymentMethodLabel(order.payment_method)}<br/>
     <strong>Payment Status:</strong> ${paymentStatusLabel(order.payment_status)}<br/>
@@ -86,7 +92,7 @@ export function buildNewOrderAlertContent(order: Order, baseUrl: string): OrderA
   `;
 
   return {
-    subject: `New Order ${order.order_number} — Fashion Point`,
+    subject: `New Order ${order.order_number} — ${brand}`,
     title: "New Order Alert",
     whatsappText: lines.join("\n"),
     html,

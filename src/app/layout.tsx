@@ -3,7 +3,8 @@ import "./globals.css";
 import { Playfair_Display, Inter } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { Analytics } from "@/components/analytics/Analytics";
-import { SITE_URL, STORE_NAME } from "@/lib/site-config";
+import { SITE_URL, STORE_SEO_DESCRIPTION, STORE_SEO_OG_DESCRIPTION } from "@/lib/site-config";
+import { getStoreInformation, resolveSeoTitle } from "@/lib/settings/store-information";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -15,23 +16,31 @@ const inter = Inter({
   variable: "--font-sans"
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: `${STORE_NAME} | Premium Ready-Made Indian Blouses`,
-    template: `%s | ${STORE_NAME}`
-  },
-  description:
-    "Shop premium readymade blouses — daily wear, designer & party collections. AI size finder, saree color matcher & style assistant.",
-  metadataBase: new URL(SITE_URL),
-  openGraph: {
-    title: STORE_NAME,
-    description: "Premium readymade Indian blouses with AI-powered shopping",
-    type: "website",
-    siteName: STORE_NAME
-  },
-  twitter: { card: "summary_large_image", title: STORE_NAME },
-  robots: { index: true, follow: true }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const store = await getStoreInformation();
+  const defaultTitle = resolveSeoTitle(store);
+  const ogDescription =
+    store.seoDescription === STORE_SEO_DESCRIPTION
+      ? STORE_SEO_OG_DESCRIPTION
+      : store.seoDescription;
+
+  return {
+    title: {
+      default: defaultTitle,
+      template: `%s | ${store.storeName}`
+    },
+    description: store.seoDescription,
+    metadataBase: new URL(SITE_URL),
+    openGraph: {
+      title: store.storeName,
+      description: ogDescription,
+      type: "website",
+      siteName: store.storeName
+    },
+    twitter: { card: "summary_large_image", title: store.storeName },
+    robots: { index: true, follow: true }
+  };
+}
 
 export default function RootLayout({
   children

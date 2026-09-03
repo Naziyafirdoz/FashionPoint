@@ -3,6 +3,7 @@ import { stylistChat } from "@/lib/ai-style-chat";
 import { createServiceClient } from "@/lib/supabase";
 import { logAiInteraction } from "@/lib/ai-interactions";
 import { loadStyleRecommenderCatalog } from "@/lib/style-recommender-catalog";
+import { getStoreInformation } from "@/lib/settings/store-information";
 import type { Category } from "@/types";
 import type { StylistSessionFilters } from "@/lib/stylist-assistant/types";
 
@@ -42,12 +43,15 @@ export async function POST(req: Request) {
         : undefined)
   }));
 
+  const { storeName } = await getStoreInformation();
+
   const result = stylistChat({
     message,
     sessionFilters,
     products: productsWithCategories,
     categories,
-    fromQuickChip
+    fromQuickChip,
+    storeName
   });
 
   await logAiInteraction({

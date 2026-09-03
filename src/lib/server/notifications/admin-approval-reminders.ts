@@ -7,7 +7,7 @@ import {
   scheduleOrderReminder
 } from "@/lib/server/notifications/order-reminders";
 import { createOrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
-import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlerts } from "@/lib/server/resend-from-addresses";
 import {
   formatReminderDelayLabel,
   getReminderDelayMinutes
@@ -126,10 +126,10 @@ export async function sendAdminPendingOrderReminderEmail(
 
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const template = buildPendingOrderReminderEmail(order, actionUrls);
+    const template = await buildPendingOrderReminderEmail(order, actionUrls);
 
     await resend.emails.send({
-      from: RESEND_FROM_ALERTS,
+      from: await getResendFromAlerts(),
       to: recipients,
       subject: template.subject,
       html: template.html

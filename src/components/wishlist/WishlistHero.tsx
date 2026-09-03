@@ -39,14 +39,14 @@ export function WishlistHero({ savedCount }: WishlistHeroProps) {
         />
 
         <div className="relative z-10 mx-auto max-w-2xl text-center">
-          <h1 className="font-display text-[2rem] font-bold leading-tight tracking-tight text-[#7B0D2B] sm:text-[2.35rem]">
+          <h1 className="font-display text-[2rem] font-bold leading-tight tracking-tight text-primary sm:text-[2.35rem]">
             Wishlist <span aria-hidden="true">♡</span>
           </h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#555555] sm:text-[15px]">
             Keep your favourite blouses in one place and shop anytime.
           </p>
           <div className="mt-4 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#7B0D2B] px-4 py-1.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(123,13,43,0.2)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgb(var(--primary-rgb)/0.2)]">
               <span aria-hidden="true">❤️</span>
               Saved Items: {savedCount.toLocaleString("en-IN")}
             </span>

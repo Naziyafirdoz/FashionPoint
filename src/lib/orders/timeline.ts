@@ -4,6 +4,7 @@ import { isPrepaidPayment } from "@/lib/orders/payment-rules";
 import { wasOrderPaidBeforeRefund } from "@/lib/orders/refunds";
 import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
+import { STORE_NAME } from "@/lib/site-config";
 
 export type FulfillmentMilestoneStep = {
   label: string;
@@ -29,7 +30,10 @@ function statusRank(status: string): number {
 }
 
 /** All fulfillment milestones with completion derived from order status. */
-export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilestoneStep[] {
+export function buildFulfillmentMilestoneSteps(
+  order: Order,
+  storeName: string = STORE_NAME
+): FulfillmentMilestoneStep[] {
   const status = normalizeLegacyStatus(order.status);
   const rank = statusRank(status);
   const payment = (order.payment_status ?? "").toLowerCase();
@@ -83,7 +87,10 @@ export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilesto
         rank >= 5
           ? (order.shipping_date ?? order.updated_at ?? order.created_at)
           : undefined,
-      notes: rank >= 5 ? "Order shipped" : undefined
+      notes:
+        rank >= 5
+          ? `Handed to courier. ${storeName} responsibility is complete.`
+          : undefined
     },
     {
       label: "Delivered",
@@ -100,8 +107,11 @@ export function buildFulfillmentMilestoneSteps(order: Order): FulfillmentMilesto
 }
 
 /** Admin order detail — completed milestones only. */
-export function buildFulfillmentMilestoneTimeline(order: Order): OrderTimelineEntry[] {
-  return buildFulfillmentMilestoneSteps(order)
+export function buildFulfillmentMilestoneTimeline(
+  order: Order,
+  storeName: string = STORE_NAME
+): OrderTimelineEntry[] {
+  return buildFulfillmentMilestoneSteps(order, storeName)
     .filter((step) => step.completed && step.at)
     .map((step) => ({
       label: step.label,
@@ -125,6 +135,7 @@ export { orderStatusLabel } from "@/lib/orders/status-config";
 
 type TimelineOptions = {
   includeRefundEvents?: boolean;
+  storeName?: string;
 };
 
 function pushEntry(
@@ -143,6 +154,7 @@ export function buildFullOrderTimeline(
   options?: TimelineOptions
 ): OrderTimelineEntry[] {
   const includeRefundEvents = options?.includeRefundEvents !== false;
+  const storeName = options?.storeName ?? STORE_NAME;
   const entries: OrderTimelineEntry[] = [];
   const payment = (order.payment_status ?? "").toLowerCase();
   const prepaid = isPrepaidPayment(order.payment_method);
@@ -189,7 +201,7 @@ export function buildFullOrderTimeline(
       entries,
       "Order Shipped",
       order.shipping_date ?? order.updated_at,
-      shipNotes || "Shipment dispatched"
+      shipNotes || `Handed to courier. ${storeName} responsibility is complete.`
     );
   }
 
