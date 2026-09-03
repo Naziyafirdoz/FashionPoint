@@ -7,6 +7,14 @@ import {
 } from "@/lib/cloudinary";
 import { validateStoreLogoUpload } from "@/lib/settings/store-logo-upload";
 
+function getFormFile(form: unknown, name: string): File | null {
+  if (!form || typeof form !== "object") return null;
+  const getter = form as { get?: (field: string) => unknown };
+  if (typeof getter.get !== "function") return null;
+  const uploaded = getter.get(name);
+  return uploaded instanceof File ? uploaded : null;
+}
+
 export async function POST(req: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
@@ -19,15 +27,7 @@ export async function POST(req: Request) {
   }
 
   const form = await req.formData().catch(() => null);
-  let file: File | null = null;
-  if (form) {
-    for (const [key, value] of form) {
-      if (key === "file" && value instanceof File) {
-        file = value;
-        break;
-      }
-    }
-  }
+  const file = getFormFile(form, "file");
   if (!file || file.size === 0) {
     return NextResponse.json({ error: "Please choose a PNG, JPG, or WebP image." }, { status: 400 });
   }

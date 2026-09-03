@@ -37,6 +37,8 @@ type OrderSuccessViewProps = {
 
   orderNumber?: string;
 
+  storeName?: string;
+
 };
 
 
@@ -77,7 +79,7 @@ function formatEstimatedDelivery(
   });
 }
 
-export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSuccessViewProps) {
+export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = STORE_NAME }: OrderSuccessViewProps) {
 
   const endCheckoutSession = useCheckoutSession((s) => s.endSession);
 
@@ -104,7 +106,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
         <p className="font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
 
-          {STORE_NAME}
+          {storeName}
 
         </p>
 
@@ -179,7 +181,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber }: OrderSucce
 
       <p className="text-center font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
 
-        {STORE_NAME}
+        {storeName}
 
       </p>
 
