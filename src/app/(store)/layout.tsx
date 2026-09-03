@@ -18,12 +18,17 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   }
 
   const storeInformation = await getPublicStoreInformation();
-  const displayFont = resolveDisplayFontStack(
-    storeInformation.branding?.fontFamily ?? DEFAULT_STORE_BRANDING.fontFamily
-  );
+  const branding = storeInformation.branding ?? DEFAULT_STORE_BRANDING;
+  const displayFont = resolveDisplayFontStack(branding.fontFamily);
 
   return (
-    <StorefrontBrandingScope displayFont={displayFont}>
+    <StorefrontBrandingScope
+      displayFont={displayFont}
+      primaryColor={branding.primaryColor}
+      secondaryColor={branding.secondaryColor}
+      headingColor={branding.headingColor}
+      bodyTextColor={branding.bodyTextColor}
+    >
       <WishlistHydrator />
       <AnnouncementBar phoneDisplay={storeInformation.phoneDisplay} telUrl={storeInformation.telUrl} />
       <Navbar

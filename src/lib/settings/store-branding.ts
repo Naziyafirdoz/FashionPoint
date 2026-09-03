@@ -68,6 +68,18 @@ export function isValidHexColor(value: string): boolean {
   return normalizeHexColor(value) !== null;
 }
 
+/** Space-separated RGB channels for Tailwind `rgb(var(--x-rgb) / <alpha-value>)`. */
+export function hexColorToRgbChannels(value: string): string | null {
+  const normalized = normalizeHexColor(value);
+  if (!normalized) return null;
+  const hex = normalized.slice(1);
+  const r = Number.parseInt(hex.slice(0, 2), 16);
+  const g = Number.parseInt(hex.slice(2, 4), 16);
+  const b = Number.parseInt(hex.slice(4, 6), 16);
+  if ([r, g, b].some((channel) => Number.isNaN(channel))) return null;
+  return `${r} ${g} ${b}`;
+}
+
 export function parseStoredFontFamily(value: unknown): StoreFontFamily {
   if (typeof value !== "string") return DEFAULT_STORE_BRANDING.fontFamily;
   const trimmed = value.trim().toLowerCase();

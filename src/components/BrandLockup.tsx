@@ -36,7 +36,7 @@ export function BrandLockup({
     >
       <BrandLogo variant={variant} src={logoUrl || undefined} alt={storeName} />
       <div className="flex flex-col leading-tight">
-        <span className="font-display text-2xl font-bold text-[#7B0D2B] md:text-[28px] lg:text-[30px]">
+        <span className="font-display text-2xl font-bold text-primary md:text-[28px] lg:text-[30px]">
           {storeName}
         </span>
         <span
