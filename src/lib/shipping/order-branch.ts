@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
 import { createServiceClient } from "@/lib/supabase";
 import { getShippingSettings } from "@/lib/shipping/settings";
 
@@ -38,14 +40,15 @@ type BranchPickupRow = {
 
 function pickupFromBranchRow(
   branch: BranchPickupRow,
-  source: OrderBranchResolution["source"]
+  source: OrderBranchResolution["source"],
+  storeName: string
 ): OrderBranchResolution {
   return {
     source,
     branchId: source === "assigned_branch" ? branch.id : null,
     branchName: branch.name,
     pickup: {
-      name: "Fashion Point",
+      name: storeName,
       phone: branch.phone ?? "",
       line: branch.address?.trim() ?? "",
       city: branch.city,
@@ -59,14 +62,14 @@ function pickupFromBranchRow(
  * Last-resort pickup when no branch row is available (dev / pre-migration).
  * Live fulfillment origin comes from the assigned or default branch.
  */
-function pickupFromStoreSettings(): OrderBranchResolution {
+function pickupFromStoreSettings(storeName: string): OrderBranchResolution {
   const settings = getShippingSettings();
   return {
     source: "legacy_fallback",
     branchId: null,
     branchName: null,
     pickup: {
-      name: "Fashion Point",
+      name: storeName,
       phone: settings.storePickupPhone,
       line: settings.storePickupAddress,
       city: settings.storePickupCity,
@@ -74,6 +77,11 @@ function pickupFromStoreSettings(): OrderBranchResolution {
       pincode: settings.storePickupPincode
     }
   };
+}
+
+async function resolvedStorePickupName(): Promise<string> {
+  const { storeName } = await getStoreInformation();
+  return storeName.trim() || STORE_NAME;
 }
 
 async function loadDefaultBranchPickup(db: SupabaseClient): Promise<BranchPickupRow | null> {
@@ -88,14 +96,15 @@ async function loadDefaultBranchPickup(db: SupabaseClient): Promise<BranchPickup
 }
 
 async function legacyStorePickup(db?: SupabaseClient | null): Promise<OrderBranchResolution> {
+  const storeName = await resolvedStorePickupName();
   const client = db ?? createServiceClient();
   if (client) {
     const defaultBranch = await loadDefaultBranchPickup(client);
     if (defaultBranch) {
-      return pickupFromBranchRow(defaultBranch, "legacy_fallback");
+      return pickupFromBranchRow(defaultBranch, "legacy_fallback", storeName);
     }
   }
-  return pickupFromStoreSettings();
+  return pickupFromStoreSettings(storeName);
 }
 
 function persistedBranchId(branchId: string | null | undefined): string | null {
@@ -144,5 +153,6 @@ export async function resolveOrderBranch(
     return legacyStorePickup(client);
   }
 
-  return pickupFromBranchRow(branch, "assigned_branch");
+  const storeName = await resolvedStorePickupName();
+  return pickupFromBranchRow(branch, "assigned_branch", storeName);
 }

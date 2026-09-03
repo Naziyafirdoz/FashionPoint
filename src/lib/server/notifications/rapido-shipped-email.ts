@@ -5,7 +5,7 @@ import {
   logCustomerEmailDelivery,
   wasCustomerShippedEmailSent
 } from "@/lib/server/notifications/customer-email-dedup";
-import { RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { getResendFromOrders } from "@/lib/server/resend-from-addresses";
 import type { Order } from "@/types";
 
 export const RAPIDO_SHIPPED_EMAIL_EVENT = "rapido_shipped_email";
@@ -51,7 +51,7 @@ export async function sendRapidoShippedCustomerEmail(
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: email,
       subject: template.subject,
       html: template.html

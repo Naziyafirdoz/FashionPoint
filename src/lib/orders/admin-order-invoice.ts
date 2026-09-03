@@ -8,6 +8,7 @@ import {
   paymentStatusLabel
 } from "@/lib/orders/admin-orders";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
+import { STORE_NAME } from "@/lib/site-config";
 import {
   formatRefundDate,
   refundAmountForOrder,
@@ -18,25 +19,28 @@ import {
 import { getStageLabel } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
 
-export function printOrder(order: Order) {
-  openInvoiceWindow(order, { autoPrint: true });
+export function printOrder(order: Order, storeName: string = STORE_NAME) {
+  openInvoiceWindow(order, { autoPrint: true, storeName });
 }
 
-export function downloadInvoicePdf(order: Order) {
-  openInvoiceWindow(order, { autoPrint: true, title: "Invoice" });
+export function downloadInvoicePdf(order: Order, storeName: string = STORE_NAME) {
+  openInvoiceWindow(order, { autoPrint: true, title: "Invoice", storeName });
 }
 
-function openInvoiceWindow(order: Order, options: { autoPrint?: boolean; title?: string }) {
+function openInvoiceWindow(
+  order: Order,
+  options: { autoPrint?: boolean; title?: string; storeName?: string }
+) {
   const w = window.open("", "_blank");
   if (!w) return;
-  w.document.write(buildInvoiceHtml(order, options.title ?? "Invoice"));
+  w.document.write(buildInvoiceHtml(order, options.title ?? "Invoice", options.storeName));
   w.document.close();
   if (options.autoPrint) {
     w.onload = () => w.print();
   }
 }
 
-function buildInvoiceHtml(order: Order, docTitle: string): string {
+function buildInvoiceHtml(order: Order, docTitle: string, storeName: string = STORE_NAME): string {
   const lines = normalizeOrderItems(order.items);
   const itemsHtml = lines
     .map(
@@ -71,7 +75,7 @@ function buildInvoiceHtml(order: Order, docTitle: string): string {
       .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px}
     </style>
     </head><body>
-    <h1>Fashion Point</h1>
+    <h1>${storeName.trim() || STORE_NAME}</h1>
     <p class="meta">Tax Invoice / Order Invoice</p>
     <p><strong>Invoice #:</strong> INV-${order.order_number}</p>
     <p><strong>Order Number:</strong> ${order.order_number}</p>

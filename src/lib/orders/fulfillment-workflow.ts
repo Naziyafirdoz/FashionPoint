@@ -1,4 +1,5 @@
 import { getStageLabel, normalizeLegacyStatus, orderStatusLabel } from "@/lib/orders/status-config";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order, OrderStatus } from "@/types";
 
 /** Internal statuses hidden from customers. */
@@ -57,10 +58,11 @@ function isLocalFulfillmentOrder(order: FulfillmentZoneOrder): boolean {
   return order.fulfillment_zone === "local";
 }
 
-export function customerConfirmedMessage(order: FulfillmentZoneOrder): string {
+export function customerConfirmedMessage(order: FulfillmentZoneOrder, storeName: string = STORE_NAME): string {
+  const brand = storeName.trim() || STORE_NAME;
   const lines = [
     "Your order has been confirmed.",
-    "Fashion Point is preparing your parcel."
+    `${brand} is preparing your parcel.`
   ];
   if (isLocalFulfillmentOrder(order)) {
     lines.push("Expected delivery within 2 days.");

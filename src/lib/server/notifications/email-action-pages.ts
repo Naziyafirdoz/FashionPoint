@@ -1,3 +1,7 @@
+import { adminOrderEmailUrl } from "@/lib/server/notifications/email-app-url";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
+
 const MAROON = "#7B0D2B";
 
 function escapeHtml(value: string): string {
@@ -8,11 +12,11 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function pageShell(title: string, body: string): string {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;font-family:system-ui,sans-serif;background:#FAF8F6;color:#1A1A1A;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;"><table width="100%" style="max-width:480px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:20px;text-align:center;color:#fff;font-weight:700;">Fashion Point</td></tr><tr><td style="padding:24px;">${body}</td></tr></table></td></tr></table></body></html>`;
+async function pageShell(title: string, body: string): Promise<string> {
+  const { storeName } = await getStoreInformation();
+  const heading = storeName.trim() || STORE_NAME;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;font-family:system-ui,sans-serif;background:#FAF8F6;color:#1A1A1A;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px;"><table width="100%" style="max-width:480px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:20px;text-align:center;color:#fff;font-weight:700;">${escapeHtml(heading)}</td></tr><tr><td style="padding:24px;">${body}</td></tr></table></td></tr></table></body></html>`;
 }
-
-import { adminOrderEmailUrl } from "@/lib/server/notifications/email-app-url";
 
 function adminOrderLink(orderId: string): string {
   return adminOrderEmailUrl(orderId);
@@ -25,7 +29,7 @@ export function htmlResponse(html: string): Response {
   });
 }
 
-export function renderRemindScheduledPage(orderNumber: string, remindAt: string, orderId: string): string {
+export async function renderRemindScheduledPage(orderNumber: string, remindAt: string, orderId: string): Promise<string> {
   const when = new Date(remindAt).toLocaleString("en-IN", {
     day: "numeric",
     month: "short",
@@ -42,7 +46,7 @@ export function renderRemindScheduledPage(orderNumber: string, remindAt: string,
   );
 }
 
-export function renderRemindSkippedPage(orderNumber: string, orderId: string): string {
+export async function renderRemindSkippedPage(orderNumber: string, orderId: string): Promise<string> {
   return pageShell(
     "Reminder Not Needed",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">Reminder skipped</p>
@@ -51,7 +55,7 @@ export function renderRemindSkippedPage(orderNumber: string, orderId: string): s
   );
 }
 
-export function renderRemindErrorPage(orderId: string): string {
+export async function renderRemindErrorPage(orderId: string): Promise<string> {
   return pageShell(
     "Reminder Failed",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Unable to schedule reminder</p>
@@ -60,7 +64,7 @@ export function renderRemindErrorPage(orderId: string): string {
   );
 }
 
-export function renderInvalidTokenPage(): string {
+export async function renderInvalidTokenPage(): Promise<string> {
   return pageShell(
     "Invalid Link",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link expired or invalid.</p>
@@ -68,7 +72,7 @@ export function renderInvalidTokenPage(): string {
   );
 }
 
-export function renderTokenExpiredPage(): string {
+export async function renderTokenExpiredPage(): Promise<string> {
   return pageShell(
     "Link Expired",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link expired.</p>
@@ -76,7 +80,7 @@ export function renderTokenExpiredPage(): string {
   );
 }
 
-export function renderTokenUsedPage(): string {
+export async function renderTokenUsedPage(): Promise<string> {
   return pageShell(
     "Link Already Used",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Link already used.</p>
@@ -84,7 +88,7 @@ export function renderTokenUsedPage(): string {
   );
 }
 
-export function renderAlreadyApprovedPage(orderNumber?: string): string {
+export async function renderAlreadyApprovedPage(orderNumber?: string): Promise<string> {
   const detail = orderNumber
     ? `Order <strong>${escapeHtml(orderNumber)}</strong> has already been approved.`
     : "This order has already been approved.";
@@ -95,7 +99,7 @@ export function renderAlreadyApprovedPage(orderNumber?: string): string {
   );
 }
 
-export function renderApproveSuccessPage(orderNumber: string, orderId: string): string {
+export async function renderApproveSuccessPage(orderNumber: string, orderId: string): Promise<string> {
   return pageShell(
     "Order Approved",
     `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✓ Order Approved</p>

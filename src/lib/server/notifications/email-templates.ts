@@ -18,12 +18,13 @@ import {
   adminOrderEmailUrl,
   emailAppUrl
 } from "@/lib/server/notifications/email-app-url";
-import { STORE_TIMEZONE } from "@/lib/site-config";
+import { STORE_NAME, STORE_TIMEZONE } from "@/lib/site-config";
+import { getStoreInformation } from "@/lib/settings/store-information";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
 import type { Order } from "@/types";
 import {
-  GENERIC_CUSTOMER_EMAIL_BRANCH_COPY,
+  buildCustomerEmailBranchCopy,
   resolveCustomerEmailBranchCopy,
   type CustomerEmailBranchCopy
 } from "@/lib/server/notifications/customer-email-branch-copy";
@@ -67,12 +68,18 @@ const CUSTOMER_PLACED_MESSAGES = [
   "We'll notify you when your order is confirmed."
 ];
 
-const PREHEADER_CUSTOMER_PLACED =
-  "Thank you for shopping with Fashion Point. Your order has been received and is being reviewed.";
+function customerPlacedPreheader(storeName: string): string {
+  return `Thank you for shopping with ${storeName}. Your order has been received and is being reviewed.`;
+}
 const PREHEADER_ADMIN_NEW_ORDER =
   "New paid order received. Review and approve the order.";
 const PREHEADER_CUSTOMER_CONFIRMED =
   "Your order has been confirmed and is being prepared.";
+
+async function emailStoreName(): Promise<string> {
+  const { storeName } = await getStoreInformation();
+  return storeName.trim() || STORE_NAME;
+}
 
 function messageBlockHtml(lines: string[]): string {
   return lines
@@ -93,7 +100,8 @@ function customerPlacedShippingAddressCardHtml(order: Order): string {
   return `${cardOpen()}<tr><td style="padding:16px;"><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${GOLD};text-transform:uppercase;">Shipping Address</p><p style="margin:0;font-size:14px;line-height:1.6;">${address}</p></td></tr>${cardClose()}`;
 }
 
-/** Admin emails: address lines only — no repeated customer name or phone. */function formatAddressLinesOnly(order: Order): string {
+/** Admin emails: address lines only — no repeated customer name or phone. */
+function formatAddressLinesOnly(order: Order): string {
   const a = order.shipping_address;
   if (!a) return "—";
   const parts = [
@@ -122,6 +130,7 @@ function preheaderHtml(text: string): string {
 }
 
 type EmailShellOptions = {
+  storeName?: string;
   preheader?: string;
   footer?: "standard" | "minimal";
   customerCopy?: CustomerEmailBranchCopy;
@@ -135,20 +144,16 @@ function customerLocationFooterHtml(copy: CustomerEmailBranchCopy): string {
   return `<tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0;font-size:12px;color:${MUTED};">${escapeHtml(copy.locationLine)}</p></td></tr>`;
 }
 
-function minimalFooterHtml(): string {
-  return `<tr><td style="padding:20px 16px;text-align:center;border-top:1px solid ${BORDER};"><p style="margin:0;font-size:12px;color:${MUTED};">Fashion Point • Vijayawada</p></td></tr>`;
-}
-
 function emailShell(title: string, body: string, options?: EmailShellOptions): string {
+  const storeName = options?.storeName?.trim() || STORE_NAME;
+  const customerCopy = options?.customerCopy ?? buildCustomerEmailBranchCopy(storeName);
   const preheaderBlock = options?.preheader ? preheaderHtml(options.preheader) : "";
   const footer =
     options?.footer === "minimal"
-      ? options.customerCopy
-        ? customerLocationFooterHtml(options.customerCopy)
-        : minimalFooterHtml()
-      : customerFooterHtml(options?.customerCopy ?? GENERIC_CUSTOMER_EMAIL_BRANCH_COPY);
+      ? customerLocationFooterHtml(customerCopy)
+      : customerFooterHtml(customerCopy);
 
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">Fashion Point</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;background:#F3EFEB;font-family:system-ui,-apple-system,sans-serif;color:${TEXT};"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px;"><table width="100%" style="max-width:560px;background:#fff;border-radius:12px;overflow:hidden;"><tr><td style="background:${MAROON};padding:18px 16px;text-align:center;color:#fff;font-size:18px;font-weight:700;">${escapeHtml(storeName)}</td></tr><tr><td style="padding:24px 20px;">${preheaderBlock}${body}</td></tr>${footer}</table></td></tr></table></body></html>`;
 }
 
 function sectionHeading(text: string): string {
@@ -358,7 +363,10 @@ function adminOrderShippedBody(order: Order): string {
 }
 
 export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Good news! Your order has been shipped and is on its way.</p>
@@ -367,6 +375,7 @@ export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ su
   return {
     subject: `📦 Your Order Has Been Shipped — ${order.order_number}`,
     html: emailShell(`Your Order Has Been Shipped — ${order.order_number}`, body, {
+      storeName,
       preheader: `Your order ${order.order_number} has been shipped and is on its way.`,
       customerCopy
     })
@@ -374,7 +383,10 @@ export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ su
 }
 
 export async function buildCustomerOrderPackingStartedEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml([
@@ -387,6 +399,7 @@ export async function buildCustomerOrderPackingStartedEmail(order: Order): Promi
   return {
     subject: `📦 Packing Started — ${order.order_number}`,
     html: emailShell(`Packing Started — ${order.order_number}`, body, {
+      storeName,
       preheader: `Your order ${order.order_number} is being packed.`,
       customerCopy
     })
@@ -394,7 +407,10 @@ export async function buildCustomerOrderPackingStartedEmail(order: Order): Promi
 }
 
 export async function buildCustomerOrderReadyForShippingEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml([
@@ -407,6 +423,7 @@ export async function buildCustomerOrderReadyForShippingEmail(order: Order): Pro
   return {
     subject: `🚚 Ready For Shipping — ${order.order_number}`,
     html: emailShell(`Ready For Shipping — ${order.order_number}`, body, {
+      storeName,
       preheader: `Your order ${order.order_number} is ready for dispatch.`,
       customerCopy
     })
@@ -414,7 +431,10 @@ export async function buildCustomerOrderReadyForShippingEmail(order: Order): Pro
 }
 
 export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:${TEXT};">Your order has been delivered successfully.</p>
@@ -424,6 +444,7 @@ export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ 
   return {
     subject: `🎉 Order Delivered — ${order.order_number}`,
     html: emailShell(`Order Delivered — ${order.order_number}`, body, {
+      storeName,
       preheader: `Your order ${order.order_number} has been delivered.`,
       footer: "minimal",
       customerCopy
@@ -431,10 +452,11 @@ export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ 
   };
 }
 
-export function buildPendingOrderReminderEmail(
+export async function buildPendingOrderReminderEmail(
   order: Order,
-  actionUrls: OrderEmailActionUrls
-): { subject: string; html: string } {
+  _actionUrls: OrderEmailActionUrls
+): Promise<{ subject: string; html: string }> {
+  const storeName = await emailStoreName();
   const body = `
     <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${TEXT};">This order has been awaiting approval for more than ${formatReminderDelayLabel()}.</p>
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Please review and approve the order.</p>
@@ -445,6 +467,7 @@ export function buildPendingOrderReminderEmail(
   return {
     subject: `🔔 Pending Order Reminder — ${order.order_number}`,
     html: emailShell(`Pending Order Reminder — ${order.order_number}`, body, {
+      storeName,
       preheader: PREHEADER_ADMIN_NEW_ORDER,
       footer: "minimal"
     })
@@ -479,6 +502,7 @@ export async function buildOrderEmailTemplate(
     return buildAdminNewOrderPremiumEmail(order, actionUrls);
   }
 
+  const storeName = await emailStoreName();
   const title = eventTitle(event, order);
   const body =
     event === "shipped"
@@ -495,6 +519,7 @@ export async function buildOrderEmailTemplate(
   return {
     subject,
     html: emailShell(title, body, {
+      storeName,
       preheader: event === "new_order" ? PREHEADER_ADMIN_NEW_ORDER : undefined,
       footer: "minimal"
     })
@@ -502,7 +527,10 @@ export async function buildOrderEmailTemplate(
 }
 
 export async function buildCustomerOrderReceivedEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml(CUSTOMER_PLACED_MESSAGES)}
@@ -513,14 +541,18 @@ export async function buildCustomerOrderReceivedEmail(order: Order): Promise<{ s
   return {
     subject: `🛍 Thanks for Placing Your Order — ${order.order_number}`,
     html: emailShell(`Thanks for Placing Your Order — ${order.order_number}`, body, {
-      preheader: PREHEADER_CUSTOMER_PLACED,
+      storeName,
+      preheader: customerPlacedPreheader(storeName),
       customerCopy
     })
   };
 }
 
 export async function buildCustomerOrderConfirmedEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const customerCopy = await resolveCustomerEmailBranchCopy(order.branch_id);
+  const [customerCopy, storeName] = await Promise.all([
+    resolveCustomerEmailBranchCopy(order.branch_id),
+    emailStoreName()
+  ]);
   const body = `
     ${customerGreetingHtml(order)}
     ${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}
@@ -529,16 +561,18 @@ export async function buildCustomerOrderConfirmedEmail(order: Order): Promise<{ 
   return {
     subject: `✅ Order Confirmed — ${order.order_number}`,
     html: emailShell(`Order Confirmed — ${order.order_number}`, body, {
+      storeName,
       preheader: PREHEADER_CUSTOMER_CONFIRMED,
       customerCopy
     })
   };
 }
 
-export function buildCustomerOrderConfirmedEmailSimple(params: {
+export async function buildCustomerOrderConfirmedEmailSimple(params: {
   orderNumber: string;
   total: number;
-}): { subject: string; html: string } {
+}): Promise<{ subject: string; html: string }> {
+  const storeName = await emailStoreName();
   const body = `
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};">Hello,</p>
     ${messageBlockHtml(CUSTOMER_CONFIRMED_MESSAGES)}
@@ -547,17 +581,19 @@ export function buildCustomerOrderConfirmedEmailSimple(params: {
   return {
     subject: `✅ Order Confirmed — ${params.orderNumber}`,
     html: emailShell(`Order Confirmed — ${params.orderNumber}`, body, {
+      storeName,
       preheader: PREHEADER_CUSTOMER_CONFIRMED,
-      customerCopy: GENERIC_CUSTOMER_EMAIL_BRANCH_COPY
+      customerCopy: buildCustomerEmailBranchCopy(storeName)
     })
   };
 }
 
-export function buildOrderWhatsAppText(order: Order, event: OrderNotificationEvent): string {
+export async function buildOrderWhatsAppText(order: Order, event: OrderNotificationEvent): Promise<string> {
+  const storeName = await emailStoreName();
   const items = normalizeOrderItems(order.items);
   const first = items[0];
   const lines = [
-    `🛍 Fashion Point — ${eventTitle(event, order)}`,
+    `🛍 ${storeName} — ${eventTitle(event, order)}`,
     "",
     `Order ID: ${order.order_number}`,
     `Amount: ${formatCurrency(Number(order.total))}`,
@@ -611,10 +647,11 @@ export function buildPushPayload(order: Order, event: OrderNotificationEvent) {
   };
 }
 
-export function buildNotificationTestEmail(sentAt: Date = new Date()): {
+export async function buildNotificationTestEmail(sentAt: Date = new Date()): Promise<{
   subject: string;
   html: string;
-} {
+}> {
+  const storeName = await emailStoreName();
   const sentAtLabel = new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -625,7 +662,7 @@ export function buildNotificationTestEmail(sentAt: Date = new Date()): {
     ${sectionHeading("Test Notification")}
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${TEXT};">Hello,</p>
     ${messageBlockHtml([
-      "This is a test email from your Fashion Point notification system.",
+      `This is a test email from your ${storeName} notification system.`,
       "If you received this email, your notification settings are configured correctly.",
       "No action is required."
     ])}
@@ -640,9 +677,10 @@ export function buildNotificationTestEmail(sentAt: Date = new Date()): {
   `;
 
   return {
-    subject: "Fashion Point • Test Notification",
+    subject: `${storeName} • Test Notification`,
     html: emailShell("Test Notification", body, {
-      preheader: "This is a test email from your Fashion Point notification system.",
+      storeName,
+      preheader: `This is a test email from your ${storeName} notification system.`,
       footer: "minimal"
     })
   };

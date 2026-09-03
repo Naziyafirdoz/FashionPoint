@@ -1,4 +1,5 @@
 import * as React from "react";
+import { STORE_NAME } from "@/lib/site-config";
 
 const MAROON = "#7B0D2B";
 const BORDER = "#F3D7DF";
@@ -28,6 +29,8 @@ export type AdminNewOrderEmailProps = {
   shippingAddressText: string;
   approveUrl: string;
   dashboardUrl: string;
+  storeName?: string;
+  locationLine?: string;
 };
 
 function cardTable(marginBottom = "16px") {
@@ -88,8 +91,12 @@ export function AdminNewOrderEmail({
   customerEmail,
   shippingAddressText,
   approveUrl,
-  dashboardUrl
+  dashboardUrl,
+  storeName = STORE_NAME,
+  locationLine
 }: AdminNewOrderEmailProps) {
+  const heading = storeName.trim() || STORE_NAME;
+  const footerLocation = (locationLine?.trim() || heading);
   const paidBadge = paymentStatusPaid ? (
     <span
       style={{
@@ -143,7 +150,7 @@ export function AdminNewOrderEmail({
                   <tbody>
                     <tr>
                       <td align="center" style={{ backgroundColor: MAROON, padding: "22px 18px", borderRadius: "14px 14px 0 0" }}>
-                        <p style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#FFFFFF", fontFamily: FONT }}>Fashion Point</p>
+                        <p style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#FFFFFF", fontFamily: FONT }}>{heading}</p>
                         <p style={{ margin: "8px 0 0", fontSize: "12px", fontWeight: 700, color: "#FFFFFF", letterSpacing: "0.6px", textTransform: "uppercase", fontFamily: FONT }}>
                           🔔 New Paid Order Received
                         </p>
@@ -339,7 +346,7 @@ export function AdminNewOrderEmail({
                         <p style={{ margin: "0 0 6px", fontSize: "13px", color: MAROON, fontWeight: 600, fontFamily: FONT }}>
                           ❤ Thank you for managing orders efficiently
                         </p>
-                        <p style={{ margin: 0, fontSize: "12px", color: MUTED, fontFamily: FONT }}>Fashion Point • Vijayawada</p>
+                        <p style={{ margin: 0, fontSize: "12px", color: MUTED, fontFamily: FONT }}>{footerLocation}</p>
                       </td>
                     </tr>
                   </tbody>

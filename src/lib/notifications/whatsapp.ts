@@ -1,5 +1,7 @@
 import { getAdminPhoneDigits } from "@/lib/admin/admin-contacts";
 import { buildAdminWhatsAppNewOrderMessage } from "@/lib/notifications/admin-new-order-content";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order } from "@/types";
 
 function adminWhatsAppRecipient(): string | undefined {
@@ -22,7 +24,8 @@ export async function sendAdminWhatsAppNewOrder(order: Order): Promise<{ ok: boo
     return { ok: false };
   }
 
-  const message = buildAdminWhatsAppNewOrderMessage(order);
+  const { storeName } = await getStoreInformation();
+  const message = buildAdminWhatsAppNewOrderMessage(order, storeName.trim() || STORE_NAME);
   const endpoint = `${apiUrl.replace(/\/$/, "")}/${phoneNumberId}/messages`;
 
   try {

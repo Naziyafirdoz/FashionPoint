@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { RESEND_FROM_ALERTS_STORE } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlertsStore } from "@/lib/server/resend-from-addresses";
 import { buildDiscontinuedProductEmail } from "@/lib/stock-notifications/email-template";
 import { buildBrowseProductsUrl } from "@/lib/stock-notifications/product-url";
 import { resolveRequestRecipientEmail } from "@/lib/stock-notifications/request-email";
@@ -84,7 +84,7 @@ async function sendDiscontinuedEmailAndCancel(
 
   const productName = context.productName || fresh.product_name?.trim() || "this product";
   const browseUrl = buildBrowseProductsUrl(context.categorySlug);
-  const { subject, html } = buildDiscontinuedProductEmail({
+  const { subject, html } = await buildDiscontinuedProductEmail({
     customerName: fresh.customer_name,
     productName,
     browseUrl
@@ -93,7 +93,7 @@ async function sendDiscontinuedEmailAndCancel(
   if (resend) {
     try {
       await resend.emails.send({
-        from: RESEND_FROM_ALERTS_STORE,
+        from: await getResendFromAlertsStore(),
         to: recipient,
         subject,
         html

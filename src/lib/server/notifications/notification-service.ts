@@ -18,7 +18,7 @@ import {
   resolveFcmPushEvent,
   sendOrderFcmPush
 } from "@/lib/server/notifications/send-fcm-push";
-import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlerts } from "@/lib/server/resend-from-addresses";
 import { sendWhatsAppNotification } from "@/lib/server/whatsapp";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
 import type { Order } from "@/types";
@@ -293,7 +293,7 @@ async function sendEmailChannel(
     });
 
     const response = await resend.emails.send({
-      from: RESEND_FROM_ALERTS,
+      from: await getResendFromAlerts(),
       to: recipients,
       subject: template.subject,
       html: template.html
@@ -356,7 +356,7 @@ async function sendWhatsAppChannel(
   if (!force && (await wasChannelSent(db, order.id, "whatsapp", eventKey))) return;
 
   try {
-    const text = buildOrderWhatsAppText(order, event);
+    const text = await buildOrderWhatsAppText(order, event);
     const result = await sendWhatsAppNotification(text);
     if (!result.ok) {
       throw new Error(

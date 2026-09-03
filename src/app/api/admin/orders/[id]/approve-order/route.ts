@@ -14,7 +14,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 async function approveOrder(req: Request, id: string, viaEmail: boolean) {
   const auth = await requireStaff(["owner", "admin", "worker"]);
   if (!auth.ok) {
-    if (viaEmail) return { response: htmlResponse(renderInvalidTokenPage()) };
+    if (viaEmail) return { response: htmlResponse(await renderInvalidTokenPage()) };
     return { response: auth.response as NextResponse };
   }
 
@@ -27,7 +27,7 @@ async function approveOrder(req: Request, id: string, viaEmail: boolean) {
 
   if (result.ok && result.status === "already_approved") {
     if (viaEmail) {
-      return { response: htmlResponse(renderAlreadyApprovedPage(result.order.order_number)) };
+      return { response: htmlResponse(await renderAlreadyApprovedPage(result.order.order_number)) };
     }
     return {
       response: NextResponse.json({
@@ -41,7 +41,7 @@ async function approveOrder(req: Request, id: string, viaEmail: boolean) {
   if (result.ok && result.status === "approved") {
     if (viaEmail) {
       return {
-        response: htmlResponse(renderApproveSuccessPage(result.order.order_number, result.order.id))
+        response: htmlResponse(await renderApproveSuccessPage(result.order.order_number, result.order.id))
       };
     }
     return {

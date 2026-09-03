@@ -17,7 +17,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 async function handleRemind(req: Request, id: string, viaEmail: boolean) {
   const auth = await requireStaff(["owner", "admin", "worker"]);
   if (!auth.ok) {
-    if (viaEmail) return htmlResponse(renderInvalidTokenPage());
+    if (viaEmail) return htmlResponse(await renderInvalidTokenPage());
     return auth.response;
   }
 
@@ -29,14 +29,14 @@ async function handleRemind(req: Request, id: string, viaEmail: boolean) {
   });
 
   if (result.ok && result.status === "already_approved") {
-    if (viaEmail) return htmlResponse(renderAlreadyApprovedPage(result.order.order_number));
+    if (viaEmail) return htmlResponse(await renderAlreadyApprovedPage(result.order.order_number));
     return NextResponse.json({ error: "Order has already been approved." }, { status: 400 });
   }
 
   if (result.ok && result.status === "scheduled") {
     if (viaEmail) {
       return htmlResponse(
-        renderRemindScheduledPage(result.order.order_number, result.remindAt, result.order.id)
+        await renderRemindScheduledPage(result.order.order_number, result.remindAt, result.order.id)
       );
     }
     return NextResponse.json({
@@ -47,16 +47,16 @@ async function handleRemind(req: Request, id: string, viaEmail: boolean) {
   }
 
   if (result.ok === false && result.status === "not_found") {
-    if (viaEmail) return htmlResponse(renderRemindErrorPage(id));
+    if (viaEmail) return htmlResponse(await renderRemindErrorPage(id));
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
   if (result.ok === false && result.status === "not_awaiting") {
-    if (viaEmail) return htmlResponse(renderRemindSkippedPage("", id));
+    if (viaEmail) return htmlResponse(await renderRemindSkippedPage("", id));
     return NextResponse.json({ error: "Reminders only apply to pending orders" }, { status: 400 });
   }
 
-  if (viaEmail) return htmlResponse(renderRemindErrorPage(id));
+  if (viaEmail) return htmlResponse(await renderRemindErrorPage(id));
   return NextResponse.json(
     { error: result.ok === false ? result.message ?? "Unable to schedule reminder" : "Unable to schedule reminder" },
     { status: 500 }

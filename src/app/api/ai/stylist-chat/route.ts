@@ -4,7 +4,6 @@ import { createServiceClient } from "@/lib/supabase";
 import { logAiInteraction } from "@/lib/ai-interactions";
 import { loadStyleRecommenderCatalog } from "@/lib/style-recommender-catalog";
 import { getStoreInformation } from "@/lib/settings/store-information";
-import { buildOffTopicReply } from "@/lib/stylist-assistant/build-response";
 import type { Category } from "@/types";
 import type { StylistSessionFilters } from "@/lib/stylist-assistant/types";
 
@@ -51,22 +50,20 @@ export async function POST(req: Request) {
     sessionFilters,
     products: productsWithCategories,
     categories,
-    fromQuickChip
+    fromQuickChip,
+    storeName
   });
-
-  const reply =
-    result.intent === "unsupported" ? buildOffTopicReply(storeName) : result.reply;
 
   await logAiInteraction({
     feature: "style_assistant",
     inputData: { message, sessionFilters },
     outputData: {
-      reply,
+      reply: result.reply,
       intent: result.intent,
       productIds: result.products.map((entry) => entry.product.id),
       sessionFilters: result.sessionFilters
     }
   });
 
-  return NextResponse.json({ ...result, reply });
+  return NextResponse.json(result);
 }

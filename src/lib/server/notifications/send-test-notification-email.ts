@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildNotificationTestEmail } from "@/lib/server/notifications/email-templates";
 import { logNotificationDelivery } from "@/lib/server/notifications/notification-service";
-import { RESEND_FROM_ALERTS } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlerts } from "@/lib/server/resend-from-addresses";
 import {
   isValidRecipientEmail,
   normalizeRecipientEmail,
@@ -32,13 +32,13 @@ export async function sendNotificationTestEmail(
   }
 
   const sentAt = new Date();
-  const template = buildNotificationTestEmail(sentAt);
+  const template = await buildNotificationTestEmail(sentAt);
 
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
     const response = await resend.emails.send({
-      from: RESEND_FROM_ALERTS,
+      from: await getResendFromAlerts(),
       to: email,
       subject: template.subject,
       html: template.html

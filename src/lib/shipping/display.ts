@@ -37,9 +37,9 @@ export function shippingChargeReasonForBranch(
 /** @deprecated Use shippingChargeReasonForBranch */
 export function shippingChargeReason(tier: ShippingLocationTier): string {
   if (tier === "vijayawada_city") {
-    return "Your delivery address is within Vijayawada city.";
+    return "Your delivery address is within the local service area.";
   }
-  return "Your delivery address is outside Vijayawada.";
+  return "Your delivery address is outside the local service area.";
 }
 
 export function getShippingRateCardForBranch(branchId: string) {

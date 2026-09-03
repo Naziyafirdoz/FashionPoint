@@ -594,12 +594,12 @@ export function AdminOrdersClient({ storeName }: { storeName: string }) {
               updatingOrderId={updatingOrderId}
               onPrint={(order) => {
                 void import("@/lib/orders/admin-order-invoice").then(({ printOrder }) => {
-                  printOrder(order);
+                  printOrder(order, storeName);
                 });
               }}
               onDownloadInvoice={(order) => {
                 void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
-                  downloadInvoicePdf(order);
+                  downloadInvoicePdf(order, storeName);
                 });
               }}
               onStartProcessing={startProcessing}

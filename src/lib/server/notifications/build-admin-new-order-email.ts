@@ -7,10 +7,13 @@ import {
 } from "@/lib/orders/admin-orders";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 import { AdminNewOrderEmail, type AdminNewOrderEmailProps } from "@/emails/AdminNewOrderEmail";
+import { resolveCustomerEmailBranchCopy } from "@/lib/server/notifications/customer-email-branch-copy";
 import {
   adminDashboardEmailUrl,
   adminOrderEmailUrl
 } from "@/lib/server/notifications/email-app-url";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { Order } from "@/types";
 
@@ -70,7 +73,9 @@ export function mapOrderToAdminNewOrderEmailProps(
     customerEmail: customerEmail(order),
     shippingAddressText: formatShippingAddressLines(order),
     approveUrl: adminOrderEmailUrl(order.id),
-    dashboardUrl: adminDashboardEmailUrl()
+    dashboardUrl: adminDashboardEmailUrl(),
+    storeName: STORE_NAME,
+    locationLine: STORE_NAME
   };
 }
 
@@ -78,7 +83,16 @@ export async function buildAdminNewOrderPremiumEmail(
   order: Order,
   actionUrls: OrderEmailActionUrls
 ): Promise<{ subject: string; html: string }> {
-  const props = mapOrderToAdminNewOrderEmailProps(order, actionUrls);
+  const [store, customerCopy] = await Promise.all([
+    getStoreInformation(),
+    resolveCustomerEmailBranchCopy(order.branch_id)
+  ]);
+  const storeName = store.storeName.trim() || STORE_NAME;
+  const props = {
+    ...mapOrderToAdminNewOrderEmailProps(order, actionUrls),
+    storeName,
+    locationLine: customerCopy.locationLine
+  };
   const html = await render(AdminNewOrderEmail(props));
 
   return {

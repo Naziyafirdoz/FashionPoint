@@ -1,5 +1,7 @@
 import { getAdminPhoneDigits } from "@/lib/admin/admin-contacts";
 import { buildAdminSMSNewOrderMessage } from "@/lib/notifications/admin-new-order-content";
+import { getStoreInformation } from "@/lib/settings/store-information";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order } from "@/types";
 
 /** Admin-only SMS alert (SMS_API_URL + SMS_API_KEY + SMS_SENDER_ID + ADMIN_PHONE). */
@@ -16,7 +18,8 @@ export async function sendAdminSMSNewOrder(order: Order): Promise<{ ok: boolean 
     return { ok: false };
   }
 
-  const message = buildAdminSMSNewOrderMessage(order);
+  const { storeName } = await getStoreInformation();
+  const message = buildAdminSMSNewOrderMessage(order, storeName.trim() || STORE_NAME);
 
   try {
     const response = await fetch(apiUrl, {

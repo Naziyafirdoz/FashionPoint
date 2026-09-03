@@ -12,7 +12,7 @@ import {
   wasCustomerEmailSent
 } from "@/lib/server/notifications/customer-email-dedup";
 import { createServiceClient } from "@/lib/supabase";
-import { RESEND_FROM_ALERTS_STORE, RESEND_FROM_ORDERS } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlertsStore, getResendFromOrders } from "@/lib/server/resend-from-addresses";
 import { logWorkflow } from "@/lib/orders/workflow-logger";
 import type { Order } from "@/types";
 
@@ -50,7 +50,7 @@ export async function sendOrderReceived(params: { to: string; order: Order }) {
 
   try {
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: params.to,
       subject,
       html
@@ -105,14 +105,14 @@ export async function sendOrderConfirmation(params: {
 
   const template = params.order
     ? await buildCustomerOrderConfirmedEmail(params.order)
-    : buildCustomerOrderConfirmedEmailSimple({
+    : await buildCustomerOrderConfirmedEmailSimple({
         orderNumber: params.orderNumber,
         total: params.total
       });
 
   try {
     await resend.emails.send({
-      from: RESEND_FROM_ORDERS,
+      from: await getResendFromOrders(),
       to: params.to,
       subject: template.subject,
       html: template.html
@@ -142,7 +142,7 @@ export async function sendLowStockAlert(productName: string) {
   const recipients = await resolveNotificationRecipientEmails("low_stock");
   if (!resend || !recipients.length) return;
   await resend.emails.send({
-    from: RESEND_FROM_ALERTS_STORE,
+    from: await getResendFromAlertsStore(),
     to: recipients,
     subject: `Low Stock Alert — ${productName}`,
     html: `<p>Product <strong>${productName}</strong> is out of stock.</p>`

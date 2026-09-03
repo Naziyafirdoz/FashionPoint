@@ -5,7 +5,7 @@ import { getProductCategorySlug } from "@/lib/stock-notifications/discontinued-t
 import { buildManualCancellationEmail } from "@/lib/stock-notifications/email-template";
 import { buildBrowseProductsUrl } from "@/lib/stock-notifications/product-url";
 import { markStockRequestCancelled } from "@/lib/stock-notifications/request-status";
-import { RESEND_FROM_ALERTS_STORE } from "@/lib/server/resend-from-addresses";
+import { getResendFromAlertsStore } from "@/lib/server/resend-from-addresses";
 
 const LOG_PREFIX = "[back-in-stock] manual cancel";
 
@@ -58,7 +58,7 @@ async function sendManualCancellationEmail(params: {
   productName: string;
   browseUrl: string;
 }): Promise<void> {
-  const { subject, html } = buildManualCancellationEmail({
+  const { subject, html } = await buildManualCancellationEmail({
     customerName: params.customerName,
     productName: params.productName,
     browseUrl: params.browseUrl
@@ -83,7 +83,7 @@ async function sendManualCancellationEmail(params: {
 
   try {
     const response = await resend.emails.send({
-      from: RESEND_FROM_ALERTS_STORE,
+      from: await getResendFromAlertsStore(),
       to: params.recipient,
       subject,
       html

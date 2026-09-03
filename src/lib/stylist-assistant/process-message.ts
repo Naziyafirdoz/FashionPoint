@@ -17,8 +17,9 @@ export function processStylistMessage(params: {
   products: Product[];
   categories: Category[];
   fromQuickChip?: boolean;
+  storeName?: string;
 }): StylistChatResponse {
-  const { message, products, categories, fromQuickChip = false } = params;
+  const { message, products, categories, fromQuickChip = false, storeName } = params;
   const trimmed = message.trim();
 
   const vocabulary = buildCatalogVocabulary(products, categories);
@@ -30,15 +31,20 @@ export function processStylistMessage(params: {
 
   const sessionFilters = mergeSessionFilters(params.sessionFilters ?? {}, extracted, intent);
 
+  const replyParams = {
+    filters: sessionFilters,
+    categories,
+    products,
+    storeName
+  } as const;
+
   if (intent === "unsupported") {
     return {
       reply: buildStylistReply({
         intent,
-        filters: sessionFilters,
         exact: [],
         alternatives: [],
-        categories,
-        products
+        ...replyParams
       }),
       sessionFilters,
       products: [],
@@ -50,11 +56,9 @@ export function processStylistMessage(params: {
     return {
       reply: buildStylistReply({
         intent,
-        filters: sessionFilters,
         exact: [],
         alternatives: [],
-        categories,
-        products
+        ...replyParams
       }),
       sessionFilters,
       products: [],
@@ -66,11 +70,9 @@ export function processStylistMessage(params: {
     return {
       reply: buildStylistReply({
         intent,
-        filters: sessionFilters,
         exact: [],
         alternatives: [],
-        categories,
-        products
+        ...replyParams
       }),
       sessionFilters,
       products: [],
@@ -84,11 +86,9 @@ export function processStylistMessage(params: {
   return {
     reply: buildStylistReply({
       intent,
-      filters: sessionFilters,
       exact,
       alternatives,
-      categories,
-      products
+      ...replyParams
     }),
     sessionFilters,
     products: displayResults,

@@ -92,7 +92,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = 
   const handleInvoice = () => {
     if (!order) return;
     void import("@/lib/orders/admin-order-invoice").then(({ downloadInvoicePdf }) => {
-      downloadInvoicePdf(order);
+      downloadInvoicePdf(order, storeName);
     });
   };
 

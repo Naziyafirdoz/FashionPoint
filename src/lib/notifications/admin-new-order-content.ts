@@ -1,6 +1,7 @@
 import { customerName, customerPhone, formatCurrency } from "@/lib/orders/admin-orders";
 import { normalizeOrderItems } from "@/lib/orders/order-items";
 import { getEmailAppUrl } from "@/lib/server/notifications/email-app-url";
+import { STORE_NAME } from "@/lib/site-config";
 import type { Order } from "@/types";
 
 export function buildAdminNewOrderContext(order: Order) {
@@ -20,10 +21,11 @@ export function buildAdminNewOrderContext(order: Order) {
   };
 }
 
-export function buildAdminWhatsAppNewOrderMessage(order: Order): string {
+export function buildAdminWhatsAppNewOrderMessage(order: Order, storeName: string = STORE_NAME): string {
   const ctx = buildAdminNewOrderContext(order);
+  const brand = storeName.trim() || STORE_NAME;
   return [
-    "🛍 Fashion Point",
+    `🛍 ${brand}`,
     "",
     "NEW ORDER RECEIVED",
     "",
@@ -46,10 +48,11 @@ export function buildAdminWhatsAppNewOrderMessage(order: Order): string {
   ].join("\n");
 }
 
-export function buildAdminSMSNewOrderMessage(order: Order): string {
+export function buildAdminSMSNewOrderMessage(order: Order, storeName: string = STORE_NAME): string {
   const ctx = buildAdminNewOrderContext(order);
+  const brand = storeName.trim() || STORE_NAME;
   return [
-    "Fashion Point",
+    brand,
     "",
     `New Order ${ctx.orderId}`,
     "",

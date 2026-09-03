@@ -99,7 +99,7 @@ function normalizeEmailAppUrl(raw: string): string | undefined {
 
 function resolveProductionEmailBase(): string {
   const fromSiteConfig = normalizeEmailAppUrl(PRODUCTION_EMAIL_BASE_FALLBACK);
-  return fromSiteConfig ?? "https://fashionpointvijayawada.com";
+  return fromSiteConfig ?? PRODUCTION_EMAIL_BASE_FALLBACK;
 }
 
 /** Resolved public (or local dev) base URL for links embedded in outbound emails. */

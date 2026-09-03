@@ -27,6 +27,7 @@ import {
   shouldShowCustomerOrderStatusMessage
 } from "@/lib/orders/customer-order-display";
 import { RETURNS_EXCHANGES_REFUNDS_DISABLED } from "@/lib/store-policy";
+import { STORE_NAME } from "@/lib/site-config";
 import type { UserReviewPreview } from "@/lib/reviews/types";
 import type { Order } from "@/types";
 import { OrderReviewButton } from "@/components/reviews/OrderReviewButton";
@@ -37,6 +38,7 @@ import { useCustomerAuthReady } from "@/lib/auth/use-customer-auth-ready";
 type OrdersListClientProps = {
   orders: Order[];
   userId: string;
+  storeName?: string;
 };
 
 function customerPaymentLabel(order: Order): string {
@@ -121,7 +123,11 @@ const ORDER_CARD_CLASS =
 const ORDER_ACTION_BUTTON_CLASS =
   "inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-white px-4 text-sm font-medium transition";
 
-export function OrdersListClient({ orders: initialOrders, userId }: OrdersListClientProps) {
+export function OrdersListClient({
+  orders: initialOrders,
+  userId,
+  storeName = STORE_NAME
+}: OrdersListClientProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [userReviews, setUserReviews] = useState<UserReviewPreview[]>([]);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
@@ -445,7 +451,7 @@ export function OrdersListClient({ orders: initialOrders, userId }: OrdersListCl
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => downloadInvoicePdf(normalized)}
+                  onClick={() => downloadInvoicePdf(normalized, storeName)}
                   className={`${ORDER_ACTION_BUTTON_CLASS} border border-[#7B0D2B] text-[#7B0D2B] hover:bg-[#7B0D2B]/5`}
                 >
                   Download Invoice

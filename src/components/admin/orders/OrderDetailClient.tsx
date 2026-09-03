@@ -487,7 +487,7 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
                         type="button"
                         className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => {
-                          printOrder(displayOrder);
+                          printOrder(displayOrder, storeName);
                           setMenuOpen(false);
                         }}
                       >
@@ -497,7 +497,7 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
                         type="button"
                         className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                         onClick={() => {
-                          downloadInvoicePdf(displayOrder);
+                          downloadInvoicePdf(displayOrder, storeName);
                           setMenuOpen(false);
                         }}
                       >

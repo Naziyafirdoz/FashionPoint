@@ -43,6 +43,7 @@ type CheckoutFormProps = {
   initialAddress?: Partial<CheckoutAddress> & { line?: string };
   savedAddresses?: Address[];
   checkoutMode?: "cart" | "buy_now";
+  storeName?: string;
 };
 
 declare global {
@@ -161,7 +162,8 @@ function Step1ErrorSummary({
 export function CheckoutForm({
   initialAddress,
   savedAddresses = [],
-  checkoutMode = "cart"
+  checkoutMode = "cart",
+  storeName = STORE_NAME
 }: CheckoutFormProps) {
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState<CheckoutAddress>(() => emptyAddress(initialAddress));
@@ -472,7 +474,7 @@ export function CheckoutForm({
         key,
         amount: amt,
         currency: "INR",
-        name: STORE_NAME,
+        name: storeName.trim() || STORE_NAME,
         order_id: razorpayOrderId,
         prefill: {
           name: address.name,
