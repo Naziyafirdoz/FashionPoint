@@ -74,7 +74,7 @@ function AnnouncementItems({
   const helpContent = (
     <>
       <MessageCircle
-        className="h-4 w-4 shrink-0 text-[#7B0D2B] transition-colors duration-200 group-hover:text-[#9B1428] md:h-[1.125rem] md:w-[1.125rem]"
+        className="h-4 w-4 shrink-0 text-primary transition-colors duration-200 group-hover:text-primary md:h-[1.125rem] md:w-[1.125rem]"
         aria-hidden
       />
       <span className="text-[11px] font-semibold sm:text-xs md:text-sm">Help</span>
@@ -145,7 +145,7 @@ export function AnnouncementBar({
 }: AnnouncementPhoneProps) {
   return (
     <header
-      className="relative w-full overflow-hidden border-b border-black/10 bg-gradient-to-r from-[#5C0A20] via-[#7B0D2B] to-[#9B1428] text-white shadow-[0_2px_12px_rgba(91,10,32,0.25)]"
+      className="relative w-full overflow-hidden border-b border-black/10 bg-gradient-to-r from-primary via-primary to-primary text-white shadow-[0_2px_12px_rgb(var(--primary-rgb)/0.25)]"
       aria-label="Store highlights and support"
     >
       <div

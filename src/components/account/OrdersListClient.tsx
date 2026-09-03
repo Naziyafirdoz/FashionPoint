@@ -341,7 +341,7 @@ export function OrdersListClient({
             <article key={order.id} className={ORDER_CARD_CLASS}>
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="text-[20px] font-bold leading-tight text-[#7B0D2B]">
+                  <p className="text-[20px] font-bold leading-tight text-primary">
                     {order.order_number}
                   </p>
                   <p className="text-xs text-foreground/55">
@@ -362,7 +362,7 @@ export function OrdersListClient({
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end text-right">
-                  <p className="text-[22px] font-bold leading-none tabular-nums text-[#7B0D2B]">
+                  <p className="text-[22px] font-bold leading-none tabular-nums text-primary">
                     {formatCurrency(safeTotal)}
                   </p>
                   <p className="mt-1 text-xs text-foreground/55">Total Amount</p>
@@ -452,7 +452,7 @@ export function OrdersListClient({
                 <button
                   type="button"
                   onClick={() => downloadInvoicePdf(normalized, storeName)}
-                  className={`${ORDER_ACTION_BUTTON_CLASS} border border-[#7B0D2B] text-[#7B0D2B] hover:bg-[#7B0D2B]/5`}
+                  className={`${ORDER_ACTION_BUTTON_CLASS} border border-primary text-primary hover:bg-primary/5`}
                 >
                   Download Invoice
                 </button>

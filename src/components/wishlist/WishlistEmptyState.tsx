@@ -18,7 +18,7 @@ export function WishlistEmptyState() {
       aria-label="Empty wishlist"
     >
       <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[#F3E5E8] bg-white shadow-[0_8px_28px_rgba(122,13,43,0.06)]">
-        <span className="text-4xl text-[#7B0D2B]/70" aria-hidden="true">
+        <span className="text-4xl text-primary/70" aria-hidden="true">
           ♡
         </span>
       </div>
@@ -32,14 +32,14 @@ export function WishlistEmptyState() {
         <Link
           href={EXPLORE_COLLECTIONS_HREF}
           onClick={handleExploreCollectionsClick}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7B0D2B] px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgba(123,13,43,0.14)] transition duration-300 hover:bg-[#8f1230] hover:shadow-[0_7px_20px_rgba(123,13,43,0.2)]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-[0_5px_16px_rgb(var(--primary-rgb)/0.14)] transition duration-300 hover:bg-primary/90 hover:shadow-[0_7px_20px_rgb(var(--primary-rgb)/0.2)]"
         >
           Explore Collections
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
         <Link
           href="/"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#7B0D2B]/50 bg-white px-6 text-sm font-semibold text-[#7B0D2B] transition duration-300 hover:border-[#7B0D2B] hover:bg-[#FFF5F7]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-primary/50 bg-white px-6 text-sm font-semibold text-primary transition duration-300 hover:border-primary hover:bg-[#FFF5F7]"
         >
           <ShoppingBag className="h-4 w-4" aria-hidden="true" />
           Continue Shopping

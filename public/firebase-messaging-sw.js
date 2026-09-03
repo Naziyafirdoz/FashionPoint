@@ -6,20 +6,36 @@ importScripts(
   "https://www.gstatic.com/firebasejs/12.5.0/firebase-messaging-compat.js"
 );
 
-firebase.initializeApp({
-  apiKey: "AIzaSyClfF5PtFLmzSLQ2Yd3wvbdhfWQj0aOL-4",
-  authDomain: "fashion-point-7e433.firebaseapp.com",
-  projectId: "fashion-point-7e433",
-  storageBucket: "fashion-point-7e433.firebasestorage.app",
-  messagingSenderId: "1093769699821",
-  appId: "1:1093769699821:web:d5bbb8f03d94dde2cf87e4"
-});
+async function bootstrapFirebaseMessaging() {
+  try {
+    const res = await fetch("/api/public/firebase-config");
+    if (!res.ok) return;
 
-const messaging = firebase.messaging();
+    const config = await res.json();
+    if (!config?.apiKey || !config?.projectId) return;
 
-messaging.onBackgroundMessage((payload) => {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: "/icon-192.png"
-  });
-});
+    firebase.initializeApp({
+      apiKey: config.apiKey,
+      authDomain: config.authDomain,
+      projectId: config.projectId,
+      storageBucket: config.storageBucket,
+      messagingSenderId: config.messagingSenderId,
+      appId: config.appId
+    });
+
+    const messaging = firebase.messaging();
+
+    messaging.onBackgroundMessage((payload) => {
+      const title = payload?.notification?.title || "New notification";
+      const body = payload?.notification?.body || "";
+      self.registration.showNotification(title, {
+        body,
+        icon: "/icon-192.png"
+      });
+    });
+  } catch {
+    // Firebase optional for deployments without messaging configured.
+  }
+}
+
+void bootstrapFirebaseMessaging();

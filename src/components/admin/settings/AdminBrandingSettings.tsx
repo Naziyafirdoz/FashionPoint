@@ -151,8 +151,8 @@ export function AdminBrandingSettings({ initialStoreInformation }: AdminBranding
   return (
     <SettingsSection title="Branding" icon={Palette}>
       <p className="mb-4 text-sm text-foreground/60">
-        Heading font applies to the storefront after you save. Colors are stored and shown in this
-        preview only; the live site does not recolor yet.
+        Display font and colors apply to the live storefront after you save. Use the preview below
+        to review branding before publishing.
       </p>
       <BrandingPreview
         storeName={initialStoreInformation.storeName}
@@ -238,7 +238,7 @@ export function AdminBrandingSettings({ initialStoreInformation }: AdminBranding
               Cancel
             </button>
             <button type="button" className="btn-outline px-4 py-2 text-sm" onClick={resetDefaults} disabled={saving}>
-              Use Fashion Point defaults
+              Use default branding
             </button>
             <button
               type="button"

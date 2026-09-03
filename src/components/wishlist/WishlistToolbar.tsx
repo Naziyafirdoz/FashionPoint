@@ -19,7 +19,7 @@ type WishlistToolbarProps = {
 };
 
 const PILL_CLASS =
-  "inline-flex h-10 shrink-0 items-center justify-between gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-medium text-[#2A2A2A] transition duration-200 hover:border-[#7B0D2B] hover:bg-[#FFF5F7] sm:px-[18px]";
+  "inline-flex h-10 shrink-0 items-center justify-between gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-medium text-[#2A2A2A] transition duration-200 hover:border-primary hover:bg-[#FFF5F7] sm:px-[18px]";
 
 function ViewToggleButton({
   active,
@@ -38,8 +38,8 @@ function ViewToggleButton({
       onClick={onClick}
       className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border transition duration-200 ${
         active
-          ? "border-[#7B0D2B] bg-[#7B0D2B] text-white"
-          : "border-[#F2E4E8] bg-white text-[#666666] hover:border-[#7B0D2B]/40 hover:bg-[#FFF5F7] hover:text-[#7B0D2B]"
+          ? "border-primary bg-primary text-white"
+          : "border-[#F2E4E8] bg-white text-[#666666] hover:border-primary/40 hover:bg-[#FFF5F7] hover:text-primary"
       }`}
       aria-label={label}
       aria-pressed={active}
@@ -112,7 +112,7 @@ export function WishlistToolbar({
                       type="button"
                       className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition hover:bg-[#FFF5F7] ${
                         sort === option.value
-                          ? "font-semibold text-[#7B0D2B]"
+                          ? "font-semibold text-primary"
                           : "text-[#2A2A2A]"
                       }`}
                       onClick={() => {

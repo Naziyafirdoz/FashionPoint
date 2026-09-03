@@ -8,7 +8,7 @@ type RelatedCategoriesProps = {
 };
 
 const CARD_CLASSNAME =
-  "group relative block h-full w-full overflow-hidden rounded-[18px] border border-[#F2E4E8] bg-white shadow-[0_8px_28px_rgba(123,13,43,0.08)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-[#7B0D2B]/20 hover:shadow-[0_14px_36px_rgba(122,13,43,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+  "group relative block h-full w-full overflow-hidden rounded-[18px] border border-[#F2E4E8] bg-white shadow-[0_8px_28px_rgb(var(--primary-rgb)/0.08)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_14px_36px_rgb(var(--primary-rgb)/0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 const BANNER_IMAGE_SIZES = "(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 25vw";
 
@@ -53,7 +53,7 @@ export function RelatedCategories({ categories }: RelatedCategoriesProps) {
   return (
     <section className="border-t border-[#F2E4E8] bg-white py-10">
       <div className="mx-auto w-full max-w-[1600px] px-6">
-        <h2 className="font-display text-2xl font-bold text-[#7B0D2B]">Related Collections</h2>
+        <h2 className="font-display text-2xl font-bold text-primary">Related Collections</h2>
 
         <div className="mt-6 flex gap-4 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory sm:gap-5 md:grid md:grid-cols-2 md:overflow-visible md:snap-none lg:grid-cols-3 xl:grid-cols-4 [&::-webkit-scrollbar]:hidden">
           {categories.map((category) => (

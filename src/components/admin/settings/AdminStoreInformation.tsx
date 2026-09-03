@@ -361,7 +361,7 @@ export function AdminStoreInformation({ initialStoreInformation }: AdminStoreInf
               placeholder={resolveSeoTitle({ storeName: form.storeName.trim() || DEFAULT_STORE_INFORMATION.storeName, seoTitle: "" })}
             />
             <p className="mt-1 text-xs text-foreground/50">
-              Leave blank to use the store name with the Fashion Point title suffix.
+              Leave blank to use the store name with the default title suffix.
             </p>
           </div>
           <div>

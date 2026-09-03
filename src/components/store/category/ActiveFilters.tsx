@@ -46,7 +46,7 @@ export function ActiveFilters() {
           key={`${key}-${value}`}
           type="button"
           onClick={() => clearFilter(key)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-[#F2E4E8] bg-white px-3 py-1.5 text-xs font-medium text-[#555555] transition hover:border-[#7B0D2B]/40 hover:text-[#7B0D2B]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[#F2E4E8] bg-white px-3 py-1.5 text-xs font-medium text-[#555555] transition hover:border-primary/40 hover:text-primary"
         >
           {getActiveFilterDisplayLabel(key, value)}
           <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -57,7 +57,7 @@ export function ActiveFilters() {
         <button
           type="button"
           onClick={clearAll}
-          className="text-xs font-semibold text-[#7B0D2B] underline-offset-2 hover:underline"
+          className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
         >
           Clear all
         </button>

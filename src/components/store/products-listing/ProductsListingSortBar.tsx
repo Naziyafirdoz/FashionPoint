@@ -16,7 +16,7 @@ type ProductsListingSortBarProps = {
 };
 
 const PILL_CLASS =
-  "inline-flex h-10 shrink-0 items-center justify-between gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-medium text-[#2A2A2A] transition duration-200 hover:border-[#7B0D2B] hover:bg-[#FFF5F7] sm:px-[18px]";
+  "inline-flex h-10 shrink-0 items-center justify-between gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-medium text-[#2A2A2A] transition duration-200 hover:border-primary hover:bg-[#FFF5F7] sm:px-[18px]";
 
 export function ProductsListingSortBar({
   productCountLabel,
@@ -65,7 +65,7 @@ export function ProductsListingSortBar({
             <button
               type="button"
               onClick={onOpenMobileFilters}
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-semibold text-[#7B0D2B] transition duration-200 hover:border-[#7B0D2B] hover:bg-[#FFF5F7] lg:hidden"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[18px] border border-[#F2E4E8] bg-white px-4 text-sm font-semibold text-primary transition duration-200 hover:border-primary hover:bg-[#FFF5F7] lg:hidden"
             >
               <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
               Filters
@@ -103,7 +103,7 @@ export function ProductsListingSortBar({
                     type="button"
                     className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition hover:bg-[#FFF5F7] ${
                       activeSort === option.value
-                        ? "font-semibold text-[#7B0D2B]"
+                        ? "font-semibold text-primary"
                         : "text-[#2A2A2A]"
                     }`}
                     onClick={() => handleSortChange(option.value)}

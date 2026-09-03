@@ -70,8 +70,8 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
       <div className="flex w-full flex-col space-y-6 lg:sticky lg:top-[clamp(4.5rem,8vh,6rem)] lg:z-0">
         <div className={CARD_CLASS}>
         <div className="flex items-center gap-2.5">
-          <Sparkles className="h-5 w-5 text-[#B8860B]" aria-hidden="true" />
-          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-[#7B0D2B]">
+          <Sparkles className="h-5 w-5 text-secondary" aria-hidden="true" />
+          <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-primary">
             AI Features
           </h3>
         </div>
@@ -84,8 +84,8 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
             return (
               <li key={feature.href}>
                 <Link href={feature.href} className="block">
-                  <div className="flex gap-3.5 rounded-xl border border-[#F2E4E8] bg-[#FFFCFA] px-4 py-4 transition duration-200 hover:border-[#7B0D2B]/25 hover:bg-[#FFF5F7]">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#F2E4E8] bg-white text-[#7B0D2B]">
+                  <div className="flex gap-3.5 rounded-xl border border-[#F2E4E8] bg-[#FFFCFA] px-4 py-4 transition duration-200 hover:border-primary/25 hover:bg-[#FFF5F7]">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#F2E4E8] bg-white text-primary">
                       <Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
                     </span>
                     <div className="min-w-0 py-0.5">
@@ -111,7 +111,7 @@ export function AiFeaturesPanel({ premium = false }: { premium?: boolean }) {
         </div>
 
         <div className={CARD_CLASS}>
-        <p className="font-display text-base font-bold leading-snug text-[#7B0D2B]">
+        <p className="font-display text-base font-bold leading-snug text-primary">
           Find Your Perfect Blouse
         </p>
         <p className="mt-2.5 text-sm leading-relaxed text-[#666666]">

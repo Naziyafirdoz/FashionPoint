@@ -104,7 +104,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = 
 
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
 
-        <p className="font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
+        <p className="font-display text-2xl font-bold text-primary">
 
           {storeName}
 
@@ -179,7 +179,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = 
 
     <div className="mx-auto max-w-2xl px-4 py-12">
 
-      <p className="text-center font-display text-2xl font-bold" style={{ color: "#7B0D2B" }}>
+      <p className="text-center font-display text-2xl font-bold text-primary">
 
         {storeName}
 
@@ -201,7 +201,7 @@ export function OrderSuccessView({ order, hasOrderRef, orderNumber, storeName = 
 
         </h1>
 
-        <p className="mt-3 text-lg font-semibold" style={{ color: "#B8860B" }}>
+        <p className="mt-3 text-lg font-semibold text-secondary">
 
           {order.order_number}
 

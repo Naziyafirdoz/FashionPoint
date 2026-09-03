@@ -33,34 +33,34 @@ export function WishlistSummaryCards({
       key: "saved",
       title: "Saved Items",
       value: savedCount.toLocaleString("en-IN"),
-      icon: <Heart className="h-5 w-5 text-[#7B0D2B]" strokeWidth={1.75} aria-hidden="true" />
+      icon: <Heart className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />
     },
     {
       key: "recent",
       title: "Recently Added",
       value: recentlyAddedCount?.toLocaleString("en-IN") ?? "—",
-      icon: <Clock3 className="h-5 w-5 text-[#B8860B]" strokeWidth={1.75} aria-hidden="true" />,
+      icon: <Clock3 className="h-5 w-5 text-secondary" strokeWidth={1.75} aria-hidden="true" />,
       hidden: recentlyAddedCount === null
     },
     {
       key: "available",
       title: "Available Products",
       value: availableCount?.toLocaleString("en-IN") ?? "—",
-      icon: <Tag className="h-5 w-5 text-[#7B0D2B]" strokeWidth={1.75} aria-hidden="true" />,
+      icon: <Tag className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />,
       hidden: availableCount === null
     },
     {
       key: "ready",
       title: "Move to Cart Ready",
       value: readyCount?.toLocaleString("en-IN") ?? "—",
-      icon: <ShoppingBag className="h-5 w-5 text-[#B8860B]" strokeWidth={1.75} aria-hidden="true" />,
+      icon: <ShoppingBag className="h-5 w-5 text-secondary" strokeWidth={1.75} aria-hidden="true" />,
       hidden: readyCount === null
     },
     {
       key: "value",
       title: "Total Wishlist Value",
       value: totalValue !== null ? `₹${totalValue.toLocaleString("en-IN")}` : "—",
-      icon: <IndianRupee className="h-5 w-5 text-[#7B0D2B]" strokeWidth={1.75} aria-hidden="true" />,
+      icon: <IndianRupee className="h-5 w-5 text-primary" strokeWidth={1.75} aria-hidden="true" />,
       hidden: totalValue === null
     }
   ];

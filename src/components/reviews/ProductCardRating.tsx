@@ -31,7 +31,7 @@ export function ProductCardRating({
             <Star
               key={index}
               className={`h-3.5 w-3.5 ${
-                index < roundedRating ? "fill-[#7B0D2B] text-[#7B0D2B]" : "text-[#E8D4DA]"
+                index < roundedRating ? "fill-primary text-primary" : "text-[#E8D4DA]"
               }`}
             />
           ))}

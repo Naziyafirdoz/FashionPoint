@@ -5,7 +5,7 @@ export function CategoryListingPreFooter() {
     <section className="border-t border-[#F2E4E8] bg-[#FFF8F8] py-3">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col items-center gap-3 px-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="text-center lg:text-left">
-          <h2 className="font-display text-[1.35rem] font-bold leading-tight text-[#7B0D2B]">
+          <h2 className="font-display text-[1.35rem] font-bold leading-tight text-primary">
             Stay Updated
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-[#777777]">

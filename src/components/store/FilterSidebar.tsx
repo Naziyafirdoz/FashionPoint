@@ -18,10 +18,10 @@ import type { Product } from "@/types";
 const VISIBLE_LIMIT = 5;
 
 const LISTING_CHECKBOX =
-  "h-4 w-4 shrink-0 rounded border border-[#DCCFD4] bg-white text-white accent-[#7B0D2B] transition duration-200 ease-out hover:border-[#7B0D2B] focus:ring-2 focus:ring-[#7B0D2B]/15 focus:ring-offset-0 checked:border-[#7B0D2B] checked:bg-[#7B0D2B]";
+  "h-4 w-4 shrink-0 rounded border border-[#DCCFD4] bg-white text-white accent-primary transition duration-200 ease-out hover:border-primary focus:ring-2 focus:ring-primary/15 focus:ring-offset-0 checked:border-primary checked:bg-primary";
 
 const LISTING_VIEW_MORE =
-  "text-xs font-semibold text-[#7B0D2B] transition-all duration-200 ease-out hover:text-[#B8860B] hover:underline";
+  "text-xs font-semibold text-primary transition-all duration-200 ease-out hover:text-secondary hover:underline";
 
 const LISTING_PANEL_CLASS =
   "w-full min-w-0 max-w-full space-y-0 rounded-[20px] border border-[#F2E4E8] bg-white p-6 shadow-[0_10px_35px_rgba(122,13,43,0.06)]";
@@ -173,8 +173,8 @@ export function FilterSidebar({
     <>
       {isListing ? (
         <div className="mb-2 flex items-center gap-2.5 border-b border-[#F3E7EA] pb-5">
-          <SlidersHorizontal className="h-5 w-5 text-[#7B0D2B]" aria-hidden="true" />
-          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-[#7B0D2B]">Filters</h2>
+          <SlidersHorizontal className="h-5 w-5 text-primary" aria-hidden="true" />
+          <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-primary">Filters</h2>
         </div>
       ) : (
         <h2 className="mb-4 font-display text-lg font-bold text-primary">Filters</h2>
@@ -247,7 +247,7 @@ function CollapsibleFilterGroup({
         <span
           className={
             listing
-              ? "text-[13px] font-semibold uppercase tracking-[0.08em] text-[#7B0D2B]"
+              ? "text-[13px] font-semibold uppercase tracking-[0.08em] text-primary"
               : "text-sm font-bold uppercase text-primary"
           }
         >
@@ -256,14 +256,14 @@ function CollapsibleFilterGroup({
         {open ? (
           <ChevronUp
             className={`h-4 w-4 transition-transform duration-200 ease-out ${
-              listing ? "text-[#7B0D2B] group-hover:scale-110" : "text-[#777777]"
+              listing ? "text-primary group-hover:scale-110" : "text-[#777777]"
             }`}
             aria-hidden="true"
           />
         ) : (
           <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ease-out ${
-              listing ? "text-[#7B0D2B] group-hover:rotate-180" : "text-[#777777]"
+              listing ? "text-primary group-hover:rotate-180" : "text-[#777777]"
             }`}
             aria-hidden="true"
           />
@@ -301,7 +301,7 @@ function CheckboxFilterList({
             className={`flex cursor-pointer items-center gap-3 leading-relaxed transition-colors duration-200 ease-out ${
               listing
                 ? `rounded-lg px-1 py-0.5 hover:bg-[#FFF5F7] ${
-                    checked ? "text-[#7B0D2B]" : "text-[#333333] hover:text-[#7B0D2B]"
+                    checked ? "text-primary" : "text-[#333333] hover:text-primary"
                   }`
                 : "text-sm text-foreground/80"
             }`}
@@ -323,7 +323,7 @@ function CheckboxFilterList({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className={listing ? LISTING_VIEW_MORE : "text-xs font-semibold text-[#7B0D2B] transition hover:text-[#7B0D2B]/80 hover:underline"}
+          className={listing ? LISTING_VIEW_MORE : "text-xs font-semibold text-primary transition hover:text-primary/80 hover:underline"}
         >
           {expanded ? "View Less" : "+ View More"}
         </button>
@@ -367,12 +367,12 @@ function ColorFilterList({
                   listing
                     ? `h-[22px] w-[22px] rounded-full transition-all duration-200 ease-out hover:scale-[1.08] hover:shadow-[0_2px_8px_rgba(122,13,43,0.14)] ${
                         checked
-                          ? "border-2 border-[#7B0D2B] shadow-[0_0_0_3px_rgba(123,13,43,0.12)]"
+                          ? "border-2 border-primary shadow-[0_0_0_3px_rgb(var(--primary-rgb)/0.12)]"
                           : "border-2 border-white shadow-[0_0_0_1px_#DCCFD4]"
                       }`
                     : `h-[24px] w-[24px] rounded-full border-2 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition ${
                         checked
-                          ? "border-[#7B0D2B] ring-2 ring-[#7B0D2B]/25"
+                          ? "border-primary ring-2 ring-primary/25"
                           : "border-white ring-1 ring-[#F2E4E8]"
                       }`
                 }
@@ -389,8 +389,8 @@ function ColorFilterList({
               className={`rounded-full border px-2.5 py-1 text-xs font-medium transition duration-200 ease-out ${
                 listing
                   ? checked
-                    ? "border-[#7B0D2B] bg-[#FCECEF] text-[#7B0D2B]"
-                    : "border-[#F2E4E8] bg-white text-[#333333] hover:border-[#7B0D2B]/40 hover:bg-[#FFF5F7]"
+                    ? "border-primary bg-[#FCECEF] text-primary"
+                    : "border-[#F2E4E8] bg-white text-[#333333] hover:border-primary/40 hover:bg-[#FFF5F7]"
                   : checked
                     ? "border-primary bg-secondary/20 text-primary"
                     : "border-black/10 bg-white text-foreground/80 hover:border-primary/30"
@@ -409,7 +409,7 @@ function ColorFilterList({
           className={
             listing
               ? `mt-3.5 ${LISTING_VIEW_MORE}`
-              : "mt-3 text-xs font-semibold text-[#7B0D2B] transition hover:text-[#7B0D2B]/80 hover:underline"
+              : "mt-3 text-xs font-semibold text-primary transition hover:text-primary/80 hover:underline"
           }
         >
           {expanded ? "View Less" : "+ View More"}
@@ -443,7 +443,7 @@ function PriceFilterRange({
         max={max}
         step={step}
         value={clampedValue}
-        className="mt-1 w-full accent-[#7B0D2B]"
+        className="mt-1 w-full accent-primary"
         onChange={(event) => onChange(Number(event.target.value))}
       />
       <p className={`mt-2 text-sm ${listing ? "text-[#666666]" : "text-foreground/60"}`}>

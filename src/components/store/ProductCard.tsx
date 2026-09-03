@@ -18,28 +18,28 @@ import {
 } from "@/lib/offers/display";
 
 const PREMIUM_CARD =
-  "group relative flex w-full flex-col overflow-hidden rounded-[16px] border border-[#F3E5E8] bg-white shadow-[0_3px_14px_rgba(122,13,43,0.04)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#7B0D2B]/10 hover:shadow-[0_8px_24px_rgba(122,13,43,0.07)]";
+  "group relative flex w-full flex-col overflow-hidden rounded-[16px] border border-[#F3E5E8] bg-white shadow-[0_3px_14px_rgb(var(--primary-rgb)/0.04)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-primary/10 hover:shadow-[0_8px_24px_rgb(var(--primary-rgb)/0.07)]";
 
 const WISHLIST_CARD =
-  "group relative flex h-full w-full flex-col overflow-hidden rounded-[18px] border border-[#F3E5E8] bg-white shadow-[0_3px_14px_rgba(122,13,43,0.04)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#7B0D2B]/10 hover:shadow-[0_8px_24px_rgba(122,13,43,0.07)]";
+  "group relative flex h-full w-full flex-col overflow-hidden rounded-[18px] border border-[#F3E5E8] bg-white shadow-[0_3px_14px_rgb(var(--primary-rgb)/0.04)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-primary/10 hover:shadow-[0_8px_24px_rgb(var(--primary-rgb)/0.07)]";
 
 const BADGE_BASE =
   "inline-flex h-[18px] items-center rounded-full px-2 text-[9px] font-bold uppercase tracking-wide text-white";
 
 const WISHLIST_BTN =
-  "absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#F3E5E8] bg-white/95 shadow-[0_2px_8px_rgba(122,13,43,0.06)] transition-all duration-300 hover:scale-105 hover:border-[#7B0D2B]/20 hover:bg-[#FFF5F7]";
+  "absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-[#F3E5E8] bg-white/95 shadow-[0_2px_8px_rgb(var(--primary-rgb)/0.06)] transition-all duration-300 hover:scale-105 hover:border-primary/20 hover:bg-[#FFF5F7]";
 
 const RECOMMENDATION_CARD =
-  "group relative flex w-full flex-col overflow-hidden rounded-[14px] border border-[#F3E5E8] bg-white shadow-[0_2px_10px_rgba(122,13,43,0.035)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#7B0D2B]/10 hover:shadow-[0_6px_18px_rgba(122,13,43,0.06)]";
+  "group relative flex w-full flex-col overflow-hidden rounded-[14px] border border-[#F3E5E8] bg-white shadow-[0_2px_10px_rgb(var(--primary-rgb)/0.035)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-primary/10 hover:shadow-[0_6px_18px_rgb(var(--primary-rgb)/0.06)]";
 
 const VIEW_PRODUCT_BTN =
-  "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-[#7B0D2B]/50 bg-white px-5 text-xs font-semibold text-[#7B0D2B] transition-all duration-300 ease-out hover:border-[#7B0D2B] hover:bg-[#7B0D2B] hover:text-white hover:shadow-[0_3px_10px_rgba(122,13,43,0.1)]";
+  "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-primary/50 bg-white px-5 text-xs font-semibold text-primary transition-all duration-300 ease-out hover:border-primary hover:bg-primary hover:text-white hover:shadow-[0_3px_10px_rgb(var(--primary-rgb)/0.1)]";
 
 const VIEW_PRODUCT_BTN_COMPACT =
-  "inline-flex h-9 w-full items-center justify-center gap-1 rounded-full border border-[#7B0D2B]/50 bg-white px-4 text-[11px] font-semibold text-[#7B0D2B] transition-all duration-300 ease-out hover:border-[#7B0D2B] hover:bg-[#7B0D2B] hover:text-white hover:shadow-[0_3px_10px_rgba(122,13,43,0.1)]";
+  "inline-flex h-9 w-full items-center justify-center gap-1 rounded-full border border-primary/50 bg-white px-4 text-[11px] font-semibold text-primary transition-all duration-300 ease-out hover:border-primary hover:bg-primary hover:text-white hover:shadow-[0_3px_10px_rgb(var(--primary-rgb)/0.1)]";
 
 const WISHLIST_BTN_COMPACT =
-  "absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#F3E5E8] bg-white/95 shadow-[0_2px_6px_rgba(122,13,43,0.05)] transition-all duration-300 hover:scale-105 hover:border-[#7B0D2B]/20 hover:bg-[#FFF5F7]";
+  "absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-[#F3E5E8] bg-white/95 shadow-[0_2px_6px_rgb(var(--primary-rgb)/0.05)] transition-all duration-300 hover:scale-105 hover:border-primary/20 hover:bg-[#FFF5F7]";
 
 const IMAGE_LINK_BASE =
   "relative block w-full overflow-hidden rounded-[10px] bg-white";
@@ -87,10 +87,10 @@ function ProductBadges({
     <div className="absolute left-1.5 top-1.5 z-10 flex flex-col gap-0.5">
       {outOfStock ? <span className={`${BADGE_BASE} bg-[#777777]`}>Out of Stock</span> : null}
       {product.is_new && !outOfStock ? (
-        <span className={`${BADGE_BASE} bg-[#7B0D2B]`}>New</span>
+        <span className={`${BADGE_BASE} bg-primary`}>New</span>
       ) : null}
       {product.is_bestseller && !outOfStock ? (
-        <span className={`${BADGE_BASE} bg-[#B8860B]`}>Bestseller</span>
+        <span className={`${BADGE_BASE} bg-secondary`}>Bestseller</span>
       ) : null}
     </div>
   );
@@ -115,7 +115,7 @@ function WishlistButton({
       aria-label={label}
     >
       <Heart
-        className={`${compact ? "h-3 w-3" : "h-3.5 w-3.5"} text-[#7B0D2B] transition-colors duration-300 ${wished ? "fill-[#7B0D2B]" : "fill-none"}`}
+        className={`${compact ? "h-3 w-3" : "h-3.5 w-3.5"} text-primary transition-colors duration-300 ${wished ? "fill-primary" : "fill-none"}`}
         strokeWidth={1.75}
       />
     </button>
@@ -152,7 +152,7 @@ function PriceSection({
   return (
     <div className={rowClass}>
       <span
-        className={`shrink-0 font-bold leading-none tracking-tight text-[#7B0D2B] ${
+        className={`shrink-0 font-bold leading-none tracking-tight text-primary ${
           wishlist ? "text-[1.35rem]" : compact ? "text-lg" : "text-xl"
         }`}
       >
@@ -178,7 +178,7 @@ function PriceSection({
       ) : null}
       {offerActive && offerLabel ? (
         <span
-          className={`inline-flex shrink-0 items-center rounded-full bg-[#FFF0F4] font-bold uppercase tracking-wide text-[#7B0D2B] ${
+          className={`inline-flex shrink-0 items-center rounded-full bg-[#FFF0F4] font-bold uppercase tracking-wide text-primary ${
             compact
               ? "px-1.5 py-px text-[8px]"
               : wishlist
@@ -231,12 +231,12 @@ function ViewProductButton({
 
 /** Two lines — fixed height for uniform card alignment */
 const TITLE_HEIGHT = "h-[2.625rem]";
-const TITLE_CLASS = `line-clamp-2 ${TITLE_HEIGHT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[14px] font-semibold leading-[1.5] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
+const TITLE_CLASS = `line-clamp-2 ${TITLE_HEIGHT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[14px] font-semibold leading-[1.5] text-[#2A2A2A] transition-colors duration-200 hover:text-primary`;
 const TITLE_MEASURE_CLASS =
   "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none pl-2 text-[14px] font-semibold leading-[1.5] opacity-0";
 
 const TITLE_HEIGHT_COMPACT = "h-[2.375rem]";
-const TITLE_CLASS_COMPACT = `line-clamp-2 ${TITLE_HEIGHT_COMPACT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[13px] font-semibold leading-[1.45] text-[#2A2A2A] transition-colors duration-200 hover:text-[#7B0D2B]`;
+const TITLE_CLASS_COMPACT = `line-clamp-2 ${TITLE_HEIGHT_COMPACT} w-full max-w-none break-normal whitespace-normal hyphens-none overflow-hidden pl-2 text-[13px] font-semibold leading-[1.45] text-[#2A2A2A] transition-colors duration-200 hover:text-primary`;
 const TITLE_MEASURE_CLASS_COMPACT =
   "pointer-events-none invisible absolute left-0 top-0 z-[-1] w-full max-w-none break-normal whitespace-normal hyphens-none pl-2 text-[13px] font-semibold leading-[1.45] opacity-0";
 

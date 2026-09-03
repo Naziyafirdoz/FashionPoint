@@ -56,7 +56,7 @@ export function BrandingPreview({ storeName, tagline, logoUrl, branding }: Brand
         </div>
       </div>
       {logoFailed ? (
-        <p className="mt-2 text-xs text-red-600">Logo URL could not be loaded. The Fashion Point logo is shown instead.</p>
+        <p className="mt-2 text-xs text-red-600">Logo URL could not be loaded. The default logo is shown instead.</p>
       ) : null}
       <h3 className="mt-4 text-lg font-bold" style={{ color: branding.headingColor, fontFamily }}>
         Sample heading

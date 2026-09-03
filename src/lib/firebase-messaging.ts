@@ -1,5 +1,5 @@
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
-import { app } from "./firebase";
+import { getFirebaseApp } from "./firebase";
 
 export async function requestNotificationPermission() {
   try {
@@ -7,6 +7,18 @@ export async function requestNotificationPermission() {
 
     if (!supported) {
       console.log("Notifications not supported");
+      return null;
+    }
+
+    const app = getFirebaseApp();
+    if (!app) {
+      console.log("Firebase is not configured");
+      return null;
+    }
+
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.log("Firebase VAPID key is not configured");
       return null;
     }
 
@@ -19,23 +31,18 @@ export async function requestNotificationPermission() {
       return null;
     }
 
-    console.log("Step 1");
+    if ("serviceWorker" in navigator) {
+      await navigator.serviceWorker.register("/sw.js");
+    }
 
     const registration = await navigator.serviceWorker.ready;
 
-    console.log("Step 2", registration);
-
-    console.log("Step 3");
-
     const token = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-      serviceWorkerRegistration: registration,
+      vapidKey,
+      serviceWorkerRegistration: registration
     });
 
-    console.log("Step 4");
-    console.log("FCM Token:", token);
-
-    return token;
+    return token || null;
   } catch (error) {
     console.error("Error getting token:", error);
     return null;

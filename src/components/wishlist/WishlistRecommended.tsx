@@ -24,7 +24,7 @@ export function WishlistRecommended({ products }: WishlistRecommendedProps) {
       <header className="mb-6 text-center">
         <h2
           id="wishlist-recommended-heading"
-          className="font-display text-2xl font-bold text-[#7B0D2B] sm:text-[1.75rem]"
+          className="font-display text-2xl font-bold text-primary sm:text-[1.75rem]"
         >
           You may also like
         </h2>

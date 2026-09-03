@@ -24,7 +24,7 @@ type WishlistProductItemProps = {
 };
 
 const MOVE_TO_BAG_BTN =
-  "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-[#7B0D2B] text-xs font-semibold text-white shadow-[0_3px_10px_rgba(122,13,43,0.12)] transition duration-300 hover:bg-[#8f1230] hover:shadow-[0_5px_14px_rgba(123,13,43,0.18)]";
+  "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-full bg-primary text-xs font-semibold text-white shadow-[0_3px_10px_rgb(var(--primary-rgb)/0.12)] transition duration-300 hover:bg-primary/90 hover:shadow-[0_5px_14px_rgb(var(--primary-rgb)/0.18)]";
 
 function resolveDefaultVariant(product: Product): { size: string; color: string } {
   const colors = product.colors?.length ? product.colors : ["Default"];
@@ -124,7 +124,7 @@ export function WishlistProductItem({
             type="button"
             onClick={handleRemove}
             disabled={pending}
-            className="inline-flex items-center justify-center gap-1.5 py-0.5 text-xs font-medium text-[#888888] transition duration-200 hover:text-[#7B0D2B] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 py-0.5 text-xs font-medium text-[#888888] transition duration-200 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
             Remove
