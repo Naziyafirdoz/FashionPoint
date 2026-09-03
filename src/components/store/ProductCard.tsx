@@ -11,6 +11,11 @@ import { useWishlistStore } from "@/stores/wishlist";
 import { fitProductCardTitle } from "@/lib/products/fit-product-card-title";
 import type { ProductReviewSummary } from "@/lib/reviews/types";
 import type { Product } from "@/types";
+import {
+  hasAppliedOffer,
+  offerDiscountLabel,
+  resolveProductOfferPricing
+} from "@/lib/offers/display";
 
 const PREMIUM_CARD =
   "group relative flex w-full flex-col overflow-hidden rounded-[16px] border border-[#F3E5E8] bg-white shadow-[0_3px_14px_rgba(122,13,43,0.04)] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#7B0D2B]/10 hover:shadow-[0_8px_24px_rgba(122,13,43,0.07)]";
@@ -120,14 +125,26 @@ function WishlistButton({
 function PriceSection({
   product,
   discountPercent,
+  outOfStock = false,
   wishlist = false,
   compact = false
 }: {
   product: Product;
   discountPercent: number | null;
+  outOfStock?: boolean;
   wishlist?: boolean;
   compact?: boolean;
 }) {
+  const offerPricing = resolveProductOfferPricing(product);
+  const offerActive = !outOfStock && hasAppliedOffer(offerPricing);
+  const payable = offerActive && offerPricing ? offerPricing.effectivePrice : product.price;
+  const offerLabel = offerPricing ? offerDiscountLabel(offerPricing) : null;
+  const showCatalogStrike = offerActive && product.price > payable;
+  const showCompareStrike = Boolean(
+    product.compare_price && product.compare_price > product.price
+  );
+  const showComparePercent = Boolean(discountPercent) && !offerActive;
+
   const rowClass = compact
     ? "flex flex-wrap items-baseline gap-x-2 gap-y-1 pl-2"
     : "flex flex-wrap items-baseline gap-x-2.5 gap-y-1.5 pl-2";
@@ -139,18 +156,40 @@ function PriceSection({
           wishlist ? "text-[1.35rem]" : compact ? "text-lg" : "text-xl"
         }`}
       >
-        ₹{product.price.toLocaleString("en-IN")}
+        ₹{payable.toLocaleString("en-IN")}
       </span>
-      {product.compare_price ? (
+      {showCatalogStrike ? (
         <span
           className={`shrink-0 text-[#9A9A9A] line-through ${
             compact ? "text-[11px]" : wishlist ? "text-[13px]" : "text-xs"
           }`}
         >
-          ₹{product.compare_price.toLocaleString("en-IN")}
+          ₹{product.price.toLocaleString("en-IN")}
         </span>
       ) : null}
-      {discountPercent ? (
+      {showCompareStrike ? (
+        <span
+          className={`shrink-0 text-[#9A9A9A] line-through ${
+            compact ? "text-[11px]" : wishlist ? "text-[13px]" : "text-xs"
+          }`}
+        >
+          ₹{product.compare_price!.toLocaleString("en-IN")}
+        </span>
+      ) : null}
+      {offerActive && offerLabel ? (
+        <span
+          className={`inline-flex shrink-0 items-center rounded-full bg-[#FFF0F4] font-bold uppercase tracking-wide text-[#7B0D2B] ${
+            compact
+              ? "px-1.5 py-px text-[8px]"
+              : wishlist
+                ? "px-2 py-0.5 text-[10px]"
+                : "px-1.5 py-px text-[9px]"
+          }`}
+        >
+          Offer {offerLabel}
+        </span>
+      ) : null}
+      {showComparePercent ? (
         <span
           className={`inline-flex shrink-0 items-center rounded-full bg-[#E8F5EE] font-bold uppercase tracking-wide text-[#2E7D57] ${
             compact
@@ -347,7 +386,12 @@ export function ProductCard({
   const detailsSection = (
     <div className={`flex w-full min-w-0 flex-1 flex-col ${contentGap}`}>
       <ProductTitle name={product.name} slug={product.slug} />
-      <PriceSection product={product} discountPercent={discountPercent} wishlist={isWishlist} />
+      <PriceSection
+        product={product}
+        discountPercent={discountPercent}
+        outOfStock={outOfStock}
+        wishlist={isWishlist}
+      />
       <ProductCardRating summary={reviewSummary} listing />
       <div
         className={`flex flex-col ${wishlistActionRow ? "gap-1.5" : contentGap} ${wishlistActionRow || footerSlot ? "mt-auto" : ""}`}
@@ -369,7 +413,12 @@ export function ProductCard({
     const recommendationDetails = (
       <div className="flex w-full min-w-0 flex-1 flex-col gap-1.5">
         <ProductTitle name={product.name} slug={product.slug} compact />
-        <PriceSection product={product} discountPercent={discountPercent} compact />
+        <PriceSection
+          product={product}
+          discountPercent={discountPercent}
+          outOfStock={outOfStock}
+          compact
+        />
         <ProductCardRating summary={reviewSummary} listing />
         <div className="flex flex-col gap-1.5">
           {outOfStock ? (

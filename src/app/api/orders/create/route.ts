@@ -3,8 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
 import { getRazorpay } from "@/lib/razorpay";
 import { generateOrderNumber } from "@/lib/orders";
+import {
+  resolveAuthoritativeDiscount,
+  resolveAuthoritativeOrderItems
+} from "@/lib/checkout/authoritative-pricing";
 import { validateOrderItems } from "@/lib/checkout/validation";
-import { itemsSubtotal } from "@/lib/checkout/totals";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
@@ -31,14 +34,8 @@ export async function POST(req: Request) {
   if (!itemValidation.ok) {
     return NextResponse.json({ error: itemValidation.error }, { status: 400 });
   }
-  const items = itemValidation.items;
 
-  const subtotal = Number(body.subtotal ?? itemsSubtotal(items));
-  if (subtotal <= 0) {
-    return NextResponse.json({ error: "Order subtotal must be greater than zero" }, { status: 400 });
-  }
-
-  const discountAmount = Math.max(0, Number(body.discount ?? body.discount_amount ?? 0));
+  resolveAuthoritativeDiscount(body.discount ?? body.discount_amount);
 
   const addressValidation = await resolveValidatedOrderAddress(body.address);
   if (!addressValidation.ok) {
@@ -55,13 +52,28 @@ export async function POST(req: Request) {
   }
   const shippingAmount = shippingCheck.shippingAmount;
   const branchId = shippingCheck.branchId;
-  const total = Math.max(0, subtotal + shippingAmount - discountAmount);
-  const amountPaise = Math.round(total * 100);
 
   const db = createServiceClient();
   if (!db) {
     return NextResponse.json({ error: "Database not configured" }, { status: 500 });
   }
+
+  const pricing = await resolveAuthoritativeOrderItems(db, itemValidation.items);
+  if (!pricing.ok) {
+    return NextResponse.json(
+      {
+        error: pricing.error,
+        ...(pricing.code ? { code: pricing.code } : {}),
+        ...(pricing.items ? { items: pricing.items } : {})
+      },
+      { status: pricing.status }
+    );
+  }
+  const items = pricing.items;
+  const subtotal = pricing.subtotal;
+  const discountAmount = pricing.offerDiscount;
+  const total = Math.max(0, subtotal + shippingAmount - discountAmount);
+  const amountPaise = Math.round(total * 100);
 
   const stockCheck = await validateOrderStock(db, items);
   if (!stockCheck.ok) {
@@ -110,7 +122,7 @@ export async function POST(req: Request) {
       items,
       subtotal,
       shipping_amount: shippingAmount,
-      branch_id: branchId.startsWith("legacy-") ? null : branchId,
+      branch_id: persistedBranchId,
       discount_amount: discountAmount,
       total,
       status: "pending",

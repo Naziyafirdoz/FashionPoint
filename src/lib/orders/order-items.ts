@@ -1,4 +1,5 @@
 import type { CartItem } from "@/types";
+import type { AppliedOffer } from "@/lib/offers/types";
 
 export type NormalizedOrderItem = {
   productId: string;
@@ -10,6 +11,10 @@ export type NormalizedOrderItem = {
   subtotal: number;
   image?: string;
   sku?: string;
+  catalogUnitPrice?: number;
+  effectiveUnitPrice?: number;
+  lineDiscount?: number;
+  appliedOffer?: AppliedOffer | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -67,7 +72,27 @@ export function normalizeOrderItem(raw: unknown): NormalizedOrderItem | null {
   const image = readProductImage(obj);
   const sku = readString(obj, "sku");
   const quantity = Math.max(1, readNumber(obj, "quantity") || 1);
-  const price = readNumber(obj, "price");
+  const catalogUnitPrice = readNumber(obj, "catalogUnitPrice", "price");
+  const hasEffective =
+    obj.effectiveUnitPrice != null && obj.effectiveUnitPrice !== ""
+      ? true
+      : obj.effectivePrice != null && obj.effectivePrice !== "";
+  const effectiveUnitPrice = hasEffective
+    ? readNumber(obj, "effectiveUnitPrice", "effectivePrice")
+    : catalogUnitPrice;
+  const lineDiscountRaw = obj.lineDiscount;
+  const lineDiscount =
+    lineDiscountRaw != null && lineDiscountRaw !== "" ? readNumber(obj, "lineDiscount") : undefined;
+  const storedLineTotal = obj.lineTotal;
+  const payableUnit = hasEffective ? effectiveUnitPrice : catalogUnitPrice;
+  const subtotal =
+    storedLineTotal != null && storedLineTotal !== ""
+      ? readNumber(obj, "lineTotal")
+      : payableUnit * quantity;
+  const appliedOffer =
+    obj.appliedOffer && typeof obj.appliedOffer === "object"
+      ? (obj.appliedOffer as AppliedOffer)
+      : null;
 
   if (!name && !productId) return null;
 
@@ -77,10 +102,14 @@ export function normalizeOrderItem(raw: unknown): NormalizedOrderItem | null {
     size: size || "—",
     color: color || "—",
     quantity,
-    price,
-    subtotal: price * quantity,
+    price: payableUnit,
+    subtotal,
     image: image || undefined,
-    sku: sku || undefined
+    sku: sku || undefined,
+    catalogUnitPrice,
+    effectiveUnitPrice: hasEffective ? effectiveUnitPrice : undefined,
+    lineDiscount,
+    appliedOffer
   };
 }
 
