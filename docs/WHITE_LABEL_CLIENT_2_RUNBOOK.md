@@ -2,7 +2,7 @@
 
 This repository is a **single-client-at-a-time** ecommerce template. Fashion Point values in `src/lib/site-config.ts` are **intentional template defaults**. They must not be deleted from source. Client #2 overrides them with **new services, new environment variables, and Admin Store Information** — not by cloning Fashion Point production.
 
-**Template branch:** `white-label-pr`  
+**Template branch:** `white-label-pr`
 **Identity wiring (Phase 4D):** commit `f97fc9b` — `feat: complete reusable storefront identity wiring`
 
 Do **not** copy `mobile/` into Client #2 unless that work is explicitly in scope. It is unrelated to this web template.
