@@ -41,24 +41,44 @@ export function isPlaceholderCourierName(name?: string | null): boolean {
   return PLACEHOLDER_COURIER_PATTERN.test(trimmed);
 }
 
-/** Courier label for emails, admin UI, and tracking — prefers saved Rapido details. */
+/** Courier label for emails, admin UI, and tracking. */
 export function resolveOrderCourierName(
-  order: Pick<Order, "shipping_address" | "courier_name" | "courier_partner" | "delivery_partner">
+  order: Pick<
+    Order,
+    "shipping_address" | "courier_name" | "courier_partner" | "delivery_partner" | "fulfillment_method"
+  >
 ): string {
-  const rapido = getRapidoDeliveryDetails(order);
-  if (rapido?.courier_name?.trim()) {
-    return rapido.courier_name.trim();
+  // Persisted fulfillment method is authoritative for shipped method choice.
+  if (order.fulfillment_method === "dtdc") {
+    return "DTDC";
+  }
+  if (order.fulfillment_method === "delivery_boy") {
+    return "Delivery Staff";
   }
 
+  // Prefer top-level shipment columns written by mark-shipped / assign-delivery.
   for (const candidate of [
-    order.courier_partner,
     order.courier_name,
+    order.courier_partner,
     order.delivery_partner
   ]) {
     const trimmed = candidate?.trim();
     if (trimmed && !isPlaceholderCourierName(trimmed)) {
       return trimmed;
     }
+  }
+
+  // Rapido rider form meta only for Rapido (or legacy rows with no method set).
+  // Never use leftover Rapido meta to override a DTDC/Delivery Boy shipment.
+  if (order.fulfillment_method === "rapido" || order.fulfillment_method == null) {
+    const rapido = getRapidoDeliveryDetails(order);
+    if (rapido?.courier_name?.trim()) {
+      return rapido.courier_name.trim();
+    }
+  }
+
+  if (order.fulfillment_method === "rapido") {
+    return DEFAULT_COURIER_NAME;
   }
 
   return DEFAULT_COURIER_NAME;

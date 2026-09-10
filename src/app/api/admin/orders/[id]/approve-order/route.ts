@@ -5,14 +5,14 @@ import { getRequestMeta } from "@/lib/server/order-actions/request-meta";
 import {
   htmlResponse,
   renderAlreadyApprovedPage,
-  renderApproveSuccessPage,
   renderInvalidTokenPage
 } from "@/lib/server/notifications/email-action-pages";
+import { adminOrderEmailUrl } from "@/lib/server/notifications/email-app-url";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 async function approveOrder(req: Request, id: string, viaEmail: boolean) {
-  const auth = await requireStaff(["owner", "admin", "worker"]);
+  const auth = await requireStaff(["owner", "admin"]);
   if (!auth.ok) {
     if (viaEmail) return { response: htmlResponse(await renderInvalidTokenPage()) };
     return { response: auth.response as NextResponse };
@@ -40,9 +40,7 @@ async function approveOrder(req: Request, id: string, viaEmail: boolean) {
 
   if (result.ok && result.status === "approved") {
     if (viaEmail) {
-      return {
-        response: htmlResponse(await renderApproveSuccessPage(result.order.order_number, result.order.id))
-      };
+      return { response: NextResponse.redirect(adminOrderEmailUrl(result.order.id)) };
     }
     return {
       response: NextResponse.json({

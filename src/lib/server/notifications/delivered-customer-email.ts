@@ -72,59 +72,69 @@ export async function sendDeliveredCustomerEmail(
   db: SupabaseClient,
   order: Order
 ): Promise<"sent" | "skipped" | "failed"> {
-  if (await wasCustomerEmailSent(db, order.id, CUSTOMER_ORDER_DELIVERED_EVENT)) {
-    return "skipped";
-  }
-
-  const email = order.shipping_address?.email ?? order.guest_email;
-  if (!email) {
-    await logCustomerEmailDelivery(db, {
-      orderId: order.id,
-      event: CUSTOMER_ORDER_DELIVERED_EVENT,
-      success: false,
-      errorMessage: "Customer email not found"
-    });
-    return "failed";
-  }
-
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    await logCustomerEmailDelivery(db, {
-      orderId: order.id,
-      event: CUSTOMER_ORDER_DELIVERED_EVENT,
-      success: false,
-      errorMessage: "RESEND_API_KEY not configured"
-    });
-    return "failed";
-  }
-
-  const template = await buildDeliveredNotificationEmail(order);
-
   try {
-    const { Resend } = await import("resend");
-    const resend = new Resend(resendKey);
-    await resend.emails.send({
-      from: await getResendFromOrders(),
-      to: email,
-      subject: template.subject,
-      html: template.html
+    const { sendTemplatedCustomerOrderEmail } = await import(
+      "@/lib/server/notifications/send-templated-customer-email"
+    );
+    return await sendTemplatedCustomerOrderEmail({
+      eventKey: "order_delivered",
+      order,
+      db
     });
-
-    await logCustomerEmailDelivery(db, {
-      orderId: order.id,
-      event: CUSTOMER_ORDER_DELIVERED_EVENT,
-      success: true
-    });
-
-    return "sent";
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Email send failed";
-    await logCustomerEmailDelivery(db, {
-      orderId: order.id,
-      event: CUSTOMER_ORDER_DELIVERED_EVENT,
-      success: false,
-      errorMessage: message
-    });
-    return "failed";
+    console.error("[delivered-customer-email] templated send failed", err);
+    // Legacy hard-coded path if template pipeline throws unexpectedly
+    if (await wasCustomerEmailSent(db, order.id, CUSTOMER_ORDER_DELIVERED_EVENT)) {
+      return "skipped";
+    }
+
+    const email = order.shipping_address?.email ?? order.guest_email;
+    if (!email) {
+      await logCustomerEmailDelivery(db, {
+        orderId: order.id,
+        event: CUSTOMER_ORDER_DELIVERED_EVENT,
+        success: false,
+        errorMessage: "Customer email not found"
+      });
+      return "failed";
+    }
+
+    const resendKey = process.env.RESEND_API_KEY;
+    if (!resendKey) {
+      await logCustomerEmailDelivery(db, {
+        orderId: order.id,
+        event: CUSTOMER_ORDER_DELIVERED_EVENT,
+        success: false,
+        errorMessage: "RESEND_API_KEY not configured"
+      });
+      return "failed";
+    }
+
+    try {
+      const template = await buildDeliveredNotificationEmail(order);
+      const { Resend } = await import("resend");
+      const resend = new Resend(resendKey);
+      await resend.emails.send({
+        from: await getResendFromOrders(),
+        to: email,
+        subject: template.subject,
+        html: template.html
+      });
+      await logCustomerEmailDelivery(db, {
+        orderId: order.id,
+        event: CUSTOMER_ORDER_DELIVERED_EVENT,
+        success: true
+      });
+      return "sent";
+    } catch (legacyErr) {
+      const message = legacyErr instanceof Error ? legacyErr.message : "Email send failed";
+      await logCustomerEmailDelivery(db, {
+        orderId: order.id,
+        event: CUSTOMER_ORDER_DELIVERED_EVENT,
+        success: false,
+        errorMessage: message
+      });
+      return "failed";
+    }
   }
 }

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase";
-import { isAdminUser } from "@/lib/auth/helpers";
+import { requireStaff } from "@/lib/admin/require-staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { assertTransition } from "@/lib/orders/workflow-validation";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
@@ -10,33 +8,18 @@ import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+/**
+ * Ready For Shipping: confirmed|packed → ready_to_ship.
+ * Main path: confirmed → ready_to_ship (after approval often already ready).
+ * Legacy packing: packed → ready_to_ship.
+ * delivery_worker is not allowed.
+ */
 export async function POST(_req: Request, { params }: RouteContext) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  console.info("[ready-for-shipping route] user id", user?.id ?? "(none)", userError?.message ?? "");
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const admin = await isAdminUser(user.id);
-  console.info("[ready-for-shipping route] admin check result", admin);
-
-  if (!admin) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const db = createServiceClient();
-  if (!db) {
-    return NextResponse.json({ error: "DB not configured" }, { status: 503 });
-  }
+  const auth = await requireStaff(["owner", "admin", "worker"]);
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  const { data: existing, error: fetchError } = await db
+  const { data: existing, error: fetchError } = await auth.ctx.db
     .from("orders")
     .select("*")
     .eq("id", id)
@@ -51,11 +34,10 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   const status = existing.status as string;
-  console.info("[ready-for-shipping route] current status", status);
-
-  if (normalizeLegacyStatus(status) !== "packing_assigned") {
+  const normalized = normalizeLegacyStatus(status);
+  if (normalized !== "packed" && normalized !== "confirmed") {
     return NextResponse.json(
-      { error: "Only packing orders can be marked ready for shipping" },
+      { error: "Only confirmed or packed orders can be marked ready for shipping" },
       { status: 400 }
     );
   }
@@ -65,19 +47,15 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: transitionError }, { status: 400 });
   }
 
-  console.info(
-    "[ready-for-shipping route] attempting transition packing_assigned -> ready_for_shipping"
-  );
-
   const now = new Date().toISOString();
-  const { data: updated, error } = await db
+  const { data: updated, error } = await auth.ctx.db
     .from("orders")
     .update({
       status: "ready_to_ship",
       updated_at: now
     })
     .eq("id", id)
-    .eq("status", "packing_assigned")
+    .eq("status", status)
     .select("*")
     .maybeSingle();
 
@@ -87,26 +65,28 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   if (!updated) {
-    console.error("[ready-for-shipping route] rows updated", 0);
     return NextResponse.json(
       { error: "Ready for shipping could not be saved — order status may have changed" },
       { status: 409 }
     );
   }
 
-  console.info("[ready-for-shipping route] rows updated", 1);
-
-  const normalized = await normalizeOrderRecord(db, updated as Order, { persist: false });
+  const normalizedOrder = await normalizeOrderRecord(auth.ctx.db, updated as Order, {
+    persist: false
+  });
 
   try {
-    await notifyAdminReadyForDispatch(db, normalized);
+    await notifyAdminReadyForDispatch(auth.ctx.db, normalizedOrder);
   } catch (err) {
     console.error("[ready-for-shipping] staff notifications failed", { orderId: id, error: err });
   }
 
+  // Ready-for-shipment is status/UI only for all fulfillment methods.
+  // Customer lifecycle emails start at shipping (Rapido/DTDC) or OFD (Delivery Staff).
+
   return NextResponse.json({
     success: true,
-    order: normalized,
+    order: normalizedOrder,
     message: "Order marked ready for shipping"
   });
 }

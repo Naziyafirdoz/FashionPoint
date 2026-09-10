@@ -5,6 +5,11 @@ import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+/**
+ * LEGACY COD approval path (`cod_verification` status).
+ * Checkout rejects COD; prepaid flow does not use this route.
+ * Retained so historical COD rows can still be handled if present in DB.
+ */
 export async function POST(_req: Request, { params }: RouteContext) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;

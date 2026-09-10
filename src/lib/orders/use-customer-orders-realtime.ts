@@ -33,8 +33,8 @@ export function useCustomerOrdersRealtime(
     const handleOrderEvent = (order: Order, event: "INSERT" | "UPDATE") => {
       console.log("[Realtime]", order.id, order.status, order.updated_at, { event });
       setOrders((prev) => mergeCustomerOrderInList(prev, order, event));
-      // TEMP: scheduleRefetch disabled while debugging pool flooding.
-      // onSyncSignalRef.current?.();
+      // Refetch from API so courier/tracking/status match the database source of truth.
+      onSyncSignalRef.current?.();
     };
 
     const channel = supabase

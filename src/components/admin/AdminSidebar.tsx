@@ -28,6 +28,7 @@ import {
   Star,
   Stars,
   Tag,
+  Truck,
   TrendingUp,
   Warehouse,
   X
@@ -770,6 +771,16 @@ function AdminSidebarNav({ collapsed, onNavigate }: AdminSidebarNavProps) {
       >
         <ShoppingCart className="h-4 w-4 shrink-0" />
         {!collapsed && "Orders"}
+      </Link>
+
+      <Link
+        href="/admin/delivery"
+        className={linkClass(path.startsWith("/admin/delivery"))}
+        title={collapsed ? "Delivery" : undefined}
+        onClick={handleNavClick}
+      >
+        <Truck className="h-4 w-4 shrink-0" />
+        {!collapsed && "Delivery"}
       </Link>
 
       <div className="relative" ref={reportsRef}>

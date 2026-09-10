@@ -4,7 +4,7 @@ import type { Order } from "@/types";
 
 /** Columns used by My Orders UI — `total` is the real DB column (not total_amount). */
 export const CUSTOMER_ORDER_LIST_SELECT =
-  "id,order_number,created_at,status,payment_status,payment_method,total,items,user_id,guest_email,shipping_address,updated_at,delivery_confirmed_at,tracking_id,tracking_number,shipment_id,delivery_status";
+  "id,order_number,created_at,status,payment_status,payment_method,total,items,user_id,guest_email,shipping_address,updated_at,delivery_confirmed_at,tracking_id,tracking_number,shipment_id,delivery_status,courier_name,courier_partner,delivery_partner,fulfillment_method,fulfillment_zone,branch_id,shipping_date";
 
 const CUSTOMER_ORDER_QUERY_LIMIT = 20;
 

@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase";
-import { isAdminUser } from "@/lib/auth/helpers";
+import { requireAdminStaff } from "@/lib/admin/require-staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
-import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
-import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
+import {
+  assertFulfillmentMethodAllowed,
+  courierLabelForMethod,
+  isFulfillmentMethod,
+  isShipmentStatusLocked,
+  SHIPMENT_LOCKED_ERROR,
+  type FulfillmentMethod
+} from "@/lib/orders/fulfillment-method";
+import { getAvailableFulfillmentColumns } from "@/lib/orders/fulfillment-schema";
 import { getAvailableShippingOptionalColumns } from "@/lib/orders/shipping-schema";
+import { customerShippedMessage } from "@/lib/orders/fulfillment-workflow";
 import { assertTransition } from "@/lib/orders/workflow-validation";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 import {
@@ -17,77 +23,89 @@ import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(_req: Request, { params }: RouteContext) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
-
-  console.info("[mark-shipped] user id", user?.id ?? "(none)", userError?.message ?? "");
-
-  if (!user) {
-    console.info("[mark-shipped] error", "unauthorized");
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const isAdmin = await isAdminUser(user.id);
-  console.info("[mark-shipped] isAdmin", isAdmin);
-
-  if (!isAdmin) {
-    console.info("[mark-shipped] error", "forbidden — not in admin_users");
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const db = createServiceClient();
-  if (!db) {
-    console.info("[mark-shipped] error", "database not configured");
-    return NextResponse.json({ error: "DB not configured" }, { status: 503 });
-  }
+/**
+ * Courier dispatch (Rapido local / DTDC outstation).
+ * Body: { fulfillment_method: "rapido"|"dtdc", tracking_number?: string }
+ * DTDC requires tracking_number.
+ */
+export async function POST(req: Request, { params }: RouteContext) {
+  const auth = await requireAdminStaff();
+  if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  const { data: existing, error: fetchError } = await db
+  const body = await req.json().catch(() => ({}));
+  const methodRaw = body.fulfillment_method;
+  const tracking =
+    typeof body.tracking_number === "string" ? body.tracking_number.trim() : "";
+
+  if (!isFulfillmentMethod(methodRaw) || (methodRaw !== "rapido" && methodRaw !== "dtdc")) {
+    return NextResponse.json(
+      { error: "fulfillment_method must be rapido or dtdc" },
+      { status: 400 }
+    );
+  }
+  const method = methodRaw as Extract<FulfillmentMethod, "rapido" | "dtdc">;
+
+  if (method === "dtdc" && !tracking) {
+    return NextResponse.json(
+      { error: "DTDC Tracking Number is required." },
+      { status: 400 }
+    );
+  }
+
+  const { data: existing, error: fetchError } = await auth.ctx.db
     .from("orders")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
   if (fetchError) {
-    console.error("[mark-shipped] error", fetchError.message);
     return NextResponse.json({ error: "Unable to load order" }, { status: 500 });
   }
   if (!existing) {
-    console.info("[mark-shipped] error", "order not found", id);
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const status = existing.status as string;
-  console.info("[mark-shipped] current status", status);
+  const order = existing as Order;
+  const currentStatus = normalizeLegacyStatus(order.status);
 
-  if (normalizeLegacyStatus(status) !== "ready_to_ship") {
-    console.info("[mark-shipped] error", "status is not ready_to_ship", status);
+  // Shipment confirmation is one-shot: method + tracking + Rapido details lock after shipped.
+  if (isShipmentStatusLocked(currentStatus)) {
+    return NextResponse.json({ error: SHIPMENT_LOCKED_ERROR }, { status: 409 });
+  }
+
+  if (currentStatus !== "ready_to_ship") {
     return NextResponse.json(
       { error: "Only ready for shipping orders can be marked shipped" },
       { status: 400 }
     );
   }
 
-  const transitionError = assertTransition(status, "shipped");
+  const transitionError = assertTransition(order.status, "shipped");
   if (transitionError) {
-    console.info("[mark-shipped] error", transitionError);
     return NextResponse.json({ error: transitionError }, { status: 400 });
   }
 
+  const allowed = await assertFulfillmentMethodAllowed(order, method);
+  if (!allowed.ok) {
+    return NextResponse.json({ error: allowed.error }, { status: 400 });
+  }
+
+  const courierName = courierLabelForMethod(method);
   const now = new Date().toISOString();
-  const optionalColumns = await getAvailableShippingOptionalColumns(db);
-  const courierName = resolveOrderCourierName(existing as Order);
+  const optionalColumns = await getAvailableShippingOptionalColumns(auth.ctx.db);
+  const fulfillmentColumns = await getAvailableFulfillmentColumns(auth.ctx.db);
+
   const payload: Record<string, unknown> = {
     status: "shipped",
     updated_at: now,
     courier_name: courierName
   };
-  if (optionalColumns.has("shipping_date")) {
-    payload.shipping_date = now;
+  if (tracking) {
+    payload.tracking_id = tracking;
+  }
+  if (optionalColumns.has("tracking_number") && tracking) {
+    payload.tracking_number = tracking;
   }
   if (optionalColumns.has("courier_partner")) {
     payload.courier_partner = courierName;
@@ -95,8 +113,17 @@ export async function POST(_req: Request, { params }: RouteContext) {
   if (optionalColumns.has("delivery_partner")) {
     payload.delivery_partner = courierName;
   }
+  if (optionalColumns.has("shipping_date")) {
+    payload.shipping_date = now;
+  }
+  if (fulfillmentColumns.has("fulfillment_method")) {
+    payload.fulfillment_method = method;
+  }
+  if (fulfillmentColumns.has("fulfillment_zone")) {
+    payload.fulfillment_zone = allowed.zone;
+  }
 
-  const { data: updated, error } = await db
+  const { data: updated, error } = await auth.ctx.db
     .from("orders")
     .update(payload)
     .eq("id", id)
@@ -108,32 +135,17 @@ export async function POST(_req: Request, { params }: RouteContext) {
     console.error("[mark-shipped] error", error.message);
     return NextResponse.json({ error: "Unable to mark order as shipped" }, { status: 500 });
   }
-
   if (!updated) {
-    console.error("[mark-shipped] rows updated", 0);
-    const { data: current } = await db.from("orders").select("status").eq("id", id).maybeSingle();
-    console.info("[mark-shipped] current status after failed update", current?.status);
-    return NextResponse.json(
-      { error: "Order could not be marked shipped — status may have changed" },
-      { status: 409 }
-    );
+    return NextResponse.json({ error: SHIPMENT_LOCKED_ERROR }, { status: 409 });
   }
 
-  console.info("[mark-shipped] rows updated", 1);
-
-  const normalized = await normalizeOrderRecord(db, updated as Order, { persist: false });
-  console.info("[mark-shipped] success", {
-    orderId: id,
-    orderNumber: normalized.order_number,
-    status: normalized.status
-  });
-
+  const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
   invalidateAdminDataCaches();
 
   try {
     const shippedMessage = customerShippedMessage(normalized);
     await notifyCustomerOrderShipped(normalized, shippedMessage);
-    await notifyAdminOrderShipped(db, normalized);
+    await notifyAdminOrderShipped(auth.ctx.db, normalized);
   } catch (err) {
     console.error("[mark-shipped] notifications failed", { orderId: id, error: err });
   }

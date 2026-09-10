@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminStaff } from "@/lib/admin/require-staff";
+import { hasRole, parseRolesFromRow } from "@/lib/admin/staff";
 import { notifyAdminPackingAssigned } from "@/lib/server/notifications/new-order-alerts";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { assertTransition } from "@/lib/orders/workflow-validation";
@@ -19,13 +20,26 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "worker_id is required" }, { status: 400 });
   }
 
-  const { data: worker } = await auth.ctx.db
+  let { data: worker, error: workerError } = await auth.ctx.db
     .from("admin_users")
-    .select("user_id, role")
+    .select("user_id, role, roles")
     .eq("user_id", workerId)
     .maybeSingle();
 
-  if (!worker || (worker.role as string)?.toLowerCase() !== "worker") {
+  if (workerError) {
+    const legacy = await auth.ctx.db
+      .from("admin_users")
+      .select("user_id, role")
+      .eq("user_id", workerId)
+      .maybeSingle();
+    worker = legacy.data as typeof worker;
+  }
+
+  const roles = worker
+    ? parseRolesFromRow(worker as Record<string, unknown>)
+    : [];
+
+  if (!worker || !hasRole(roles, "worker")) {
     return NextResponse.json({ error: "Invalid worker" }, { status: 400 });
   }
 
@@ -56,7 +70,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       updated_at: now
     })
     .eq("id", id)
-    .in("status", ["confirmed", "processing", "packing_assigned"])
+    .in("status", ["confirmed", "packing_assigned"])
     .select("*")
     .maybeSingle();
 

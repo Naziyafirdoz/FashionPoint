@@ -126,7 +126,7 @@ export function emailAppUrl(path: string): string {
   return `${base}${normalizedPath}`;
 }
 
-/** Admin order detail page — used for email CTA buttons. */
+/** Admin order detail page — used for post-approval “View Order” links (not Approve CTA). */
 export function adminOrderEmailUrl(orderId: string): string {
   const trimmed = orderId.trim();
   return emailAppUrl(`/admin/orders/${encodeURIComponent(trimmed)}`);

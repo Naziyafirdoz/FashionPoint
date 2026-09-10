@@ -152,7 +152,7 @@ function ContactForm({ supportEmail }: { supportEmail: string }) {
 
   function validate(): string | null {
     if (!isValidFullName(form.name)) {
-      return "Please enter your full name (first and last name).";
+      return "Please enter your full name.";
     }
     if (!isValidEmail(form.email)) {
       return "Please enter a valid email address.";

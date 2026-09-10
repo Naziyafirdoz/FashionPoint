@@ -6,6 +6,7 @@ import {
   reconcileCustomerOrdersFromFetch,
   sortCustomerOrders
 } from "@/lib/orders/merge-customer-order-list";
+import type { StoreInformationShipmentSource } from "@/lib/orders/customer-shipment-display";
 import type { Order } from "@/types";
 
 /** Shared key for future React Query / SWR integrations. */
@@ -21,6 +22,8 @@ type UseCustomerOrdersFetchOptions = {
   pollIntervalMs?: number;
   /** SSR already provided orders — render immediately, refresh in background. */
   hasInitialData?: boolean;
+  /** Apply Admin Store Information returned with customer order refresh. */
+  onStoreInfo?: (store: StoreInformationShipmentSource) => void;
 };
 
 type FetchOrdersOptions = {
@@ -44,6 +47,8 @@ export function useCustomerOrdersFetch(
   const enabled = options?.enabled ?? true;
   const pollIntervalMs = options?.pollIntervalMs ?? 0;
   const hasInitialData = options?.hasInitialData ?? false;
+  const onStoreInfoRef = useRef(options?.onStoreInfo);
+  onStoreInfoRef.current = options?.onStoreInfo;
   const inFlightRef = useRef(false);
   const hasSuccessfulFetchRef = useRef(false);
   const fetchFailedRef = useRef(false);
@@ -71,13 +76,15 @@ export function useCustomerOrdersFetch(
           attempt += 1;
 
           try {
-            const res = await fetch("/api/orders?limit=20", {
+            const res = await fetch("/api/orders?scope=customer&limit=20", {
               cache: "no-store",
               credentials: "include"
             });
             const data = (await res.json().catch(() => ({}))) as {
               orders?: Order[];
               error?: string;
+              role?: string;
+              store?: { storeName?: string; address?: string };
             };
 
             if (!res.ok) {
@@ -94,9 +101,27 @@ export function useCustomerOrdersFetch(
             }
 
             const list = sortCustomerOrders(data.orders ?? []);
+            for (const order of list) {
+              console.info("[account/orders] refresh shipment fields", {
+                orderId: order.id,
+                orderNumber: order.order_number,
+                courier_name: order.courier_name ?? null,
+                fulfillment_method: order.fulfillment_method ?? null,
+                tracking_number: order.tracking_number ?? order.tracking_id ?? null,
+                apiRole: data.role ?? null
+              });
+            }
             logCustomerOrdersBatch(list, "fetch");
             setOrders((prev) => reconcileCustomerOrdersFromFetch(prev, list));
-            console.info("[orders] fetch success", { count: list.length });
+
+            if (data.store) {
+              onStoreInfoRef.current?.({
+                storeName: data.store.storeName?.trim() ?? "",
+                address: data.store.address?.trim() ?? ""
+              });
+            }
+
+            console.info("[orders] fetch success", { count: list.length, role: data.role });
             succeeded = true;
             hasSuccessfulFetchRef.current = true;
             fetchFailedRef.current = false;
@@ -134,32 +159,27 @@ export function useCustomerOrdersFetch(
 
   useEffect(() => {
     if (!enabled) return;
-
-    // TEMP: skip client /api/orders when SSR already provided orders (pool flooding debug).
-    if (hasInitialData) return;
-
-    void fetchOrders({ background: false });
+    void fetchOrders({ background: hasInitialData });
   }, [enabled, fetchOrders, hasInitialData]);
 
-  // TEMP: focus/visibility refresh disabled while debugging pool flooding.
-  // useEffect(() => {
-  //   if (!enabled) return;
-  //   const onFocus = () => scheduleBackgroundRefresh();
-  //   const onVisibility = () => {
-  //     if (document.visibilityState === "visible") {
-  //       scheduleBackgroundRefresh();
-  //     }
-  //   };
-  //   window.addEventListener("focus", onFocus);
-  //   document.addEventListener("visibilitychange", onVisibility);
-  //   return () => {
-  //     if (focusDebounceRef.current) {
-  //       clearTimeout(focusDebounceRef.current);
-  //     }
-  //     window.removeEventListener("focus", onFocus);
-  //     document.removeEventListener("visibilitychange", onVisibility);
-  //   };
-  // }, [enabled, scheduleBackgroundRefresh]);
+  useEffect(() => {
+    if (!enabled) return;
+    const onFocus = () => scheduleBackgroundRefresh();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        scheduleBackgroundRefresh();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      if (focusDebounceRef.current) {
+        clearTimeout(focusDebounceRef.current);
+      }
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled, scheduleBackgroundRefresh]);
 
   useEffect(() => {
     if (!enabled || pollIntervalMs <= 0) return;

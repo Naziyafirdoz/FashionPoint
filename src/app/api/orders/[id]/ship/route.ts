@@ -18,6 +18,12 @@ import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+/**
+ * LEGACY shipping endpoint with tracking/OTP payload support.
+ * Active admin UI uses POST /api/orders/[id]/mark-shipped for the shipped transition.
+ * Kept for clients that still POST tracking_number here; do not add new UI callers.
+ */
+
 const isDev = process.env.NODE_ENV === "development";
 
 function shipErrorResponse(message: string, status: number, extra?: Record<string, unknown>) {

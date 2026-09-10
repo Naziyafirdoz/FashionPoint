@@ -19,9 +19,11 @@ import {
 export function AdminNotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [savingEnabled, setSavingEnabled] = useState(false);
+  const [savingDeliveryAssigned, setSavingDeliveryAssigned] = useState(false);
   const [savingRecipient, setSavingRecipient] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [deliveryAssignedEmailEnabled, setDeliveryAssignedEmailEnabled] = useState(true);
   const [recipients, setRecipients] = useState<NotificationRecipientRow[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<NotificationRecipientRow | null>(null);
@@ -39,6 +41,7 @@ export function AdminNotificationSettings() {
         return;
       }
       setEmailNotificationsEnabled(Boolean(data.emailNotificationsEnabled));
+      setDeliveryAssignedEmailEnabled(data.deliveryAssignedEmailEnabled !== false);
       setRecipients(data.recipients ?? []);
     } catch {
       toast.error("Failed to load notification settings");
@@ -66,12 +69,39 @@ export function AdminNotificationSettings() {
         return;
       }
       setEmailNotificationsEnabled(Boolean(data.emailNotificationsEnabled));
+      if (typeof data.deliveryAssignedEmailEnabled === "boolean") {
+        setDeliveryAssignedEmailEnabled(data.deliveryAssignedEmailEnabled);
+      }
       toast.success("Notification settings saved");
     } catch {
       toast.error("Failed to save notification settings");
       setEmailNotificationsEnabled((current) => !enabled);
     } finally {
       setSavingEnabled(false);
+    }
+  };
+
+  const saveDeliveryAssignedEnabled = async (enabled: boolean) => {
+    setSavingDeliveryAssigned(true);
+    try {
+      const res = await fetch("/api/admin/notification-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deliveryAssignedEmailEnabled: enabled })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to save Delivery Assigned setting");
+        setDeliveryAssignedEmailEnabled((current) => !enabled);
+        return;
+      }
+      setDeliveryAssignedEmailEnabled(data.deliveryAssignedEmailEnabled !== false);
+      toast.success("Delivery Assigned setting saved");
+    } catch {
+      toast.error("Failed to save Delivery Assigned setting");
+      setDeliveryAssignedEmailEnabled((current) => !enabled);
+    } finally {
+      setSavingDeliveryAssigned(false);
     }
   };
 
@@ -88,7 +118,9 @@ export function AdminNotificationSettings() {
     try {
       const isEdit = Boolean(editing);
       const res = await fetch(
-        isEdit ? `/api/admin/notification-recipients/${editing!.id}` : "/api/admin/notification-recipients",
+        isEdit
+          ? `/api/admin/notification-recipients/${editing!.id}`
+          : "/api/admin/notification-recipients",
         {
           method: isEdit ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -193,7 +225,9 @@ export function AdminNotificationSettings() {
             Email notifications are enabled, but there are no active recipients.
           </p>
           <p className="mt-1 text-amber-800">
-            Notification emails will not be delivered until at least one recipient is enabled.
+            Admin notification emails will not be delivered until at least one recipient is enabled.
+            Delivery Assigned emails still go to the assigned delivery staff login email when enabled
+            below.
           </p>
         </div>
       ) : null}
@@ -205,7 +239,7 @@ export function AdminNotificationSettings() {
           <div>
             <p className="text-sm font-medium text-foreground">Enable Email Notifications</p>
             <p className="mt-1 text-xs text-foreground/60">
-              When disabled, no notification emails are sent.
+              When disabled, no notification emails are sent (including Delivery Assigned).
             </p>
           </div>
           <input
@@ -221,6 +255,28 @@ export function AdminNotificationSettings() {
             aria-label="Enable email notifications"
           />
         </label>
+
+        <label className="mt-3 flex items-center justify-between gap-4 rounded-xl border border-accent/15 bg-blush/20 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Delivery Assigned</p>
+            <p className="mt-1 text-xs text-foreground/60">
+              Sent to delivery staff when an order is assigned to them. Uses their Staff &amp; Roles
+              login email automatically — do not add delivery staff emails as recipients below.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            className="h-5 w-5 rounded border-accent/30"
+            checked={deliveryAssignedEmailEnabled}
+            disabled={savingDeliveryAssigned || !emailNotificationsEnabled}
+            onChange={(event) => {
+              const enabled = event.target.checked;
+              setDeliveryAssignedEmailEnabled(enabled);
+              void saveDeliveryAssignedEnabled(enabled);
+            }}
+            aria-label="Enable Delivery Assigned emails"
+          />
+        </label>
       </SettingsSection>
 
       <section className="card-store max-w-5xl">
@@ -228,7 +284,8 @@ export function AdminNotificationSettings() {
           <div>
             <h2 className="font-semibold text-primary">Email Recipients</h2>
             <p className="mt-1 text-sm text-foreground/70">
-              Manage who will receive notification emails.
+              Manage who will receive admin notification emails (New Order, Low Stock, etc.).
+              Delivery Assigned does not use this list.
             </p>
           </div>
           <Button

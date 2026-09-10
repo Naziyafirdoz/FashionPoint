@@ -173,6 +173,21 @@ export async function POST(req: Request, { params }: RouteContext) {
     refundStatus: normalized.refund_status ?? null
   });
 
+  if (normalized.status === "cancelled") {
+    try {
+      const { sendTemplatedCustomerOrderEmail } = await import(
+        "@/lib/server/notifications/send-templated-customer-email"
+      );
+      await sendTemplatedCustomerOrderEmail({
+        eventKey: "order_cancelled",
+        order: normalized,
+        db
+      });
+    } catch (err) {
+      console.error("[cancel] customer cancelled email failed", { orderId: id, error: err });
+    }
+  }
+
   return NextResponse.json({
     success: true,
     order: normalized,

@@ -1,7 +1,6 @@
 import type { Order } from "@/types";
 import type { OrderListRow } from "@/lib/orders/admin-orders";
 import { getStageLabel, getStatusPillClass, normalizeLegacyStatus } from "@/lib/orders/status-config";
-import { isAwaitingOrderApproval } from "@/lib/orders/fulfillment-workflow";
 import { isCancellationRefundWorkflowEnabled, RETURNS_EXCHANGES_REFUNDS_DISABLED } from "@/lib/store-policy";
 
 export const HIGH_VALUE_THRESHOLD = 5000;
@@ -12,6 +11,7 @@ export type PrimaryActionType =
   | "approve_order"
   | "start_processing"
   | "start_packing"
+  | "mark_packed"
   | "ready_for_shipping"
   | "mark_shipped"
   | "mark_delivered"
@@ -53,6 +53,17 @@ export function ageToneClass(tone: OrderAgeTone): string {
   return "text-red-700";
 }
 
+/** Delivery Staff OFD with assignee — staff completes via OTP; admin Mark Delivered is override-only. */
+export function isAssignedDeliveryBoyOutForDelivery(
+  order: Pick<Order, "status" | "fulfillment_method" | "assigned_delivery_worker_id">
+): boolean {
+  return (
+    normalizeLegacyStatus(order.status) === "out_for_delivery" &&
+    order.fulfillment_method === "delivery_boy" &&
+    Boolean(order.assigned_delivery_worker_id?.trim())
+  );
+}
+
 export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
   if (
     (isCancellationRefundWorkflowEnabled() || !RETURNS_EXCHANGES_REFUNDS_DISABLED) &&
@@ -63,22 +74,27 @@ export function getPrimaryAction(order: OrderListRow): OrderPrimaryAction {
   const status = normalizeLegacyStatus(order.status);
   switch (status) {
     case "pending":
-      return isAwaitingOrderApproval(order.status as string)
-        ? { type: "approve_order", label: "Approve Order" }
-        : { type: "start_processing", label: "Start Processing" };
     case "processing":
-      return { type: "approve_order", label: "Approve Order" };
+      // Approval is email-only (new-order email → Approve Order).
+      return { type: "view", label: "View" };
     case "confirmed":
-      return { type: "start_packing", label: "Assign Worker" };
+      return { type: "ready_for_shipping", label: "Ready for Shipping" };
     case "packing_assigned":
-      return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
+      // Legacy in-flight packing orders only — not the normal admin path.
+      return { type: "mark_packed", label: "Mark Packed" };
     case "packed":
-      return { type: "ready_for_shipping", label: "🚚 Ready For Shipping" };
+      // Legacy in-flight packing orders only.
+      return { type: "ready_for_shipping", label: "Ready for Shipping" };
     case "ready_to_ship":
-      return { type: "mark_shipped", label: "🚚 Mark Shipped" };
-    case "shipped":
+      return { type: "mark_shipped", label: "Fulfill Order" };
     case "out_for_delivery":
-      return { type: "mark_delivered", label: "✅ Mark Delivered" };
+      // Assigned Delivery Staff path: OTP completion is normal; do not primary-promote admin override.
+      if (isAssignedDeliveryBoyOutForDelivery(order)) {
+        return { type: "view", label: "View" };
+      }
+      return { type: "mark_delivered", label: "Mark Delivered" };
+    case "shipped":
+      return { type: "view", label: "View" };
     case "delivered":
       return { type: "view", label: "View" };
     default:
@@ -122,9 +138,9 @@ export function filterOrdersByDateRange(
 export const PIPELINE_STAGES: { id: string; label: string }[] = [
   { id: "processing", label: "Processing" },
   { id: "confirmed", label: "Confirmed" },
-  { id: "packing_assigned", label: "Packing" },
-  { id: "ready_to_ship", label: "Ready To Ship" },
+  { id: "ready_to_ship", label: "Ready for Shipping" },
   { id: "shipped", label: "Shipped" },
+  { id: "out_for_delivery", label: "Out for Delivery" },
   { id: "delivered", label: "Delivered" }
 ];
 

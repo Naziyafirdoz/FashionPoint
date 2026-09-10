@@ -22,7 +22,8 @@ export function StatsCard({
         ? "hover:border-amber-400 hover:shadow-md"
         : "border-gray-200 hover:border-gray-300 hover:shadow-md",
     onClick ? "cursor-pointer" : ""
-  ]    .filter(Boolean)
+  ]
+    .filter(Boolean)
     .join(" ");
 
   const inner = (

@@ -2,10 +2,11 @@ import { getStageLabel, normalizeLegacyStatus, orderStatusLabel } from "@/lib/or
 import { STORE_NAME } from "@/lib/site-config";
 import type { Order, OrderStatus } from "@/types";
 
-/** Internal statuses hidden from customers. */
+/** Internal statuses — use customer-facing labels instead of raw enum names. */
 export const INTERNAL_FULFILLMENT_STATUSES: OrderStatus[] = [
   "packing_assigned",
-  "packed"
+  "packed",
+  "ready_to_ship"
 ];
 
 export const ADMIN_FULFILLMENT_STATUSES: OrderStatus[] = [
@@ -26,7 +27,10 @@ export function isAwaitingOrderApproval(status: string): boolean {
   return s === "pending" || s === "processing";
 }
 
-/** Customer-facing label — same source as admin (`order.status` via STATUS_CONFIG). */
+/**
+ * Single status label for all order surfaces (admin + customer).
+ * Delegates to STATUS_CONFIG via getStageLabel — no alternate wording.
+ */
 export function getCustomerFacingStatusLabel(
   order: Pick<Order, "status" | "payment_status" | "refund_status" | "payment_method">
 ): string {
@@ -34,21 +38,7 @@ export function getCustomerFacingStatusLabel(
 }
 
 export function getAdminFulfillmentStatusLabel(status: string): string {
-  const normalized = normalizeLegacyStatus(status);
-  switch (normalized) {
-    case "confirmed":
-      return "Confirmed";
-    case "packing_assigned":
-      return "Packing Assigned";
-    case "packed":
-      return "Packed";
-    case "ready_to_ship":
-      return "Ready For Shipping";
-    case "shipped":
-      return "Shipped";
-    default:
-      return orderStatusLabel(normalized);
-  }
+  return orderStatusLabel(normalizeLegacyStatus(status));
 }
 
 type FulfillmentZoneOrder = Pick<Order, "fulfillment_zone">;
@@ -75,7 +65,15 @@ export function customerConfirmedMessage(order: FulfillmentZoneOrder, storeName:
   return lines.join("\n");
 }
 
-export function customerShippedMessage(order: FulfillmentZoneOrder): string {
+export function customerShippedMessage(
+  order: Pick<Order, "fulfillment_zone" | "fulfillment_method">
+): string {
+  if (order.fulfillment_method === "rapido") {
+    return "Your order has been shipped with Rapido.\nExpected delivery within 2 days.";
+  }
+  if (order.fulfillment_method === "dtdc") {
+    return "Your order has been shipped through DTDC.\nUse the tracking number in your order email to follow the shipment.";
+  }
   if (isLocalFulfillmentOrder(order)) {
     return "Your order has been shipped.\nExpected delivery within 2 days.";
   }

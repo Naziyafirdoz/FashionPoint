@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireWorkerStaff } from "@/lib/admin/require-staff";
+import { isAssignedPackingWorkerOnly } from "@/lib/admin/staff";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -16,7 +17,10 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   const order = existing as Order;
-  if (auth.ctx.role === "worker" && order.assigned_worker_id !== auth.ctx.userId) {
+  if (
+    isAssignedPackingWorkerOnly(auth.ctx.roles) &&
+    order.assigned_worker_id !== auth.ctx.userId
+  ) {
     return NextResponse.json({ error: "Order not assigned to you" }, { status: 403 });
   }
 

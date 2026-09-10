@@ -125,6 +125,9 @@ CREATE TABLE IF NOT EXISTS orders (
   subtotal numeric NOT NULL,
   shipping_amount numeric DEFAULT 0,
   branch_id uuid REFERENCES branches(id),
+  fulfillment_zone text,
+  fulfillment_method text,
+  assigned_delivery_worker_id uuid,
   discount_amount numeric DEFAULT 0,
   total numeric NOT NULL,
   status text DEFAULT 'pending',
@@ -299,7 +302,23 @@ CREATE TABLE IF NOT EXISTS blogs (
 
 CREATE TABLE IF NOT EXISTS admin_users (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id),
-  role text DEFAULT 'admin'
+  role text DEFAULT 'admin',
+  roles text[] DEFAULT ARRAY['admin']::text[],
+  display_name text,
+  phone text,
+  email text,
+  is_active boolean NOT NULL DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_key text NOT NULL UNIQUE,
+  name text NOT NULL,
+  subject text NOT NULL,
+  body_html text NOT NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- RLS (enable in Supabase dashboard)

@@ -65,9 +65,9 @@ export const STATUS_CONFIG: Record<StatusDisplayKey, StatusConfig> = {
     flat: "bg-blue-100 text-blue-700"
   },
   ready_to_ship: {
-    label: "Ready For Shipping",
-    pill: "bg-purple-100 text-purple-700 border-purple-200",
-    flat: "bg-purple-100 text-purple-700"
+    label: "Ready for Shipping",
+    pill: "bg-[#F0E7FF] text-[#6D28D9] border-[#D8B4FE] font-semibold",
+    flat: "bg-purple-100 text-purple-700 font-semibold"
   },
   shipped: {
     label: "Shipped",
@@ -75,7 +75,7 @@ export const STATUS_CONFIG: Record<StatusDisplayKey, StatusConfig> = {
     flat: "bg-indigo-100 text-indigo-700"
   },
   out_for_delivery: {
-    label: "Out For Delivery",
+    label: "Out for Delivery",
     pill: "bg-indigo-100 text-indigo-700 border-indigo-200",
     flat: "bg-indigo-100 text-indigo-700"
   },
@@ -85,7 +85,7 @@ export const STATUS_CONFIG: Record<StatusDisplayKey, StatusConfig> = {
     flat: "bg-green-100 text-green-700"
   },
   cancel_requested: {
-    label: "Cancel Requested",
+    label: "Cancellation Requested",
     pill: "bg-orange-50 text-orange-900 border-orange-200 font-semibold",
     flat: "bg-orange-100 text-orange-900 font-semibold"
   },

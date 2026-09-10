@@ -7,7 +7,8 @@ import { CancelOrderModal, orderIsPrepaidForCancel, type CancelOrderSubmitPayloa
 import { CustomerCancelledOrderSection } from "@/components/account/CustomerCancelledOrderSection";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import { canCustomerCancelOrder } from "@/lib/orders/customer-orders";
-import { getStageLabel } from "@/lib/orders/admin-order-ui";
+import { getCustomerFacingStatusLabel } from "@/lib/orders/fulfillment-workflow";
+import { getCustomerShipmentSummary } from "@/lib/orders/customer-shipment-display";
 import { downloadInvoicePdf } from "@/lib/orders/admin-order-invoice";
 import {
   formatCurrency,
@@ -27,7 +28,6 @@ import {
   shouldShowCustomerOrderStatusMessage
 } from "@/lib/orders/customer-order-display";
 import { RETURNS_EXCHANGES_REFUNDS_DISABLED } from "@/lib/store-policy";
-import { STORE_NAME } from "@/lib/site-config";
 import type { UserReviewPreview } from "@/lib/reviews/types";
 import type { Order } from "@/types";
 import { OrderReviewButton } from "@/components/reviews/OrderReviewButton";
@@ -38,7 +38,8 @@ import { useCustomerAuthReady } from "@/lib/auth/use-customer-auth-ready";
 type OrdersListClientProps = {
   orders: Order[];
   userId: string;
-  storeName?: string;
+  storeName: string;
+  storeAddress: string;
 };
 
 function customerPaymentLabel(order: Order): string {
@@ -126,9 +127,14 @@ const ORDER_ACTION_BUTTON_CLASS =
 export function OrdersListClient({
   orders: initialOrders,
   userId,
-  storeName = STORE_NAME
+  storeName: initialStoreName,
+  storeAddress: initialStoreAddress
 }: OrdersListClientProps) {
   const [orders, setOrders] = useState(initialOrders);
+  const [storeInfo, setStoreInfo] = useState({
+    storeName: initialStoreName,
+    address: initialStoreAddress
+  });
   const [userReviews, setUserReviews] = useState<UserReviewPreview[]>([]);
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -140,17 +146,25 @@ export function OrdersListClient({
   const authReady = useCustomerAuthReady();
   const hasSsrOrders = initialOrders.length > 0;
 
+  const onStoreInfo = useCallback((store: { storeName: string; address: string }) => {
+    setStoreInfo(store);
+  }, []);
+
   const { fetchOrders, isLoading } = useCustomerOrdersFetch(setOrders, {
     hasInitialData: hasSsrOrders,
-    enabled: hasSsrOrders || authReady
+    enabled: hasSsrOrders || authReady,
+    onStoreInfo
   });
 
+  // Seed from SSR once. Do not re-apply initialOrders after client fetch/realtime
+  // has updated status — that would flash stale "Processing" over "Shipped".
   useEffect(() => {
-    if (hasSsrOrders) {
-      console.info("[orders] using SSR orders", { count: initialOrders.length });
-      setOrders(initialOrders);
-    }
-  }, [hasSsrOrders, initialOrders]);
+    if (!hasSsrOrders) return;
+    console.info("[orders] using SSR orders", { count: initialOrders.length });
+    setOrders(initialOrders);
+    // intentionally mount-only
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid overwriting live client state
+  }, []);
 
   const scheduleRefetch = useCallback(() => {
     console.info("[orders] realtime sync");
@@ -370,7 +384,7 @@ export function OrdersListClient({
                   <span
                     className={`mt-1.5 inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${getCustomerOrderStatusBadgeClass(normalized)}`}
                   >
-                    {getStageLabel(normalized)}
+                    {getCustomerFacingStatusLabel(normalized)}
                   </span>
                 </div>
               </div>
@@ -381,6 +395,64 @@ export function OrdersListClient({
                   {deliveryEstimate}
                 </p>
               ) : null}
+
+              {(() => {
+                const shipment = getCustomerShipmentSummary(normalized, storeInfo);
+                if (!shipment) return null;
+                return (
+                  <div className="mt-3 rounded-xl border border-[#F3D6DD] bg-[#FFF8FA] p-3.5 text-sm text-foreground/80">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
+                      Shipment
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1">
+                      <div>
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
+                          Courier
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold text-foreground">
+                          {shipment.courier}
+                        </p>
+                      </div>
+                      {shipment.trackingNumber ? (
+                        <div className="text-right sm:text-left">
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
+                            Tracking Number
+                          </p>
+                          <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+                            {shipment.trackingNumber}
+                          </p>
+                        </div>
+                      ) : (
+                        <div />
+                      )}
+                    </div>
+
+                    <div className="mt-3 border-t border-[#F3D6DD] pt-3">
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
+                            From
+                          </p>
+                          <p className="mt-1 whitespace-pre-line text-sm font-medium leading-relaxed text-foreground">
+                            {shipment.fromAddressLines.join("\n")}
+                          </p>
+                        </div>
+                        {shipment.toAddressLines.length ? (
+                          <div>
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
+                              To
+                            </p>
+                            <p className="mt-1 whitespace-pre-line text-sm font-medium leading-relaxed text-foreground">
+                              {shipment.toAddressLines.join("\n")}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <CustomerCancelledOrderSection order={normalized} />
 
@@ -451,7 +523,7 @@ export function OrdersListClient({
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => downloadInvoicePdf(normalized, storeName)}
+                  onClick={() => downloadInvoicePdf(normalized, storeInfo.storeName)}
                   className={`${ORDER_ACTION_BUTTON_CLASS} border border-primary text-primary hover:bg-primary/5`}
                 >
                   Download Invoice

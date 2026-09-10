@@ -75,7 +75,14 @@ export function WorkerOrdersClient() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="font-semibold text-gray-900">{order.order_number}</h2>
-                    <p className="text-sm text-gray-500">Status: {order.status}</p>
+                    <p className="text-sm text-gray-500">
+                      Status:{" "}
+                      {order.status === "packing_assigned"
+                        ? "Packing"
+                        : order.status === "packed"
+                          ? "Packed"
+                          : order.status}
+                    </p>
                   </div>
                   <p className="text-lg font-bold tabular-nums">{formatCurrency(Number(order.total))}</p>
                 </div>

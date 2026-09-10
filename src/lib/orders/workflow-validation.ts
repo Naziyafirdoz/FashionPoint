@@ -1,12 +1,26 @@
 import type { OrderStatus } from "@/types";
 import { normalizeLegacyStatus, orderStatusLabel } from "@/lib/orders/status-config";
 
-/** Allowed fulfillment status transitions (extended workflow + legacy paths). */
+/**
+ * Canonical fulfillment transitions (prepaid boutique ops).
+ *
+ * Main happy path:
+ *   pending → processing → confirmed → ready_to_ship
+ *   → shipped (Rapido/DTDC) | out_for_delivery (Delivery Boy) → delivered
+ *
+ * Legacy packing path (kept for in-flight / historical orders):
+ *   confirmed → packing_assigned → packed → ready_to_ship
+ *
+ * Notes:
+ * - Approval sets `confirmed` (not ready_to_ship); admin then clicks Ready for Shipping.
+ * - `pending` → `ready_to_ship` remains allowed for rare recovery paths.
+ * - Cancellation statuses are handled separately (not listed here).
+ */
 export const ALLOWED_STATUS_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
-  pending: ["confirmed", "processing"],
-  processing: ["confirmed", "ready_to_ship", "packing_assigned"],
+  pending: ["processing", "confirmed", "ready_to_ship"],
+  processing: ["confirmed", "ready_to_ship"],
   confirmed: ["packing_assigned", "ready_to_ship"],
-  packing_assigned: ["packed", "ready_to_ship"],
+  packing_assigned: ["packed"],
   packed: ["ready_to_ship"],
   ready_to_ship: ["shipped", "out_for_delivery"],
   shipped: ["out_for_delivery", "delivered"],

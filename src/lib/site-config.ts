@@ -9,7 +9,7 @@ export const siteConfig = {
   tagline: "Style. Confidence. You.",
   siteUrl:
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://fashionpointvijayawada.com",
-  supportEmail: "fashionpointvza@gmail.com",
+  supportEmail: "fashionpoint.store0@gmail.com",
   phone1: "8340973376",
   address:
     "11-49-188, Opp. Lion School, Brahmin St, Mallikarjunapeta, Vijayawada, Andhra Pradesh 520001",

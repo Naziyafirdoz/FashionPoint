@@ -176,6 +176,8 @@ export type Order = {
   branch_id?: string | null;
   branch_name?: string | null;
   fulfillment_zone?: "local" | "outstation" | null;
+  fulfillment_method?: "rapido" | "dtdc" | "delivery_boy" | null;
+  assigned_delivery_worker_id?: string | null;
   discount_amount: number;
   total: number;
   status: OrderStatus;

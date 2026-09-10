@@ -13,11 +13,11 @@ import {
 import {
   htmlResponse,
   renderAlreadyApprovedPage,
-  renderApproveSuccessPage,
   renderInvalidTokenPage,
   renderTokenExpiredPage,
   renderTokenUsedPage
 } from "@/lib/server/notifications/email-action-pages";
+import { adminOrderEmailUrl } from "@/lib/server/notifications/email-app-url";
 
 export async function GET(req: Request) {
   const rawToken = new URL(req.url).searchParams.get("token");
@@ -101,9 +101,8 @@ export async function GET(req: Request) {
   }
 
   if (result.ok && result.status === "approved") {
-    return htmlResponse(
-      await renderApproveSuccessPage(result.order.order_number, result.order.id)
-    );
+    // Skip intermediate success HTML — take admin straight to order detail.
+    return NextResponse.redirect(adminOrderEmailUrl(result.order.id));
   }
 
   if (result.ok === false && result.status === "not_awaiting") {

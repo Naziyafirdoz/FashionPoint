@@ -38,7 +38,8 @@ export function orderHasShipmentDispatched(
   return status === "out_for_delivery" || status === "delivered" || (order.status as string) === "shipped";
 }
 
-/** Customer may cancel only while processing, before shipment is dispatched. */
+/** Customer may cancel only while processing, before shipment is dispatched.
+ * Inventory note: stock was already deducted at payment finalize; cancel does not restore stock. */
 export function isOrderEligibleForCustomerCancellation(
   order: Pick<
     Order,

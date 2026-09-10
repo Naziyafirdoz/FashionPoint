@@ -1,6 +1,77 @@
 import { getStageLabel } from "@/lib/orders/admin-order-ui";
+import { resolveOrderCourierName } from "@/lib/orders/rapido-delivery-metadata";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 import type { Order } from "@/types";
+
+/** Shipment fields that partial realtime/admin rows must not wipe with null/undefined. */
+const SHIPMENT_PRESERVE_KEYS = [
+  "courier_name",
+  "courier_partner",
+  "delivery_partner",
+  "fulfillment_method",
+  "fulfillment_zone",
+  "tracking_number",
+  "tracking_id",
+  "shipping_date",
+  "branch_name",
+  "branch_id",
+  "shipment_id",
+  "delivery_status"
+] as const;
+
+function hasShipmentValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
+}
+
+/**
+ * Merge orders without letting incomplete payloads clear persisted shipment fields.
+ */
+export function mergeOrderPreserveShipmentFields(current: Order, incoming: Order): Order {
+  const merged: Order = { ...current, ...incoming, status: incoming.status };
+
+  for (const key of SHIPMENT_PRESERVE_KEYS) {
+    const nextVal = incoming[key];
+    const prevVal = current[key];
+    if (!hasShipmentValue(nextVal) && hasShipmentValue(prevVal)) {
+      (merged as Record<string, unknown>)[key] = prevVal;
+    }
+  }
+
+  // Prefer a richer shipping_address when the incoming row only carries a thin copy.
+  if (incoming.shipping_address == null && current.shipping_address != null) {
+    merged.shipping_address = current.shipping_address;
+  }
+
+  return merged;
+}
+
+export function logShipmentCourierDebug(
+  order: Pick<
+    Order,
+    | "id"
+    | "order_number"
+    | "courier_name"
+    | "fulfillment_method"
+    | "tracking_number"
+    | "tracking_id"
+    | "shipping_address"
+    | "courier_partner"
+    | "delivery_partner"
+  >,
+  context: string
+): void {
+  console.info("[account/orders] shipment courier", {
+    context,
+    orderId: order.id,
+    orderNumber: order.order_number,
+    courier_name: order.courier_name ?? null,
+    fulfillment_method: order.fulfillment_method ?? null,
+    tracking_number: order.tracking_number ?? order.tracking_id ?? null,
+    resolvedCourier: resolveOrderCourierName(order)
+  });
+}
 
 export function orderUpdatedAtMs(order: Pick<Order, "updated_at" | "created_at">): number {
   const raw = order.updated_at ?? order.created_at;
@@ -67,6 +138,8 @@ export function logCustomerOrderRow(
     updated_at: order.updated_at ?? order.created_at,
     visible
   });
+
+  logShipmentCourierDebug(order, context);
 }
 
 export function logCustomerOrdersBatch(orders: Order[], context: "fetch" | "realtime" | "merge"): void {
@@ -85,6 +158,7 @@ export function sortCustomerOrders(orders: Order[]): Order[] {
 /**
  * Apply API fetch results without rolling back newer realtime/local state.
  * API wins per order only when its updated_at is >= the row already shown.
+ * Incomplete API rows (missing courier fields) keep prior shipment values.
  */
 export function reconcileCustomerOrdersFromFetch(prev: Order[], fetched: Order[]): Order[] {
   const prevById = new Map(prev.map((o) => [o.id, o]));
@@ -92,9 +166,14 @@ export function reconcileCustomerOrdersFromFetch(prev: Order[], fetched: Order[]
 
   const reconciled = fetched.map((apiOrder) => {
     const current = prevById.get(apiOrder.id);
-    if (!current) return apiOrder;
-    if (shouldApiOrderReplaceCurrent(apiOrder, current)) {
+    if (!current) {
+      logShipmentCourierDebug(apiOrder, "fetch-new");
       return apiOrder;
+    }
+    if (shouldApiOrderReplaceCurrent(apiOrder, current)) {
+      const merged = mergeOrderPreserveShipmentFields(current, apiOrder);
+      logShipmentCourierDebug(merged, "fetch-reconcile");
+      return merged;
     }
     console.info("[account/orders] fetch kept newer local row", {
       orderId: apiOrder.id,
@@ -144,7 +223,7 @@ export function mergeCustomerOrderInList(
       return prev;
     }
 
-    const nextOrder: Order = { ...current, ...incoming, status: incoming.status };
+    const nextOrder = mergeOrderPreserveShipmentFields(current, incoming);
     const next = [...prev];
     next[idx] = nextOrder;
     console.log("[Merge after]", nextOrder.status, nextOrder.updated_at);

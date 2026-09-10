@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
+import { assertTransition } from "@/lib/orders/workflow-validation";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -31,11 +32,25 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Only shipped orders can be marked out for delivery" }, { status: 400 });
   }
 
+  // Courier (Rapido/DTDC) orders end at shipped — cannot move to out_for_delivery.
+  if (order.fulfillment_method === "rapido" || order.fulfillment_method === "dtdc") {
+    return NextResponse.json(
+      { error: "Rapido and DTDC orders cannot be marked out for delivery." },
+      { status: 400 }
+    );
+  }
+
+  const transitionError = assertTransition(order.status as string, "out_for_delivery");
+  if (transitionError) {
+    return NextResponse.json({ error: transitionError }, { status: 400 });
+  }
+
   const now = new Date().toISOString();
   const { data: updated, error } = await auth.ctx.db
     .from("orders")
     .update({ status: "out_for_delivery", updated_at: now })
     .eq("id", id)
+    .eq("status", "shipped")
     .select("*")
     .maybeSingle();
 

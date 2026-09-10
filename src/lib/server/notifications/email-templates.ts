@@ -11,15 +11,20 @@ import {
   getRapidoDeliveryDetails,
   resolveOrderCourierName
 } from "@/lib/orders/rapido-delivery-metadata";
+import {
+  formatStoreInformationFromAddressLines
+} from "@/lib/orders/customer-shipment-display";
 import { formatReminderDelayLabel } from "@/lib/server/notifications/reminder-config";
 import { buildAdminNewOrderPremiumEmail } from "@/lib/server/notifications/build-admin-new-order-email";
 import {
   adminDashboardEmailUrl,
-  adminOrderEmailUrl,
   emailAppUrl
 } from "@/lib/server/notifications/email-app-url";
 import { STORE_NAME, STORE_TIMEZONE } from "@/lib/site-config";
-import { getStoreInformation } from "@/lib/settings/store-information";
+import {
+  fetchStoreInformationShipmentSource,
+  getStoreInformation
+} from "@/lib/settings/store-information";
 import type { OrderEmailActionUrls } from "@/lib/server/order-actions/tokens";
 import type { OrderNotificationEvent } from "@/lib/notifications/types";
 import type { Order } from "@/types";
@@ -284,8 +289,8 @@ function customerOrderSummaryCardHtml(
 }
 
 
-function adminActionButtonsHtml(order: Order): string {
-  const approveUrl = adminOrderEmailUrl(order.id);
+function adminActionButtonsHtml(actionUrls: OrderEmailActionUrls): string {
+  const approveUrl = actionUrls.approveUrl;
   const dashboardUrl = adminDashboardEmailUrl();
   return `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;">
     <tr>
@@ -307,9 +312,49 @@ function resolveDeliveryPartnerLabel(order: Order): string {
   return resolveOrderCourierName(order);
 }
 
-function customerDeliveryPartnerCardHtml(order: Order): string {
-  const rapido = getRapidoDeliveryDetails(order);
+function customerDeliveryPartnerCardHtml(
+  order: Order,
+  shippingOrigin: { storeName: string; address: string }
+): string {
+  const isDtdc =
+    order.fulfillment_method === "dtdc" ||
+    (order.courier_name ?? "").toLowerCase() === "dtdc";
+
   const deliveryPartner = escapeHtml(resolveDeliveryPartnerLabel(order));
+  const tracking =
+    order.tracking_number?.trim() ||
+    order.tracking_id?.trim() ||
+    "";
+  const trackingRow = tracking
+    ? `<tr><td style="color:${MUTED};vertical-align:top;">Tracking Number</td><td style="font-weight:600;">${escapeHtml(tracking)}</td></tr>`
+    : "";
+  const toAddress = escapeHtml(formatAddressLinesOnly(order)).replace(/\n/g, "<br/>");
+  const fromLines = formatStoreInformationFromAddressLines(shippingOrigin);
+  const fromHtml = escapeHtml(fromLines.length ? fromLines.join("\n") : "—").replace(
+    /\n/g,
+    "<br/>"
+  );
+
+  if (isDtdc) {
+    return `
+    ${cardOpen()}
+      <tr>
+        <td style="padding:18px 16px;">
+          <p style="margin:0 0 14px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${GOLD};">Shipment Details</p>
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.9;">
+            <tr><td style="color:${MUTED};width:46%;vertical-align:top;">Order ID</td><td style="font-weight:600;">${escapeHtml(order.order_number)}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Courier</td><td style="font-weight:600;">${deliveryPartner}</td></tr>
+            ${trackingRow}
+            <tr><td style="color:${MUTED};vertical-align:top;">Status</td><td style="font-weight:600;">Shipped</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">From</td><td style="font-weight:600;">${fromHtml}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">To</td><td style="font-weight:600;">${toAddress}</td></tr>
+          </table>
+        </td>
+      </tr>
+    ${cardClose()}`;
+  }
+
+  const rapido = getRapidoDeliveryDetails(order);
   const riderName = escapeHtml(rapido?.rider_name?.trim() || "—");
   const riderPhone = escapeHtml(rapido?.rider_phone?.trim() || "—");
   const vehicleNumber = escapeHtml(rapido?.vehicle_number?.trim() || "—");
@@ -326,7 +371,12 @@ function customerDeliveryPartnerCardHtml(order: Order): string {
         <td style="padding:18px 16px;">
           <p style="margin:0 0 14px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${GOLD};">Delivery Details</p>
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.9;">
-            <tr><td style="color:${MUTED};width:46%;vertical-align:top;">Delivery Partner</td><td style="font-weight:600;">${deliveryPartner}</td></tr>
+            <tr><td style="color:${MUTED};width:46%;vertical-align:top;">Order ID</td><td style="font-weight:600;">${escapeHtml(order.order_number)}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">Courier</td><td style="font-weight:600;">${deliveryPartner}</td></tr>
+            ${trackingRow}
+            <tr><td style="color:${MUTED};vertical-align:top;">Status</td><td style="font-weight:600;">Shipped</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">From</td><td style="font-weight:600;">${fromHtml}</td></tr>
+            <tr><td style="color:${MUTED};vertical-align:top;">To</td><td style="font-weight:600;">${toAddress}</td></tr>
             <tr><td style="color:${MUTED};vertical-align:top;">Rider Name</td><td style="font-weight:600;">${riderName}</td></tr>
             <tr><td style="color:${MUTED};vertical-align:top;">Phone</td><td style="font-weight:600;">${riderPhone}</td></tr>
             <tr><td style="color:${MUTED};vertical-align:top;">Vehicle Number</td><td style="font-weight:600;">${vehicleNumber}</td></tr>
@@ -363,14 +413,15 @@ function adminOrderShippedBody(order: Order): string {
 }
 
 export async function buildCustomerOrderShippedEmail(order: Order): Promise<{ subject: string; html: string }> {
-  const [customerCopy, storeName] = await Promise.all([
+  const [customerCopy, storeName, shippingOrigin] = await Promise.all([
     resolveCustomerEmailBranchCopy(order.branch_id),
-    emailStoreName()
+    emailStoreName(),
+    fetchStoreInformationShipmentSource()
   ]);
   const body = `
     ${customerGreetingHtml(order)}
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:${TEXT};">Good news! Your order has been shipped and is on its way.</p>
-    ${customerDeliveryPartnerCardHtml(order)}`;
+    ${customerDeliveryPartnerCardHtml(order, shippingOrigin)}`;
 
   return {
     subject: `📦 Your Order Has Been Shipped — ${order.order_number}`,
@@ -454,7 +505,7 @@ export async function buildCustomerOrderDeliveredEmail(order: Order): Promise<{ 
 
 export async function buildPendingOrderReminderEmail(
   order: Order,
-  _actionUrls: OrderEmailActionUrls
+  actionUrls: OrderEmailActionUrls
 ): Promise<{ subject: string; html: string }> {
   const storeName = await emailStoreName();
   const body = `
@@ -463,7 +514,7 @@ export async function buildPendingOrderReminderEmail(
     ${orderSummaryCardHtml(order, { totalAmountLabel: true })}
     ${adminCustomerDetailsCardHtml(order)}
     ${adminShippingAddressStructuredCardHtml(order)}
-    ${adminActionButtonsHtml(order)}`;
+    ${adminActionButtonsHtml(actionUrls)}`;
   return {
     subject: `🔔 Pending Order Reminder — ${order.order_number}`,
     html: emailShell(`Pending Order Reminder — ${order.order_number}`, body, {

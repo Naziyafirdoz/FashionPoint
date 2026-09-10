@@ -8,9 +8,9 @@ export function isValidIndianMobile(value: string): boolean {
   return /^[6-9]\d{9}$/.test(normalizeIndianMobile(value));
 }
 
+/** Non-empty trimmed name — single names (e.g. "Nazima") are valid. */
 export function isValidFullName(name: string): boolean {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  return words.length >= 2;
+  return name.trim().length > 0;
 }
 
 export function isValidEmail(email: string): boolean {
@@ -37,7 +37,7 @@ export function validateCheckoutContact(fields: {
   email: string;
 }): ContactValidationResult {
   if (!isValidFullName(fields.name)) {
-    return { ok: false, field: "name", message: "Enter your full name (at least first and last name)." };
+    return { ok: false, field: "name", message: "Please enter your full name." };
   }
   if (!isValidIndianMobile(fields.phone)) {
     return {
