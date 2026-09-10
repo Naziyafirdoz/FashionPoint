@@ -28,6 +28,7 @@ type OrdersTableProps = {
   onStartProcessing?: (order: OrderListRow) => void;
   onApproveOrder?: (order: OrderListRow) => void;
   onStartPacking?: (order: OrderListRow) => void;
+  onMarkPacked?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
@@ -55,6 +56,7 @@ export function OrdersTable({
   onStartProcessing,
   onApproveOrder,
   onStartPacking,
+  onMarkPacked,
   onReadyForShipping,
   onMarkShipped,
   onMarkDelivered,
@@ -68,7 +70,7 @@ export function OrdersTable({
           <th className={`${thClass} w-[18%]`}>Customer</th>
           <th className={`${thClass} w-[10%]`}>Total</th>
           <th className={`${thClass} w-[12%]`}>Payment</th>
-          <th className={`${thClass} w-[13%]`}>Status</th>
+          <th className={`${thClass} w-[13%]`}>Fulfillment</th>
           <th className={`${thClass} w-[11%]`}>Branch</th>
           <th className={`${thClass} hidden w-[9%] lg:table-cell`}>Items</th>
           <th className={`${thClass} w-[15%] lg:w-[15%]`}>Actions</th>
@@ -148,6 +150,7 @@ export function OrdersTable({
                     onStartProcessing={onStartProcessing}
                     onApproveOrder={onApproveOrder}
                     onStartPacking={onStartPacking}
+                    onMarkPacked={onMarkPacked}
                     onReadyForShipping={onReadyForShipping}
                     onMarkShipped={onMarkShipped}
                     onMarkDelivered={onMarkDelivered}

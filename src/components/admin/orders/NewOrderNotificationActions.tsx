@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type NewOrderNotificationActionsProps = {
   orderId: string;
@@ -10,33 +10,16 @@ type NewOrderNotificationActionsProps = {
   onActionComplete?: () => void;
 };
 
+/** Remind / view only — order approval is email-only. */
 export function NewOrderNotificationActions({
   orderId,
   disabled = false,
   onActionComplete
 }: NewOrderNotificationActionsProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState<"approve" | "remind" | null>(null);
-
-  const approve = async () => {
-    setLoading("approve");
-    try {
-      const res = await fetch(`/api/admin/orders/${orderId}/approve-order`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to approve order");
-        return;
-      }
-      toast.success(data.message ?? "Order approved");
-      onActionComplete?.();
-      router.refresh();
-    } finally {
-      setLoading(null);
-    }
-  };
+  const [loading, setLoading] = useState(false);
 
   const remindLater = async () => {
-    setLoading("remind");
+    setLoading(true);
     try {
       const res = await fetch(`/api/admin/orders/${orderId}/remind-later`, {
         method: "POST",
@@ -51,28 +34,32 @@ export function NewOrderNotificationActions({
       toast.success(data.message ?? "Reminder scheduled");
       onActionComplete?.();
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      <button
-        type="button"
-        disabled={disabled || loading != null}
-        onClick={() => void approve()}
-        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
-      >
-        {loading === "approve" ? "Approving…" : "Approve"}
-      </button>
-      <button
-        type="button"
-        disabled={disabled || loading != null}
-        onClick={() => void remindLater()}
-        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-      >
-        {loading === "remind" ? "Scheduling…" : "Remind 2 Hours"}
-      </button>
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] leading-snug text-gray-500">
+        Approve this order from the <span className="font-semibold">Approve Order</span> button in
+        the new-order email.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/admin/orders/${orderId}`}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90"
+        >
+          View Order
+        </Link>
+        <button
+          type="button"
+          disabled={disabled || loading}
+          onClick={() => void remindLater()}
+          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+        >
+          {loading ? "Scheduling…" : "Remind 2 Hours"}
+        </button>
+      </div>
     </div>
   );
 }

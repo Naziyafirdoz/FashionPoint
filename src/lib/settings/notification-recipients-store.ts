@@ -14,9 +14,23 @@ import {
 const RECIPIENT_SELECT =
   "id,email,enabled,notify_new_order,notify_low_stock,notify_cancel_request,notify_refund_request,notify_payment_failed,notify_new_review,notify_contact_form,created_at,updated_at";
 
-export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null): Promise<boolean> {
+/** Stored under store_settings.key = notification_email (JSON). */
+export type NotificationEmailSettingsValue = {
+  /** Global master switch for admin/staff notification emails. */
+  enabled?: boolean;
+  /**
+   * Delivery Assigned emails to the assigned delivery staff login email.
+   * Independent of notification_recipients — does not use that list.
+   * Defaults to true when unset.
+   */
+  delivery_assigned_enabled?: boolean;
+};
+
+async function loadNotificationEmailSettingsValue(
+  db?: SupabaseClient | null
+): Promise<NotificationEmailSettingsValue> {
   const client = db ?? createServiceClient();
-  if (!client) return true;
+  if (!client) return {};
 
   const { data } = await client
     .from("store_settings")
@@ -24,8 +38,37 @@ export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null):
     .eq("key", NOTIFICATION_EMAIL_SETTINGS_KEY)
     .maybeSingle();
 
-  if (!data?.value || typeof data.value !== "object") return true;
-  const value = data.value as { enabled?: boolean };
+  if (!data?.value || typeof data.value !== "object" || Array.isArray(data.value)) {
+    return {};
+  }
+  return data.value as NotificationEmailSettingsValue;
+}
+
+async function saveNotificationEmailSettingsValue(
+  patch: NotificationEmailSettingsValue,
+  db?: SupabaseClient | null
+): Promise<{ ok: boolean; error?: string }> {
+  const client = db ?? createServiceClient();
+  if (!client) return { ok: false, error: "Database not configured" };
+
+  const current = await loadNotificationEmailSettingsValue(client);
+  const next: NotificationEmailSettingsValue = {
+    ...current,
+    ...patch
+  };
+
+  const { error } = await client.from("store_settings").upsert({
+    key: NOTIFICATION_EMAIL_SETTINGS_KEY,
+    value: next,
+    updated_at: new Date().toISOString()
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function loadEmailNotificationsEnabled(db?: SupabaseClient | null): Promise<boolean> {
+  const value = await loadNotificationEmailSettingsValue(db);
   return value.enabled !== false;
 }
 
@@ -33,17 +76,22 @@ export async function saveEmailNotificationsEnabled(
   enabled: boolean,
   db?: SupabaseClient | null
 ): Promise<{ ok: boolean; error?: string }> {
-  const client = db ?? createServiceClient();
-  if (!client) return { ok: false, error: "Database not configured" };
+  return saveNotificationEmailSettingsValue({ enabled }, db);
+}
 
-  const { error } = await client.from("store_settings").upsert({
-    key: NOTIFICATION_EMAIL_SETTINGS_KEY,
-    value: { enabled },
-    updated_at: new Date().toISOString()
-  });
+/** Whether Delivery Assigned emails may be sent (defaults true). */
+export async function loadDeliveryAssignedEmailEnabled(
+  db?: SupabaseClient | null
+): Promise<boolean> {
+  const value = await loadNotificationEmailSettingsValue(db);
+  return value.delivery_assigned_enabled !== false;
+}
 
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+export async function saveDeliveryAssignedEmailEnabled(
+  enabled: boolean,
+  db?: SupabaseClient | null
+): Promise<{ ok: boolean; error?: string }> {
+  return saveNotificationEmailSettingsValue({ delivery_assigned_enabled: enabled }, db);
 }
 
 export async function listNotificationRecipients(

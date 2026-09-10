@@ -308,9 +308,50 @@ export async function fetchStoreInformation(): Promise<StoreInformation> {
   }
 }
 
-export const getStoreInformation = unstable_cache(fetchStoreInformation, ["store-information"], {
+/**
+ * Raw Admin → Settings → Store Information fields for My Orders shipment FROM.
+ * Reads `store_settings.key = store_information` only — no site-config / DEFAULT fallbacks.
+ */
+export async function fetchStoreInformationShipmentSource(): Promise<{
+  storeName: string;
+  address: string;
+}> {
+  try {
+    const db = createServiceClient();
+    if (!db) return { storeName: "", address: "" };
+
+    const { data, error } = await db
+      .from("store_settings")
+      .select("value")
+      .eq("key", STORE_INFORMATION_KEY)
+      .maybeSingle();
+
+    if (error || data?.value == null || typeof data.value !== "object" || Array.isArray(data.value)) {
+      return { storeName: "", address: "" };
+    }
+
+    const row = data.value as Record<string, unknown>;
+    return {
+      storeName: typeof row.storeName === "string" ? row.storeName.trim() : "",
+      address: typeof row.address === "string" ? row.address.trim() : ""
+    };
+  } catch {
+    return { storeName: "", address: "" };
+  }
+}
+
+const cachedFetchStoreInformation = unstable_cache(fetchStoreInformation, ["store-information"], {
   tags: [STORE_INFORMATION_CACHE_TAG]
 });
+
+/** Cached when Next.js request cache is available; falls back to a direct DB read. */
+export async function getStoreInformation(): Promise<StoreInformation> {
+  try {
+    return await cachedFetchStoreInformation();
+  } catch {
+    return fetchStoreInformation();
+  }
+}
 
 export async function getPublicStoreInformation(): Promise<PublicStoreInformation> {
   return toPublicStoreInformation(await getStoreInformation());

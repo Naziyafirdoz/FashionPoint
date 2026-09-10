@@ -10,6 +10,8 @@ import {
   Store,
   Truck,
   Package,
+  Users,
+  Mail,
   type LucideIcon
 } from "lucide-react";
 import type { IntegrationStatusItem, PaymentsSettingsStatus } from "@/lib/settings/integration-status";
@@ -22,6 +24,8 @@ import { AdminShippingSettings } from "./AdminShippingSettings";
 import { AdminStoreInformation } from "./AdminStoreInformation";
 import { AdminBrandingSettings } from "./AdminBrandingSettings";
 import { AdminBranchesSettings } from "./AdminBranchesSettings";
+import { AdminStaffRolesSettings } from "./AdminStaffRolesSettings";
+import { AdminEmailTemplatesSettings } from "./AdminEmailTemplatesSettings";
 
 type SettingsSectionId =
   | "general"
@@ -31,7 +35,9 @@ type SettingsSectionId =
   | "branches"
   | "payments"
   | "integrations"
-  | "notifications";
+  | "notifications"
+  | "email_templates"
+  | "staff";
 
 type ActiveSection = {
   id: SettingsSectionId;
@@ -47,12 +53,12 @@ const ACTIVE_SECTIONS: ActiveSection[] = [
   { id: "branches", label: "Branches", icon: Package },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "integrations", label: "Integrations", icon: PlugZap },
-  { id: "notifications", label: "Notifications", icon: Bell }
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "email_templates", label: "Email Templates", icon: Mail },
+  { id: "staff", label: "Staff & Roles", icon: Users }
 ];
 
 const FUTURE_SECTIONS = [
-  "Email Templates",
-  "Staff & Roles",
   "AI Settings",
   "Backup & Security",
   "System Logs"
@@ -123,6 +129,8 @@ export function AdminSettingsClient({
           <AdminIntegrationsSettings integrations={integrations} />
         )}
         {activeSection === "notifications" && <AdminNotificationSettings />}
+        {activeSection === "email_templates" && <AdminEmailTemplatesSettings />}
+        {activeSection === "staff" && <AdminStaffRolesSettings />}
       </div>
     </div>
   );

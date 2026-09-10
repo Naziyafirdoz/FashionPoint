@@ -124,9 +124,9 @@ export function DeliveryFollowUpNotificationCard({
           type="button"
           disabled={loading != null}
           onClick={() => void handleMarkDelivered()}
-          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+          className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-50"
         >
-          {loading === "deliver" ? "Updating…" : "✅ Mark Delivered"}
+          {loading === "deliver" ? "Updating…" : "Admin Override: Mark Delivered"}
         </button>
         <button
           type="button"

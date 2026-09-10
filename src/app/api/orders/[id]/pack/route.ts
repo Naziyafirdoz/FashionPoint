@@ -1,8 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin/require-admin";
+import { requireStaff } from "@/lib/admin/require-staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { assertTransition } from "@/lib/orders/workflow-validation";
+import { normalizeLegacyStatus } from "@/lib/orders/status-config";
+import { notifyAdminWorkerPacked } from "@/lib/server/notifications/new-order-alerts";
 import type { Order } from "@/types";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -20,25 +21,13 @@ function isPackedAtSchemaError(error: { message?: string; code?: string } | null
   );
 }
 
-async function buildPackUpdatePayload(
-  db: SupabaseClient,
-  now: string
-): Promise<Record<string, unknown>> {
-  const payload: Record<string, unknown> = {
-    status: "ready_to_ship",
-    updated_at: now
-  };
-
-  const { error: probeError } = await db.from("orders").select("packed_at").limit(0);
-  if (!probeError) {
-    payload.packed_at = now;
-  }
-
-  return payload;
-}
-
+/**
+ * Admin Mark Packed — same fulfillment step as worker `/api/worker/orders/[id]/packed`.
+ * packing_assigned → packed (does NOT skip to ready_to_ship).
+ * delivery_worker is not allowed.
+ */
 export async function POST(_req: Request, { params }: RouteContext) {
-  const auth = await requireAdmin();
+  const auth = await requireStaff(["owner", "admin", "worker"]);
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -57,26 +46,31 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const rawStatus = existing.status as string;
-  const status =
-    rawStatus === "cod_verification"
-      ? "processing"
-      : rawStatus === "shipped"
-        ? "out_for_delivery"
-        : existing.status;
+  const status = normalizeLegacyStatus(existing.status as string);
+  if (status !== "packing_assigned") {
+    return NextResponse.json(
+      { error: "Only orders in packing can be marked packed" },
+      { status: 400 }
+    );
+  }
 
-  const transitionError = assertTransition(status, "ready_to_ship");
+  const transitionError = assertTransition(existing.status as string, "packed");
   if (transitionError) {
     return NextResponse.json({ error: transitionError }, { status: 400 });
   }
 
   const now = new Date().toISOString();
-  let updatePayload = await buildPackUpdatePayload(auth.ctx.db, now);
+  let updatePayload: Record<string, unknown> = {
+    status: "packed",
+    packed_at: now,
+    updated_at: now
+  };
 
   let { data: updated, error } = await auth.ctx.db
     .from("orders")
     .update(updatePayload)
     .eq("id", id)
+    .eq("status", "packing_assigned")
     .select("*")
     .maybeSingle();
 
@@ -84,11 +78,12 @@ export async function POST(_req: Request, { params }: RouteContext) {
     if (isDev) {
       console.warn("[pack-order] retry without packed_at", { orderId: id, error });
     }
-    updatePayload = { status: "ready_to_ship", updated_at: now };
+    updatePayload = { status: "packed", updated_at: now };
     const retry = await auth.ctx.db
       .from("orders")
       .update(updatePayload)
       .eq("id", id)
+      .eq("status", "packing_assigned")
       .select("*")
       .maybeSingle();
     updated = retry.data;
@@ -106,10 +101,23 @@ export async function POST(_req: Request, { params }: RouteContext) {
   }
 
   if (!updated) {
-    return NextResponse.json({ error: "Order not found after update" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Order could not be marked packed — status may have changed" },
+      { status: 409 }
+    );
   }
 
   const normalized = await normalizeOrderRecord(auth.ctx.db, updated as Order, { persist: false });
 
-  return NextResponse.json({ success: true, order: normalized, message: "Order packed — ready to ship" });
+  try {
+    await notifyAdminWorkerPacked(auth.ctx.db, normalized);
+  } catch (err) {
+    console.error("[pack-order] notifications failed", { orderId: id, error: err });
+  }
+
+  return NextResponse.json({
+    success: true,
+    order: normalized,
+    message: "Order marked packed"
+  });
 }

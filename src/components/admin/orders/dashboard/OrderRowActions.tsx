@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { OrderPrimaryAction } from "@/lib/orders/admin-order-ui";
+import {
+  isAssignedDeliveryBoyOutForDelivery,
+  type OrderPrimaryAction
+} from "@/lib/orders/admin-order-ui";
 import type { OrderListRow } from "@/lib/orders/admin-orders";
 
 type OrderRowActionsProps = {
@@ -12,6 +15,7 @@ type OrderRowActionsProps = {
   onStartProcessing?: (order: OrderListRow) => void;
   onApproveOrder?: (order: OrderListRow) => void;
   onStartPacking?: (order: OrderListRow) => void;
+  onMarkPacked?: (order: OrderListRow) => void;
   onReadyForShipping?: (order: OrderListRow) => void;
   onMarkShipped?: (order: OrderListRow) => void;
   onMarkDelivered?: (order: OrderListRow) => void;
@@ -27,6 +31,7 @@ export function OrderRowActions({
   onStartProcessing,
   onApproveOrder,
   onStartPacking,
+  onMarkPacked,
   onReadyForShipping,
   onMarkShipped,
   onMarkDelivered,
@@ -57,6 +62,9 @@ export function OrderRowActions({
       case "start_packing":
         onStartPacking?.(order);
         break;
+      case "mark_packed":
+        onMarkPacked?.(order);
+        break;
       case "ready_for_shipping":
         onReadyForShipping?.(order);
         break;
@@ -75,10 +83,20 @@ export function OrderRowActions({
   };
 
   const showPrimary = primaryAction.type !== "view";
+  const fulfillViaDetail = primaryAction.type === "mark_shipped";
+  const showAdminOverrideMarkDelivered =
+    isAssignedDeliveryBoyOutForDelivery(order) && typeof onMarkDelivered === "function";
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      {showPrimary ? (
+      {fulfillViaDetail ? (
+        <Link
+          href={`/admin/orders/${order.id}`}
+          className="max-w-full truncate rounded-xl bg-primary px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90 sm:px-3"
+        >
+          {primaryAction.label}
+        </Link>
+      ) : showPrimary ? (
         <button
           type="button"
           disabled={busy}
@@ -150,6 +168,20 @@ export function OrderRowActions({
                 }}
               >
                 Download Invoice PDF
+              </button>
+            ) : null}
+            {showAdminOverrideMarkDelivered ? (
+              <button
+                type="button"
+                role="menuitem"
+                disabled={busy}
+                className="block w-full px-3 py-2 text-left text-xs text-amber-900 hover:bg-amber-50 disabled:opacity-50"
+                onClick={() => {
+                  onMarkDelivered?.(order);
+                  setOpen(false);
+                }}
+              >
+                Admin Override: Mark Delivered
               </button>
             ) : null}
           </div>

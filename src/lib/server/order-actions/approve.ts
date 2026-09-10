@@ -51,57 +51,68 @@ export async function executeOrderApproval(
     performedBy: context.performedBy ?? null
   });
 
-  const approvalPayload: Record<string, string | null> = {
+  // Main happy path: approval confirms the order; admin then clicks Ready for Shipping.
+  // Prefer columns that always exist; include approved_* when the DB supports them.
+  const corePayload: Record<string, string | null> = {
     status: "confirmed",
     confirmed_at: now,
-    approved_at: now,
-    approved_by: context.performedBy ?? null,
     updated_at: now
   };
 
-  const { data: updated, error } = await db
-    .from("orders")
-    .update(approvalPayload)
-    .eq("id", orderId)
-    .in("status", ["pending", "processing"])
-    .select("*")
-    .maybeSingle();
+  const withApprovalMeta: Record<string, string | null> = {
+    ...corePayload,
+    approved_at: now,
+    approved_by: context.performedBy ?? null
+  };
 
-  if (error) {
-    if (error.message.includes("approved_at") || error.message.includes("approved_by")) {
-      const { data: fallbackUpdated, error: fallbackError } = await db
-        .from("orders")
-        .update({ status: "confirmed", confirmed_at: now, updated_at: now })
-        .eq("id", orderId)
-        .in("status", ["pending", "processing"])
-        .select("*")
-        .maybeSingle();
+  let updated: Order | null = null;
 
-      if (fallbackError) {
-        logWorkflow(
-          "order_approval_failed",
-          { orderId, error: fallbackError.message },
-          "error"
-        );
-        return { ok: false, status: "error", message: fallbackError.message };
+  {
+    const first = await db
+      .from("orders")
+      .update(withApprovalMeta)
+      .eq("id", orderId)
+      .in("status", ["pending", "processing"])
+      .select("*")
+      .maybeSingle();
+
+    if (first.error) {
+      if (
+        first.error.message.includes("approved_at") ||
+        first.error.message.includes("approved_by")
+      ) {
+        const fallback = await db
+          .from("orders")
+          .update(corePayload)
+          .eq("id", orderId)
+          .in("status", ["pending", "processing"])
+          .select("*")
+          .maybeSingle();
+
+        if (fallback.error) {
+          logWorkflow(
+            "order_approval_failed",
+            { orderId, error: fallback.error.message },
+            "error"
+          );
+          return { ok: false, status: "error", message: fallback.error.message };
+        }
+
+        updated = (fallback.data as Order | null) ?? null;
+      } else {
+        logWorkflow("order_approval_failed", { orderId, error: first.error.message }, "error");
+        return { ok: false, status: "error", message: first.error.message };
       }
-
-      if (!fallbackUpdated) {
-        return handleApprovalConflict(db, orderId, context);
-      }
-
-      return completeApproval(db, fallbackUpdated as Order, orderId, context);
+    } else {
+      updated = (first.data as Order | null) ?? null;
     }
-
-    logWorkflow("order_approval_failed", { orderId, error: error.message }, "error");
-    return { ok: false, status: "error", message: error.message };
   }
 
   if (!updated) {
     return handleApprovalConflict(db, orderId, context);
   }
 
-  return completeApproval(db, updated as Order, orderId, context);
+  return completeApproval(db, updated, orderId, context);
 }
 
 async function handleApprovalConflict(
@@ -130,7 +141,16 @@ async function handleApprovalConflict(
     currentStatus: status
   }, "warn");
 
-  if (status === "confirmed") {
+  // Already past approval (confirmed, ready_to_ship, packing/shipped, or delivered).
+  if (
+    status === "confirmed" ||
+    status === "ready_to_ship" ||
+    status === "packing_assigned" ||
+    status === "packed" ||
+    status === "shipped" ||
+    status === "out_for_delivery" ||
+    status === "delivered"
+  ) {
     await logAlreadyApprovedAttempt(db, orderId, context);
     return { ok: true, status: "already_approved", order: normalized };
   }
@@ -157,7 +177,7 @@ async function completeApproval(
   logWorkflow("order_status_transition", {
     orderId,
     orderNumber: updated.order_number,
-    toStatus: "confirmed",
+    toStatus: updated.status ?? "confirmed",
     approvedAt: updated.approved_at ?? now,
     approvedBy: updated.approved_by ?? context.performedBy ?? null
   });

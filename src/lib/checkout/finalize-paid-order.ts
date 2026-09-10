@@ -15,8 +15,12 @@ type FinalizePaidOrderInput = {
 };
 
 /**
- * After verified Razorpay payment: mark paid + processing (awaiting admin approval),
- * deduct stock, create shipment, and dispatch customer + admin notifications.
+ * After verified Razorpay payment (or intentional demo verify):
+ * mark paid + processing (awaiting admin approval), deduct stock, create shipment,
+ * and dispatch customer + admin notifications.
+ *
+ * Inventory is deducted only here — not at cart or unpaid order create.
+ * TODO / known limitation: cancellation does not currently restore deducted stock.
  */
 export async function finalizePaidOrder(
   db: SupabaseClient,

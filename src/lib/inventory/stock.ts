@@ -114,6 +114,12 @@ export async function deductOrderStock(
   db: SupabaseClient,
   items: OrderLine[]
 ): Promise<{ error?: string }> {
+  /**
+   * Stock is reduced only after successful payment finalize.
+   * Known limitation: cancelled/refunded orders do not automatically restore
+   * variant stock — ops must adjust inventory in admin if needed.
+   * TODO: decide and implement cancel/refund restock policy separately.
+   */
   const touchedProducts = new Set<string>();
 
   for (const item of items) {

@@ -9,8 +9,7 @@ import { normalizeOrderItems } from "@/lib/orders/order-items";
 import { AdminNewOrderEmail, type AdminNewOrderEmailProps } from "@/emails/AdminNewOrderEmail";
 import { resolveCustomerEmailBranchCopy } from "@/lib/server/notifications/customer-email-branch-copy";
 import {
-  adminDashboardEmailUrl,
-  adminOrderEmailUrl
+  adminDashboardEmailUrl
 } from "@/lib/server/notifications/email-app-url";
 import { getStoreInformation } from "@/lib/settings/store-information";
 import { STORE_NAME } from "@/lib/site-config";
@@ -47,7 +46,7 @@ function formatShippingAddressLines(order: Order): string {
 
 export function mapOrderToAdminNewOrderEmailProps(
   order: Order,
-  _actionUrls: OrderEmailActionUrls
+  actionUrls: OrderEmailActionUrls
 ): AdminNewOrderEmailProps {
   const lines = normalizeOrderItems(order.items);
   const line = lines[0];
@@ -72,7 +71,8 @@ export function mapOrderToAdminNewOrderEmailProps(
     customerPhone: customerPhone(order),
     customerEmail: customerEmail(order),
     shippingAddressText: formatShippingAddressLines(order),
-    approveUrl: adminOrderEmailUrl(order.id),
+    // Must be the tokenized /api/order-actions/approve URL — NOT the admin order page.
+    approveUrl: actionUrls.approveUrl,
     dashboardUrl: adminDashboardEmailUrl(),
     storeName: STORE_NAME,
     locationLine: STORE_NAME
@@ -94,6 +94,18 @@ export async function buildAdminNewOrderPremiumEmail(
     locationLine: customerCopy.locationLine
   };
   const html = await render(AdminNewOrderEmail(props));
+
+  console.info("[admin-new-order-email] approve CTA", {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    approvePath: (() => {
+      try {
+        return new URL(props.approveUrl).pathname + new URL(props.approveUrl).search.slice(0, 24);
+      } catch {
+        return "invalid-url";
+      }
+    })()
+  });
 
   return {
     subject: `🔔 New Order Alert — ${order.order_number}`,

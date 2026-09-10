@@ -3,10 +3,11 @@ import { createServiceClient } from "@/lib/supabase";
 import { fetchCustomerOrdersForUser, CUSTOMER_ORDER_LIST_SELECT } from "@/lib/orders/customer-order-retrieval";
 import { redirect } from "next/navigation";
 import { OrdersPageShell } from "@/components/account/OrdersList";
-import { getStoreInformation } from "@/lib/settings/store-information";
+import { fetchStoreInformationShipmentSource } from "@/lib/settings/store-information";
 import type { Order } from "@/types";
 
 export const metadata = { title: "My Orders" };
+export const dynamic = "force-dynamic";
 
 export default async function AccountOrdersPage() {
   const supabase = await createClient();
@@ -56,7 +57,8 @@ export default async function AccountOrdersPage() {
     count: orders.length
   });
 
-  const store = await getStoreInformation();
+  // Same source as /api/orders?scope=customer — raw store_settings, no site-config defaults.
+  const store = await fetchStoreInformationShipmentSource();
 
   return (
     <OrdersPageShell
@@ -64,6 +66,7 @@ export default async function AccountOrdersPage() {
       orders={orders}
       userId={user.id}
       storeName={store.storeName}
+      storeAddress={store.address}
     />
   );
 }

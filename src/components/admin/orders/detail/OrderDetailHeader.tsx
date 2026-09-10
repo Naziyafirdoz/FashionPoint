@@ -73,7 +73,9 @@ export function OrderDetailHeader({
           <dd className="text-sm text-gray-600">{customerPhone(order)}</dd>
         </div>
         <div className="rounded-xl bg-gray-50 px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Payment</dt>
+          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Payment status
+          </dt>
           <dd className="mt-1 font-semibold text-gray-900">{paymentMethodLabel(order.payment_method)}</dd>
           <dd className="text-sm text-gray-600">{paymentStatusLabel(order.payment_status)}</dd>
         </div>
@@ -84,8 +86,16 @@ export function OrderDetailHeader({
           </dd>
         </div>
         <div className="rounded-xl bg-gray-50 px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Status</dt>
-          <dd className="mt-1 font-semibold text-gray-900">{getStageLabel(order)}</dd>
+          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            Fulfillment status
+          </dt>
+          <dd className="mt-1">
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${getStagePillClass(order)}`}
+            >
+              {getStageLabel(order)}
+            </span>
+          </dd>
         </div>
       </dl>
     </header>

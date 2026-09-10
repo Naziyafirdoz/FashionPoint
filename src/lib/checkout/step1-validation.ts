@@ -57,17 +57,11 @@ export function validateCheckoutStep1(input: ValidateStep1Input): Step1FieldErro
   const { address, pincodeValidated } = input;
   const errors: Step1FieldError[] = [];
 
-  if (!address.name.trim()) {
+  if (!isValidFullName(address.name)) {
     errors.push({
       field: "name",
       summaryLabel: "Full Name",
       message: "Please enter your full name."
-    });
-  } else if (!isValidFullName(address.name)) {
-    errors.push({
-      field: "name",
-      summaryLabel: "Full Name",
-      message: "Please enter your first and last name."
     });
   }
 

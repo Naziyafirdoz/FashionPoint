@@ -7,7 +7,6 @@ import {
   CircleCheck,
   ClipboardCheck,
   Info,
-  Package,
   Truck,
   type LucideIcon
 } from "lucide-react";
@@ -22,48 +21,48 @@ type WorkflowStep = {
   action?: string;
 };
 
-/** Aligned with admin-order-ui.ts primary actions and workflow-validation.ts transitions. */
+/** Aligned with the normal admin happy path (email approve → ship → deliver). */
 const WORKFLOW_STEPS: WorkflowStep[] = [
   {
     icon: Bell,
     title: "Received",
-    hint: "Checkout done. Admin email + notification.",
-    status: "Pending · Processing"
+    hint: "Paid checkout. Admin new-order email + notification. Status: Processing.",
+    status: "Processing"
   },
   {
     icon: ClipboardCheck,
     title: "Approve",
-    hint: "Review order. Confirmation email sent.",
+    hint: "Approve only from the new-order email. Customer gets confirmation email.",
     status: "Confirmed",
-    action: "Approve Order"
-  },
-  {
-    icon: Package,
-    title: "Pack",
-    hint: "Packing starts when you open a confirmed order.",
-    status: "Packing",
-    action: "Ready For Shipping"
+    action: "Approve Order (email)"
   },
   {
     icon: Truck,
-    title: "Ship",
-    hint: "Rapido guide for local. DTDC outstation.",
-    status: "Shipped",
-    action: "Mark Shipped"
+    title: "Ready for Shipping",
+    hint: "On the order detail page, mark Ready for Shipping, then choose delivery method.",
+    status: "Ready for Shipping",
+    action: "Ready for Shipping"
+  },
+  {
+    icon: Truck,
+    title: "Delivery Method",
+    hint: "Rapido or DTDC → Shipped (tracking optional). Delivery Staff → Out for Delivery.",
+    status: "Shipped / Out for Delivery",
+    action: "Choose method"
   },
   {
     icon: CircleCheck,
     title: "Delivered",
-    hint: "Mark after customer receives parcel.",
+    hint: "Mark delivered when the customer receives the parcel.",
     status: "Delivered",
     action: "Mark Delivered"
   }
 ];
 
 const ADMIN_TIPS = [
-  "Approve from the list, detail page, or email link",
-  "Staff mark Packed at /admin/worker when needed",
-  "Open the Rapido guide on ready-to-ship local orders"
+  "Approve only from the Approve Order button in the new-order email",
+  "After Confirmed, open the order and click Ready for Shipping",
+  "Then choose Rapido, DTDC, or Delivery Staff"
 ] as const;
 
 function WorkflowGrid() {
@@ -150,7 +149,9 @@ export function OrderFulfillmentGuide() {
             <p className="truncate font-display text-sm font-bold text-primary sm:text-base">
               How Order Processing Works
             </p>
-            <p className="text-xs text-gray-600">Approve → pack → ship → deliver</p>
+            <p className="text-xs text-gray-600">
+              Approve → Ready for Shipping → Choose Delivery Method → Deliver
+            </p>
           </div>
         </div>
         <ChevronDown

@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, ReturnRequest } from "@/types";
+import type { Order, ReturnRequest } from "@/types";
 import type { OrderTimelineEntry } from "@/lib/orders/refunds";
 import { isPrepaidPayment } from "@/lib/orders/payment-rules";
 import { wasOrderPaidBeforeRefund } from "@/lib/orders/refunds";
@@ -17,16 +17,23 @@ const FULFILLMENT_RANK: Record<string, number> = {
   pending: 0,
   processing: 1,
   confirmed: 2,
-  packing_assigned: 3,
-  packed: 3,
-  ready_to_ship: 4,
-  shipped: 5,
-  out_for_delivery: 5,
-  delivered: 6
+  packing_assigned: 2,
+  packed: 2,
+  ready_to_ship: 3,
+  shipped: 4,
+  out_for_delivery: 4,
+  delivered: 5
 };
 
 function statusRank(status: string): number {
   return FULFILLMENT_RANK[normalizeLegacyStatus(status)] ?? -1;
+}
+
+function isDeliveryBoyPath(order: Order): boolean {
+  if (order.fulfillment_method === "delivery_boy") return true;
+  if (order.assigned_delivery_worker_id) return true;
+  const status = normalizeLegacyStatus(order.status);
+  return status === "out_for_delivery";
 }
 
 /** All fulfillment milestones with completion derived from order status. */
@@ -39,6 +46,7 @@ export function buildFulfillmentMilestoneSteps(
   const payment = (order.payment_status ?? "").toLowerCase();
   const prepaid = isPrepaidPayment(order.payment_method);
   const paid = prepaid && wasOrderPaidBeforeRefund(payment);
+  const deliveryBoy = isDeliveryBoyPath(order);
 
   const steps: FulfillmentMilestoneStep[] = [
     {
@@ -58,50 +66,57 @@ export function buildFulfillmentMilestoneSteps(
     });
   }
 
-  steps.push(
-    {
-      label: "Order Confirmed",
-      completed: rank >= 2,
-      at: rank >= 2 ? (order.confirmed_at ?? order.updated_at ?? order.created_at) : undefined,
-      notes: rank >= 2 ? "Order approved by staff" : undefined
-    },
-    {
-      label: "Packing Started",
-      completed: rank >= 3,
+  steps.push({
+    label: "Confirmed",
+    completed: rank >= 2,
+    at: rank >= 2 ? (order.confirmed_at ?? order.approved_at ?? order.updated_at ?? order.created_at) : undefined,
+    notes: rank >= 2 ? "Order approved by staff" : undefined
+  });
+
+  steps.push({
+    label: "Ready for Shipping",
+    completed: rank >= 3,
+    at: rank >= 3 ? (order.updated_at ?? order.created_at) : undefined,
+    notes: rank >= 3 ? "Ready for dispatch" : undefined
+  });
+
+  if (deliveryBoy) {
+    steps.push({
+      label: "Out for Delivery",
+      completed: status === "out_for_delivery" || status === "delivered",
       at:
-        rank >= 3
-          ? (order.assigned_at ?? order.packed_at ?? order.updated_at ?? order.created_at)
+        status === "out_for_delivery" || status === "delivered"
+          ? (order.updated_at ?? order.created_at)
           : undefined,
-      notes: rank >= 3 ? "Packing in progress" : undefined
-    },
-    {
-      label: "Ready For Shipping",
-      completed: rank >= 4,
-      at: rank >= 4 ? (order.updated_at ?? order.created_at) : undefined,
-      notes: rank >= 4 ? "Ready for dispatch" : undefined
-    },
-    {
+      notes:
+        status === "out_for_delivery" || status === "delivered"
+          ? "Assigned to delivery staff"
+          : undefined
+    });
+  } else {
+    steps.push({
       label: "Shipped",
-      completed: rank >= 5,
+      completed: status === "shipped" || status === "delivered",
       at:
-        rank >= 5
+        status === "shipped" || status === "delivered"
           ? (order.shipping_date ?? order.updated_at ?? order.created_at)
           : undefined,
       notes:
-        rank >= 5
+        status === "shipped" || status === "delivered"
           ? `Handed to courier. ${storeName} responsibility is complete.`
           : undefined
-    },
-    {
-      label: "Delivered",
-      completed: rank >= 6,
-      at:
-        rank >= 6
-          ? (order.delivery_confirmed_at ?? order.otp_verified_at ?? order.updated_at ?? order.created_at)
-          : undefined,
-      notes: rank >= 6 ? "Delivery completed" : undefined
-    }
-  );
+    });
+  }
+
+  steps.push({
+    label: "Delivered",
+    completed: status === "delivered",
+    at:
+      status === "delivered"
+        ? (order.delivery_confirmed_at ?? order.otp_verified_at ?? order.updated_at ?? order.created_at)
+        : undefined,
+    notes: status === "delivered" ? "Delivery completed" : undefined
+  });
 
   return steps;
 }
@@ -159,6 +174,8 @@ export function buildFullOrderTimeline(
   const payment = (order.payment_status ?? "").toLowerCase();
   const prepaid = isPrepaidPayment(order.payment_method);
   const status = normalizeLegacyStatus(order.status);
+  const rank = statusRank(status);
+  const deliveryBoy = isDeliveryBoyPath(order);
 
   pushEntry(entries, "Order Placed", order.created_at, "Customer placed the order");
 
@@ -166,32 +183,44 @@ export function buildFullOrderTimeline(
     pushEntry(entries, "Payment Received", order.created_at, "Online payment confirmed");
   }
 
-  const pastProcessing: OrderStatus[] = [
-    "processing",
-    "ready_to_ship",
-    "out_for_delivery",
-    "delivered",
-    "returned"
-  ];
-  if (pastProcessing.includes(status)) {
+  if (rank >= 2) {
     pushEntry(
       entries,
-      "Processing",
-      order.updated_at ?? order.created_at,
-      "Order is being prepared"
+      "Confirmed",
+      order.confirmed_at ?? order.approved_at ?? order.updated_at ?? order.created_at,
+      "Order approved by staff"
     );
   }
 
-  if (order.packed_at || ["ready_to_ship", "out_for_delivery", "delivered", "returned"].includes(status)) {
+  // Legacy packing only — show when packing actually happened; never invent on normal path.
+  if (order.packed_at || status === "packing_assigned" || status === "packed") {
     pushEntry(
       entries,
       "Order Packed",
-      order.packed_at ?? order.updated_at,
-      "Items packed and ready for dispatch"
+      order.packed_at ?? order.assigned_at ?? order.updated_at,
+      "Items packed (legacy packing workflow)"
     );
   }
 
-  if (order.shipping_date || ["out_for_delivery", "delivered"].includes(status)) {
+  if (rank >= 3) {
+    pushEntry(
+      entries,
+      "Ready for Shipping",
+      order.updated_at ?? order.created_at,
+      "Ready for dispatch"
+    );
+  }
+
+  if (deliveryBoy) {
+    if (status === "out_for_delivery" || status === "delivered") {
+      pushEntry(
+        entries,
+        "Out for Delivery",
+        order.updated_at,
+        "Assigned to delivery staff"
+      );
+    }
+  } else if (status === "shipped" || status === "delivered" || order.shipping_date) {
     const courier = resolveOrderCourierName(order);
     const awb = order.tracking_number ?? order.tracking_id;
     const shipNotes = [courier ? `Courier: ${courier}` : null, awb ? `AWB: ${awb}` : null]
@@ -199,18 +228,9 @@ export function buildFullOrderTimeline(
       .join(" · ");
     pushEntry(
       entries,
-      "Order Shipped",
+      "Shipped",
       order.shipping_date ?? order.updated_at,
       shipNotes || `Handed to courier. ${storeName} responsibility is complete.`
-    );
-  }
-
-  if (status === "out_for_delivery" || (status === "delivered" && order.otp_verified_at)) {
-    pushEntry(
-      entries,
-      "Out For Delivery",
-      order.updated_at,
-      "Package is with the delivery agent"
     );
   }
 

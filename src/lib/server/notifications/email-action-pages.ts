@@ -99,6 +99,38 @@ export async function renderAlreadyApprovedPage(orderNumber?: string): Promise<s
   );
 }
 
+export async function renderAlreadyDeliveredPage(orderNumber?: string): Promise<string> {
+  const detail = orderNumber
+    ? `Order <strong>${escapeHtml(orderNumber)}</strong> has already been delivered.`
+    : "This order has already been delivered.";
+  return pageShell(
+    "Already Delivered",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;">✓ Order already delivered</p>
+     <p style="margin:0;color:#555;">${detail}</p>`
+  );
+}
+
+export async function renderDeliveryForbiddenPage(message?: string): Promise<string> {
+  return pageShell(
+    "Access Denied",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Delivery action not allowed</p>
+     <p style="margin:0;color:#555;">${escapeHtml(
+       message ||
+         "You are not authorized to mark this delivery. Sign in with the assigned delivery staff account."
+     )}</p>`
+  );
+}
+
+export async function renderDeliveryNotEligiblePage(message?: string): Promise<string> {
+  return pageShell(
+    "Not Available",
+    `<p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#B00020;">Delivery not available</p>
+     <p style="margin:0;color:#555;">${escapeHtml(
+       message || "This order is not eligible for delivery confirmation."
+     )}</p>`
+  );
+}
+
 export async function renderApproveSuccessPage(orderNumber: string, orderId: string): Promise<string> {
   return pageShell(
     "Order Approved",

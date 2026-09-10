@@ -270,10 +270,9 @@ async function sendEmailChannel(
     let actionUrls =
       event === "new_order" ? await createOrderEmailActionUrls(db, order.id) : null;
     if (event === "new_order" && !actionUrls) {
-      console.warn("[admin-email] token creation failed — sending alert without action buttons", {
-        orderId: order.id,
-        orderNumber: order.order_number
-      });
+      throw new Error(
+        "Unable to create secure email action tokens for Approve Order button"
+      );
     }
 
     const { Resend } = await import("resend");
@@ -289,7 +288,10 @@ async function sendEmailChannel(
       orderNumber: order.order_number,
       event: eventKey,
       to: recipients,
-      subject: template.subject
+      subject: template.subject,
+      approveUrl: actionUrls?.approveUrl
+        ? `${actionUrls.approveUrl.slice(0, 80)}…`
+        : null
     });
 
     const response = await resend.emails.send({

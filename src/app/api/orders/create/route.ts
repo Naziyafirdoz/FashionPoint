@@ -11,7 +11,9 @@ import { validateOrderItems } from "@/lib/checkout/validation";
 import { validateOrderStock } from "@/lib/inventory/stock";
 import { assertAuthoritativeClientShippingAmount } from "@/lib/shipping/order-shipping";
 import { resolveValidatedOrderAddress } from "@/lib/shipping/address-validation";
-import { computeEstimatedDeliveryDate, resolveOrderEtaZone } from "@/lib/orders/delivery-dates";
+import { computeEstimatedDeliveryDate } from "@/lib/orders/delivery-dates";
+import { resolveFulfillmentZoneForAddress } from "@/lib/orders/fulfillment-zone";
+import { getAvailableFulfillmentColumns } from "@/lib/orders/fulfillment-schema";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -26,6 +28,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const paymentMethod = String(body.payment ?? "upi");
 
+  // Order row is created in pending / payment_pending before payment verification
+  // so it can be associated with the Razorpay order/payment flow.
   if (paymentMethod === "cod") {
     return NextResponse.json({ error: "Cash on delivery is not available" }, { status: 400 });
   }
@@ -84,14 +88,10 @@ export async function POST(req: Request) {
   }
 
   const persistedBranchId = branchId.startsWith("legacy-") ? null : branchId;
-  const zone = await resolveOrderEtaZone(
-    {
-      branch_id: persistedBranchId,
-      shipping_address: orderAddress as Record<string, string>
-    },
-    db
+  const fulfillment = await resolveFulfillmentZoneForAddress(
+    orderAddress as { city?: string; state?: string; pincode?: string }
   );
-  const etaZone = zone === "outskirts" ? "outstation" : (zone as "local" | "outstation");
+  const etaZone = fulfillment.zone;
   const estimatedDeliveryDate = computeEstimatedDeliveryDate(new Date(), etaZone);
   const orderNumber = generateOrderNumber();
 
@@ -114,24 +114,30 @@ export async function POST(req: Request) {
     }
   }
 
+  const fulfillmentColumns = await getAvailableFulfillmentColumns(db);
+  const insertPayload: Record<string, unknown> = {
+    order_number: orderNumber,
+    user_id: user.id,
+    items,
+    subtotal,
+    shipping_amount: shippingAmount,
+    branch_id: persistedBranchId,
+    discount_amount: discountAmount,
+    total,
+    status: "pending",
+    payment_status: "pending",
+    payment_method: paymentMethod,
+    razorpay_order_id: razorpayOrderId,
+    shipping_address: orderAddress,
+    estimated_delivery_date: estimatedDeliveryDate
+  };
+  if (fulfillmentColumns.has("fulfillment_zone")) {
+    insertPayload.fulfillment_zone = fulfillment.zone;
+  }
+
   const { data: order, error: insertError } = await db
     .from("orders")
-    .insert({
-      order_number: orderNumber,
-      user_id: user.id,
-      items,
-      subtotal,
-      shipping_amount: shippingAmount,
-      branch_id: persistedBranchId,
-      discount_amount: discountAmount,
-      total,
-      status: "pending",
-      payment_status: "pending",
-      payment_method: paymentMethod,
-      razorpay_order_id: razorpayOrderId,
-      shipping_address: orderAddress,
-      estimated_delivery_date: estimatedDeliveryDate
-    })
+    .insert(insertPayload)
     .select("id, order_number")
     .single();
 

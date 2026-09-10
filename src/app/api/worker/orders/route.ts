@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireWorkerStaff } from "@/lib/admin/require-staff";
+import { isAssignedPackingWorkerOnly } from "@/lib/admin/staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import type { Order } from "@/types";
 
@@ -10,10 +11,10 @@ export async function GET() {
   let query = auth.ctx.db
     .from("orders")
     .select("*")
-    .in("status", ["packing_assigned", "packed", "confirmed"])
+    .in("status", ["packing_assigned", "packed"])
     .order("created_at", { ascending: false });
 
-  if (auth.ctx.role === "worker") {
+  if (isAssignedPackingWorkerOnly(auth.ctx.roles)) {
     query = query.eq("assigned_worker_id", auth.ctx.userId);
   }
 

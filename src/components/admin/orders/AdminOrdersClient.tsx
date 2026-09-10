@@ -347,46 +347,11 @@ export function AdminOrdersClient({ storeName }: { storeName: string }) {
     }
   };
 
-  const approveOrder = async (order: OrderListRow) => {
-    setUpdatingOrderId(order.id);
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/approve-order`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to approve order");
-        return;
-      }
-      applyOrderUpdate(data.order);
-      toast.success(data.message ?? "Order approved");
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  };
-
-  const startPacking = async (order: OrderListRow) => {
-    setUpdatingOrderId(order.id);
-    try {
-      const res = await fetch(`/api/orders/${order.id}/start-packing`, {
-        method: "POST",
-        credentials: "include",
-        cache: "no-store"
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Unable to start packing");
-        return;
-      }
-      if (data.order) {
-        applyOrderUpdate(data.order);
-      }
-      toast.success(data.message ?? "Packing started");
-    } finally {
-      setUpdatingOrderId(null);
-    }
-  };
-
   const readyForShipping = (order: OrderListRow) =>
     void runFulfillmentAction(order, "ready-for-shipping", "Order marked ready for shipping", "pack");
+
+  const markPacked = (order: OrderListRow) =>
+    void runFulfillmentAction(order, "pack", "Order marked packed");
 
   const markShipped = (order: OrderListRow) =>
     void runFulfillmentAction(order, "mark-shipped", "Order marked as shipped", "ship");
@@ -603,8 +568,7 @@ export function AdminOrdersClient({ storeName }: { storeName: string }) {
                 });
               }}
               onStartProcessing={startProcessing}
-              onApproveOrder={approveOrder}
-              onStartPacking={startPacking}
+              onMarkPacked={markPacked}
               onReadyForShipping={readyForShipping}
               onMarkShipped={markShipped}
               onMarkDelivered={markDelivered}

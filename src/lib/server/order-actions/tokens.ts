@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailAppUrl } from "@/lib/server/notifications/email-app-url";
 
-export type ActionTokenType = "approve" | "remind";
+export type ActionTokenType = "approve" | "remind" | "mark_delivery";
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -26,8 +26,19 @@ export function normalizeReceivedToken(raw: string): string {
   return token.trim();
 }
 
+/**
+ * App Router folder names for email action links.
+ * DB `action_type` stays underscore (`mark_delivery`); URL path uses hyphen (`mark-delivery`).
+ */
+const ACTION_URL_PATH: Record<ActionTokenType, string> = {
+  approve: "approve",
+  remind: "remind",
+  mark_delivery: "mark-delivery"
+};
+
 export function buildTokenActionUrl(action: ActionTokenType, token: string): string {
-  return emailAppUrl(`/api/order-actions/${action}?token=${encodeURIComponent(token)}`);
+  const pathSegment = ACTION_URL_PATH[action];
+  return emailAppUrl(`/api/order-actions/${pathSegment}?token=${encodeURIComponent(token)}`);
 }
 
 export type OrderEmailActionUrls = {
@@ -96,6 +107,17 @@ export async function createOrderEmailActionUrls(
     approveUrl: buildTokenActionUrl("approve", approveToken),
     remindUrl: buildTokenActionUrl("remind", remindToken)
   };
+}
+
+/** Secure Mark Delivery email button URL (opens OTP verify UI — does not deliver). */
+export async function createMarkDeliveryActionUrl(
+  db: SupabaseClient,
+  orderId: string,
+  createdBy?: string | null
+): Promise<string | null> {
+  const token = await createActionToken(db, orderId, "mark_delivery", createdBy);
+  if (!token) return null;
+  return buildTokenActionUrl("mark_delivery", token);
 }
 
 export type ValidatedActionToken = {
@@ -216,7 +238,16 @@ export async function getConfirmedOrderForUsedToken(
     .eq("id", orderId)
     .maybeSingle();
 
-  if (data?.status === "confirmed" && data.order_number) {
+  if (
+    (data?.status === "confirmed" ||
+      data?.status === "ready_to_ship" ||
+      data?.status === "packing_assigned" ||
+      data?.status === "packed" ||
+      data?.status === "shipped" ||
+      data?.status === "out_for_delivery" ||
+      data?.status === "delivered") &&
+    data.order_number
+  ) {
     return { orderNumber: data.order_number as string };
   }
 

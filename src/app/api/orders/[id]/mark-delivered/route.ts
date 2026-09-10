@@ -1,15 +1,45 @@
 import { NextResponse } from "next/server";
-import { requireStaff } from "@/lib/admin/require-staff";
+import { requireDeliveryStaff } from "@/lib/admin/require-staff";
+import { hasRole, isOwnerOrAdmin } from "@/lib/admin/staff";
 import { normalizeOrderRecord } from "@/lib/orders/normalize-order";
 import { processDeliveredNotification } from "@/lib/server/notifications/delivered-route-handler";
 import { assertTransition } from "@/lib/orders/workflow-validation";
+import { normalizeLegacyStatus } from "@/lib/orders/status-config";
 import { invalidateAdminDataCaches } from "@/lib/admin/invalidate-admin-caches";
 import type { Order } from "@/types";
+import type { StaffRole } from "@/lib/admin/require-staff";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+function canMarkDelivered(
+  roles: StaffRole[],
+  userId: string,
+  order: Order
+): { ok: true } | { ok: false; error: string } {
+  if (isOwnerOrAdmin(roles)) {
+    return { ok: true };
+  }
+
+  if (hasRole(roles, "delivery_worker")) {
+    const assigned = order.assigned_delivery_worker_id?.trim() ?? "";
+    if (!assigned || assigned !== userId) {
+      return { ok: false, error: "You can only mark orders assigned to you as delivered." };
+    }
+    const status = normalizeLegacyStatus(order.status);
+    if (status !== "out_for_delivery" && status !== "shipped") {
+      return {
+        ok: false,
+        error: "Order is not eligible for delivery confirmation."
+      };
+    }
+    return { ok: true };
+  }
+
+  return { ok: false, error: "Forbidden" };
+}
+
 export async function POST(_req: Request, { params }: RouteContext) {
-  const auth = await requireStaff(["owner", "admin", "worker"]);
+  const auth = await requireDeliveryStaff();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -26,7 +56,35 @@ export async function POST(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const status = existing.status as string;
+  const order = existing as Order;
+  const authz = canMarkDelivered(auth.ctx.roles, auth.ctx.userId, order);
+  if (!authz.ok) {
+    return NextResponse.json({ error: authz.error }, { status: 403 });
+  }
+
+  if (order.fulfillment_method === "rapido" || order.fulfillment_method === "dtdc") {
+    return NextResponse.json(
+      { error: "Rapido and DTDC orders cannot be marked as delivered." },
+      { status: 400 }
+    );
+  }
+
+  const isAdminOverride = isOwnerOrAdmin(auth.ctx.roles);
+  if (
+    !isAdminOverride &&
+    hasRole(auth.ctx.roles, "delivery_worker") &&
+    order.fulfillment_method === "delivery_boy"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Delivery Staff orders require OTP verification. Use Verify Delivery with the customer OTP."
+      },
+      { status: 400 }
+    );
+  }
+
+  const status = order.status as string;
   const transitionError = assertTransition(status, "delivered");
   if (transitionError) {
     return NextResponse.json({ error: transitionError }, { status: 400 });

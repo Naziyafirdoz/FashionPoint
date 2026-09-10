@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CustomerInformationCard } from "@/components/admin/orders/detail/CustomerInformationCard";
@@ -11,6 +11,7 @@ import { OrderTimelineFinancialCard } from "@/components/admin/orders/detail/Ord
 import { resolveDetailPrimaryAction } from "@/components/admin/orders/detail/resolveDetailAction";
 import { MarkRefundedModal } from "@/components/admin/orders/MarkRefundedModal";
 import { RapidoGuideModal } from "@/components/admin/orders/RapidoGuideModal";
+import { FulfillmentMethodChooser } from "@/components/admin/orders/FulfillmentMethodChooser";
 import { OrderProductsList } from "@/components/admin/orders/OrderProductsList";
 import { RefundInformationSection } from "@/components/admin/orders/RefundInformationSection";
 import { RefundTrackingUnavailable } from "@/components/admin/orders/RefundTrackingUnavailable";
@@ -18,6 +19,7 @@ import {
   downloadInvoicePdf,
   printOrder
 } from "@/lib/orders/admin-order-invoice";
+import { isAssignedDeliveryBoyOutForDelivery } from "@/lib/orders/admin-order-ui";
 import { applyPaymentRulesToOrder } from "@/lib/orders/payment-rules";
 import {
   canMarkAsRefunded,
@@ -27,6 +29,22 @@ import {
 import { REFUND_MIGRATION_UNAVAILABLE } from "@/lib/orders/refund-schema";
 import { triggerPostShipSideEffects } from "@/lib/orders/post-ship-side-effects";
 import { normalizeLegacyStatus } from "@/lib/orders/status-config";
+import type { FulfillmentZone } from "@/lib/orders/fulfillment-zone";
+import { formatShippingAddress } from "@/lib/orders/fulfillment-workflow";
+import {
+  formatStoreInformationFromAddressLines,
+  type StoreInformationShipmentSource
+} from "@/lib/orders/customer-shipment-display";
+import {
+  courierLabelForMethod,
+  isFulfillmentMethod,
+  methodLocked
+} from "@/lib/orders/fulfillment-method";
+import {
+  formatPickupTimeDisplay,
+  getRapidoDeliveryDetails,
+  resolveOrderCourierName
+} from "@/lib/orders/rapido-delivery-metadata";
 import { isCancellationRefundWorkflowEnabled, RETURNS_EXCHANGES_REFUNDS_DISABLED } from "@/lib/store-policy";
 import { useAdminNotifications } from "@/contexts/AdminNotificationsProvider";
 import type { Order, ReturnRequest } from "@/types";
@@ -38,69 +56,18 @@ async function refetchOrderFromApi(orderId: string): Promise<Order | null> {
   return data.order as Order;
 }
 
-/** Persist packing via API, then refetch — never mutate status locally. */
-async function persistAutoStartPacking(orderId: string, oldStatus: string): Promise<Order | null> {
-  console.info("[start-packing] old status:", oldStatus);
-  console.info("[start-packing] calling API");
-
-  let apiOk = false;
-  let apiError: string | undefined;
-  let apiReturnedStatus: string | undefined;
-
-  try {
-    const res = await fetch(`/api/orders/${orderId}/start-packing`, {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store"
-    });
-    const data = await res.json();
-    apiOk = res.ok;
-    apiError = data.error;
-    apiReturnedStatus = data.order?.status;
-
-    console.info("[start-packing] API response:", {
-      httpStatus: res.status,
-      ok: res.ok,
-      body: data
-    });
-    console.info("[start-packing] database returned status:", apiReturnedStatus ?? "(none)");
-  } catch (err) {
-    console.error("[start-packing] API request failed:", err);
-    toast.error("Unable to start packing");
-    const fallback = await refetchOrderFromApi(orderId);
-    console.info("[start-packing] refetched status:", fallback?.status ?? "(none)");
-    return fallback;
-  }
-
-  const freshOrder = await refetchOrderFromApi(orderId);
-  if (!freshOrder) {
-    console.error("[start-packing] refetch failed after update attempt");
-    toast.error("Unable to verify packing status");
-    return null;
-  }
-
-  console.info("[start-packing] refetched status:", freshOrder.status);
-
-  if (!apiOk) {
-    toast.error(apiError ?? "Unable to start packing");
-    return freshOrder;
-  }
-
-  if (normalizeLegacyStatus(freshOrder.status) !== "packing_assigned") {
-    console.warn("[start-packing] update did not persist — still:", freshOrder.status);
-    toast.error("Packing status was not saved to the database");
-    return freshOrder;
-  }
-
-  return freshOrder;
-}
-
 type OrderDetailClientProps = {
   orderId: string;
   storeName: string;
+  /** Admin Settings → Store Information used as shipment FROM. */
+  shippingOrigin: StoreInformationShipmentSource;
 };
 
-export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps) {
+export function OrderDetailClient({
+  orderId,
+  storeName,
+  shippingOrigin
+}: OrderDetailClientProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [reviewCount, setReviewCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,7 +77,9 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
   const [returnRequest, setReturnRequest] = useState<ReturnRequest | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showRapidoGuide, setShowRapidoGuide] = useState(false);
-  const autoPackingInFlightRef = useRef(false);
+  const [assignedDeliveryStaffName, setAssignedDeliveryStaffName] = useState<string | null>(
+    null
+  );
   const { subscribeToOrderChanges, publishOrderSync, seedKnownOrders } = useAdminNotifications();
 
   const displayOrder = useMemo(
@@ -120,53 +89,11 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
 
   const applyFreshOrder = useCallback(
     (fresh: Order, previous?: Order | null) => {
-      console.info("[start-packing] publishOrderSync", {
-        orderId: fresh.id,
-        from: previous?.status ?? null,
-        to: fresh.status
-      });
       setOrder(fresh);
       seedKnownOrders([fresh]);
       publishOrderSync(fresh, previous ?? null);
     },
     [publishOrderSync, seedKnownOrders]
-  );
-
-  const tryAutoStartPacking = useCallback(
-    async (loaded: Order) => {
-      console.info("[start-packing] effect entered");
-      console.info("[start-packing] order id:", loaded.id);
-      console.info("[start-packing] current status:", loaded.status);
-
-      if (normalizeLegacyStatus(loaded.status) !== "confirmed") {
-        console.info("[start-packing] skip — status is not confirmed");
-        return;
-      }
-
-      if (autoPackingInFlightRef.current) {
-        console.info("[start-packing] skip — already in flight");
-        return;
-      }
-
-      autoPackingInFlightRef.current = true;
-      const previous = loaded;
-      setUpdating(true);
-
-      try {
-        const freshOrder = await persistAutoStartPacking(orderId, previous.status);
-        if (!freshOrder) return;
-
-        if (normalizeLegacyStatus(freshOrder.status) === "packing_assigned") {
-          applyFreshOrder(freshOrder, previous);
-        } else {
-          setOrder(freshOrder);
-        }
-      } finally {
-        autoPackingInFlightRef.current = false;
-        setUpdating(false);
-      }
-    },
-    [orderId, applyFreshOrder]
   );
 
   const loadOrder = useCallback(async () => {
@@ -199,14 +126,47 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
       } else {
         setReturnRequest(null);
       }
-
-      if (normalizeLegacyStatus(loaded.status) === "confirmed") {
-        await tryAutoStartPacking(loaded);
-      }
     } finally {
       setLoading(false);
     }
-  }, [orderId, seedKnownOrders, tryAutoStartPacking]);
+  }, [orderId, seedKnownOrders]);
+
+  useEffect(() => {
+    const workerId = displayOrder?.assigned_delivery_worker_id?.trim() ?? "";
+    if (
+      !displayOrder ||
+      !isAssignedDeliveryBoyOutForDelivery(displayOrder) ||
+      !workerId
+    ) {
+      setAssignedDeliveryStaffName(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/delivery-workers", {
+          credentials: "include",
+          cache: "no-store"
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || cancelled) return;
+        const workers = (data.workers as Array<{ user_id?: string; name?: string; display_name?: string }> | undefined) ?? [];
+        const match = workers.find((w) => w.user_id === workerId);
+        const name =
+          (typeof match?.display_name === "string" && match.display_name.trim()) ||
+          (typeof match?.name === "string" && match.name.trim()) ||
+          null;
+        if (!cancelled) setAssignedDeliveryStaffName(name);
+      } catch {
+        if (!cancelled) setAssignedDeliveryStaffName(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayOrder]);
 
   const commitOrderUpdate = useCallback(
     (updated: Order) => {
@@ -220,7 +180,6 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
   );
 
   useEffect(() => {
-    autoPackingInFlightRef.current = false;
     void loadOrder();
   }, [loadOrder]);
 
@@ -341,23 +300,6 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
     }
   };
 
-  const approveOrder = async () => {
-    if (!order) return;
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/admin/orders/${order.id}/approve-order`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error ?? "Failed to approve order");
-        return;
-      }
-      commitOrderUpdate(data.order as Order);
-      toast.success(data.message ?? "Order approved");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   const suggestedRefundReference = useMemo(() => {
     if (!displayOrder) return "REF-2026-001";
     const suffix = displayOrder.order_number.replace(/\D/g, "").slice(-6).padStart(6, "0");
@@ -367,37 +309,59 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
   const primaryAction = displayOrder ? resolveDetailPrimaryAction(displayOrder) : null;
   const isReadyToShip =
     displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "ready_to_ship";
-  const isHandedToCourier =
+  const isShippedCourier =
     displayOrder != null &&
-    (normalizeLegacyStatus(displayOrder.status) === "shipped" ||
-      normalizeLegacyStatus(displayOrder.status) === "out_for_delivery");
+    normalizeLegacyStatus(displayOrder.status) === "shipped" &&
+    displayOrder.fulfillment_method !== "delivery_boy";
+  const isOutForDelivery =
+    displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "out_for_delivery";
+  const isAssignedDeliveryStaffOfd =
+    displayOrder != null && isAssignedDeliveryBoyOutForDelivery(displayOrder);
+  const isDelivered =
+    displayOrder != null && normalizeLegacyStatus(displayOrder.status) === "delivered";
+  const showShipmentFromTo = isShippedCourier || isOutForDelivery || isDelivered;
+  const fromAddressDisplay = formatStoreInformationFromAddressLines(shippingOrigin);
+  const fromDisplayText = fromAddressDisplay.length ? fromAddressDisplay.join("\n") : "—";
+  const lockedCourierLabel = displayOrder
+    ? isFulfillmentMethod(displayOrder.fulfillment_method)
+      ? courierLabelForMethod(displayOrder.fulfillment_method)
+      : resolveOrderCourierName(displayOrder)
+    : "";
+  const lockedFulfillmentMethodLabel =
+    displayOrder != null &&
+    methodLocked(displayOrder) &&
+    isFulfillmentMethod(displayOrder.fulfillment_method)
+      ? courierLabelForMethod(displayOrder.fulfillment_method)
+      : null;
+  const lockedTracking =
+    displayOrder?.tracking_number?.trim() || displayOrder?.tracking_id?.trim() || "";
+  const lockedRapidoDetails =
+    displayOrder && displayOrder.fulfillment_method === "rapido"
+      ? getRapidoDeliveryDetails(displayOrder)
+      : null;
+
+  const fulfillmentZone: FulfillmentZone =
+    displayOrder?.fulfillment_zone === "local" ? "local" : "outstation";
 
   const runPrimaryAction = () => {
     if (!displayOrder || !primaryAction) return;
     switch (primaryAction.type) {
-      case "approve_order":
-        void approveOrder();
-        break;
       case "start_processing":
         void startProcessing();
         break;
       case "start_packing":
-        if (!order) break;
-        setUpdating(true);
-        void persistAutoStartPacking(order.id, order.status).then((freshOrder) => {
-          if (freshOrder) {
-            applyFreshOrder(freshOrder, order);
-            if (normalizeLegacyStatus(freshOrder.status) === "packing_assigned") {
-              toast.success("Packing started");
-            }
-          }
-        }).finally(() => setUpdating(false));
+      case "approve_order":
+        // Approval is email-only; packing is not on the normal admin path.
+        break;
+      case "mark_packed":
+        // Legacy in-flight packing orders only.
+        void runFulfillmentAction("pack", "Order marked packed");
         break;
       case "ready_for_shipping":
         void runFulfillmentAction("ready-for-shipping", "Order marked ready for shipping");
         break;
       case "mark_shipped":
-        void runFulfillmentAction("mark-shipped", "Order marked as shipped");
+        // Handled by FulfillmentMethodChooser on ready_to_ship.
         break;
       case "mark_delivered":
         void runFulfillmentAction("mark-delivered", "Order marked as delivered");
@@ -409,6 +373,14 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
         break;
     }
   };
+
+  const showPrimaryInHeader =
+    !isReadyToShip &&
+    primaryAction != null &&
+    primaryAction.type !== "view" &&
+    primaryAction.type !== "approve_order" &&
+    primaryAction.type !== "start_packing" &&
+    primaryAction.type !== "mark_shipped";
 
   const addr = displayOrder?.shipping_address;
   const showRefundEligible =
@@ -430,46 +402,170 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
               <OrderDetailHeader
                 order={displayOrder}
                 primaryActionLabel={
-                  !isReadyToShip && primaryAction && primaryAction.type !== "view"
-                    ? primaryAction.label
-                    : undefined
+                  showPrimaryInHeader ? primaryAction?.label : undefined
                 }
-                onPrimaryAction={
-                  !isReadyToShip && primaryAction && primaryAction.type !== "view"
-                    ? runPrimaryAction
-                    : undefined
-                }
+                onPrimaryAction={showPrimaryInHeader ? runPrimaryAction : undefined}
                 primaryActionDisabled={updating}
               />
 
-              {isHandedToCourier ? (
+              {isShippedCourier ? (
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                   <p className="text-sm font-semibold text-emerald-900">Handed to Courier</p>
                   <p className="mt-1 text-sm text-emerald-800">
-                    {storeName} responsibility is complete. Rapido or DTDC handles delivery from
-                    here.
+                    {storeName} responsibility is complete.{" "}
+                    {displayOrder.fulfillment_method === "dtdc" ? "DTDC" : "Rapido"} handles
+                    delivery from here.
                   </p>
+                  {lockedFulfillmentMethodLabel ? (
+                    <p className="mt-2 text-sm font-medium text-emerald-950">
+                      Delivery Method: {lockedFulfillmentMethodLabel} · Locked
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {isOutForDelivery ? (
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-sky-900">Out for Delivery</p>
+                  {isAssignedDeliveryStaffOfd ? (
+                    <>
+                      <p className="mt-1 text-sm text-sky-800">
+                        Assigned to:{" "}
+                        <span className="font-medium text-sky-950">
+                          {assignedDeliveryStaffName?.trim() || "Delivery Staff"}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-sm text-sky-800">
+                        Delivery staff will complete delivery using the customer OTP.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-sm text-sky-800">
+                      Assigned to delivery staff. They will mark the order delivered on arrival.
+                    </p>
+                  )}
+                  {lockedFulfillmentMethodLabel ? (
+                    <p className="mt-2 text-sm font-medium text-sky-950">
+                      Delivery Method: {lockedFulfillmentMethodLabel} · Locked
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
 
               {isReadyToShip ? (
-                <div className="flex flex-wrap justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowRapidoGuide(true)}
-                    className="rounded-xl border-2 border-gold bg-white px-4 py-2 text-sm font-semibold text-maroon shadow-sm hover:bg-gold/10"
-                  >
-                    🛵 How to Book Rapido Parcel
-                  </button>
-                  <button
-                    type="button"
+                <div className="space-y-3">
+                  <FulfillmentMethodChooser
+                    order={displayOrder}
+                    zone={fulfillmentZone}
+                    shippingOrigin={shippingOrigin}
                     disabled={updating}
-                    onClick={runPrimaryAction}
-                    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    🚚 Mark Shipped
-                  </button>
+                    onOpenRapidoGuide={
+                      fulfillmentZone === "local" ? () => setShowRapidoGuide(true) : undefined
+                    }
+                    onUpdated={(fresh) => {
+                      applyFreshOrder(fresh, order);
+                      if (normalizeLegacyStatus(fresh.status) === "shipped") {
+                        triggerPostShipSideEffects(fresh.id);
+                      }
+                    }}
+                  />
                 </div>
+              ) : null}
+
+              {showShipmentFromTo ? (
+                <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                    Shipment details
+                  </h2>
+                  <dl className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
+                    {lockedFulfillmentMethodLabel ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Delivery Method
+                        </dt>
+                        <dd className="mt-1 font-medium text-gray-900">
+                          {lockedFulfillmentMethodLabel} · Locked
+                        </dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Courier
+                      </dt>
+                      <dd className="mt-1 text-gray-900">{lockedCourierLabel || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Tracking Number
+                      </dt>
+                      <dd className="mt-1 font-mono text-gray-900">
+                        {lockedTracking || "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        From
+                      </dt>
+                      <dd className="mt-1 whitespace-pre-line text-gray-900">{fromDisplayText}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        To
+                      </dt>
+                      <dd className="mt-1 whitespace-pre-line text-gray-900">
+                        {formatShippingAddress(displayOrder)}
+                      </dd>
+                    </div>
+                    {lockedRapidoDetails ? (
+                      <>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Rider Name
+                          </dt>
+                          <dd className="mt-1 text-gray-900">
+                            {lockedRapidoDetails.rider_name?.trim() || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Rider Phone
+                          </dt>
+                          <dd className="mt-1 text-gray-900">
+                            {lockedRapidoDetails.rider_phone?.trim() || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Vehicle Number
+                          </dt>
+                          <dd className="mt-1 text-gray-900">
+                            {lockedRapidoDetails.vehicle_number?.trim() || "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Pickup Time
+                          </dt>
+                          <dd className="mt-1 text-gray-900">
+                            {lockedRapidoDetails.pickup_time
+                              ? formatPickupTimeDisplay(lockedRapidoDetails.pickup_time) || "—"
+                              : "—"}
+                          </dd>
+                        </div>
+                        {lockedRapidoDetails.notes?.trim() ? (
+                          <div className="sm:col-span-2">
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                              Notes
+                            </dt>
+                            <dd className="mt-1 whitespace-pre-line text-gray-900">
+                              {lockedRapidoDetails.notes.trim()}
+                            </dd>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </dl>
+                </section>
               ) : null}
 
               <div className="flex justify-end">
@@ -515,6 +611,22 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
                           }}
                         >
                           Process refund
+                        </button>
+                      ) : null}
+                      {isAssignedDeliveryStaffOfd ? (
+                        <button
+                          type="button"
+                          disabled={updating}
+                          className="block w-full px-3 py-2 text-left text-sm text-amber-900 hover:bg-amber-50 disabled:opacity-50"
+                          onClick={() => {
+                            setMenuOpen(false);
+                            void runFulfillmentAction(
+                              "mark-delivered",
+                              "Order marked as delivered"
+                            );
+                          }}
+                        >
+                          Admin Override: Mark Delivered
                         </button>
                       ) : null}
                     </div>
@@ -579,7 +691,7 @@ export function OrderDetailClient({ orderId, storeName }: OrderDetailClientProps
         </div>
       </div>
 
-      {displayOrder && isReadyToShip ? (
+      {displayOrder && isReadyToShip && fulfillmentZone === "local" ? (
         <RapidoGuideModal
           open={showRapidoGuide}
           onClose={() => setShowRapidoGuide(false)}

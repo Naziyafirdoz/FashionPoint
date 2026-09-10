@@ -103,12 +103,43 @@ export async function sendOrderConfirmation(params: {
     return;
   }
 
-  const template = params.order
-    ? await buildCustomerOrderConfirmedEmail(params.order)
-    : await buildCustomerOrderConfirmedEmailSimple({
+  let template: { subject: string; html: string };
+  try {
+    if (params.order) {
+      const { renderCustomerOrderEmailFromTemplate } = await import(
+        "@/lib/server/notifications/email-template-system"
+      );
+      template = await renderCustomerOrderEmailFromTemplate(
+        "order_confirmation",
+        params.order,
+        { db }
+      );
+    } else {
+      template = await buildCustomerOrderConfirmedEmailSimple({
         orderNumber: params.orderNumber,
         total: params.total
       });
+    }
+  } catch (buildErr) {
+    console.warn("[sendOrderConfirmation] template build failed — using simple fallback", {
+      orderId: orderId ?? null,
+      orderNumber: params.orderNumber,
+      error: buildErr instanceof Error ? buildErr.message : String(buildErr)
+    });
+    try {
+      template = params.order
+        ? await buildCustomerOrderConfirmedEmail(params.order)
+        : await buildCustomerOrderConfirmedEmailSimple({
+            orderNumber: params.orderNumber,
+            total: params.total
+          });
+    } catch {
+      template = await buildCustomerOrderConfirmedEmailSimple({
+        orderNumber: params.orderNumber,
+        total: params.total
+      });
+    }
+  }
 
   try {
     await resend.emails.send({

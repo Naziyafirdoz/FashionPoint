@@ -46,6 +46,17 @@ export async function processDeliveredNotification(
   }
 
   const normalized = await normalizeOrderRecord(db, order as Order, { persist: false });
+
+  // Delivered customer email is only for Delivery Staff (delivery_boy).
+  // Rapido/DTDC end at the shipping/dispatch email — do not send Delivered.
+  if (normalized.fulfillment_method !== "delivery_boy") {
+    console.info("[delivered-email] skipped — not delivery staff fulfillment", {
+      orderId,
+      fulfillment_method: normalized.fulfillment_method ?? null
+    });
+    return { ok: true, result: "skipped" };
+  }
+
   const result = await sendDeliveredCustomerEmail(db, normalized);
   return { ok: true, result };
 }
