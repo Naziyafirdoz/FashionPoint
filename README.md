@@ -8,9 +8,11 @@
 
 Production e-commerce platform for **Fashion Point** — a premium readymade Indian blouse storefront with admin operations, order fulfillment, and AI-assisted shopping tools. Fashion Point copy in `src/lib/site-config.ts` is the **reusable template default** for a single-client-at-a-time white-label deployment.
 
+**Project background:** FashionPoint was originally designed and developed by the author as a client project for a family business. That business has since been discontinued, and the application is now maintained publicly as a portfolio project to demonstrate the author's full-stack development work.
+
 **New client (Client #2):** do not clone Fashion Point production data or copy production environment variables. Follow **[docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md](docs/WHITE_LABEL_CLIENT_2_RUNBOOK.md)** (isolation, env matrix, URL precedence, migrations, Auth, smoke tests).
 
-**License:** Private Client Project — proprietary software. Not licensed for redistribution or public use without written permission from the client.
+**License:** See [License](#license) below.
 
 ---
 
@@ -508,9 +510,11 @@ flowchart LR
 
 ## License
 
-**Private Client Project**
+**© Naziya. All rights reserved.**
 
-This repository and all associated code, design assets, and documentation are proprietary to the client. Unauthorized copying, distribution, or commercial use is prohibited without explicit written consent.
+This application was designed and developed solely by the author. It was originally built as a first client project for a family business; there was no written agreement transferring ownership of the source code, and that business has since been discontinued. The project is now maintained publicly by the author as a portfolio piece to demonstrate her development work.
+
+This repository is shared for portfolio and review purposes. Reuse, redistribution, or commercial use of this code is not permitted without the author's permission.
 
 ---
 
